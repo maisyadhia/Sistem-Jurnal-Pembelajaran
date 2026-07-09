@@ -81,7 +81,8 @@
         </div>
         
         <!-- Quick Action Card -->
-        <div class="col-span-12 lg:col-span-4 bg-primary text-on-primary rounded-xl p-6 flex flex-col justify-between group cursor-pointer hover:bg-primary-container transition-all stat-card" onclick="window.location.href='{{ route('report.export') }}'">
+        <div class="col-span-12 lg:col-span-4 bg-primary text-on-primary rounded-xl p-6 flex flex-col justify-between group cursor-pointer hover:bg-primary-container transition-all stat-card" 
+            onclick="window.location.href='{{ route('report.export') }}?format=pdf'">
             <div class="flex justify-between">
                 <span class="material-symbols-outlined text-4xl">rocket_launch</span>
                 <span class="material-symbols-outlined opacity-50 group-hover:translate-x-1 transition-transform">arrow_forward</span>

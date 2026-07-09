@@ -47,6 +47,9 @@ Route::middleware(['auth.session', 'role:admin,humas'])->prefix('admin')->group(
     
     // Generate Report
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
+    // Generate Report
+    Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
+    Route::get('/report/export-pdf', [HumasMonitoringController::class, 'exportReport'])->name('report.export.pdf');
 });
 
 // ============ REMIND TEACHER ============
