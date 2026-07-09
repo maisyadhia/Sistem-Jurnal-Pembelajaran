@@ -49,6 +49,21 @@
             
             <!-- Page Content -->
             <div class="p-margin-mobile md:p-margin-desktop max-w-container-max mx-auto w-full flex-1">
+                <!-- Flash Messages -->
+                @if(session('success'))
+                    <div class="bg-secondary-container text-on-secondary-container px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        <span>{{ session('success') }}</span>
+                    </div>
+                @endif
+                
+                @if($errors->any())
+                    <div class="bg-error-container text-on-error-container px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
+                        <span class="material-symbols-outlined">error</span>
+                        <span>{{ $errors->first() }}</span>
+                    </div>
+                @endif
+                
                 @yield('content')
             </div>
         </main>

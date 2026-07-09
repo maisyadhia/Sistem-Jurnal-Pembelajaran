@@ -3,12 +3,12 @@
         <button class="md:hidden p-2 hover:bg-surface-container-low rounded-full" onclick="toggleSidebar()">
             <span class="material-symbols-outlined">menu</span>
         </button>
-        <div class="flex items-center gap-2">
+        <a href="{{ route('dashboard') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <span class="material-symbols-outlined text-primary">calendar_today</span>
             <span class="font-data-tabular text-data-tabular text-on-surface-variant">
                 {{ now()->locale('id')->isoFormat('dddd, D MMM YYYY') }}
             </span>
-        </div>
+        </a>
     </div>
     
     <div class="flex items-center gap-6">
@@ -35,8 +35,10 @@
                         @if(session('user_role') == 'parent')
                             Wali Murid
                         @elseif(session('user_role') == 'admin')
-                            Admin Humas
-                        @elseif(session('user_role') == 'teacher')
+                            Admin
+                        @elseif(session('user_role') == 'humas')
+                            Humas
+                        @elseif(session('user_role') == 'guru')
                             Guru
                         @else
                             Pengguna
@@ -44,7 +46,7 @@
                     </p>
                 </div>
                 <img class="w-10 h-10 rounded-full border-2 border-primary-fixed object-cover" 
-                     src="{{ asset('images/default-avatar.png') }}" 
+                     src="https://ui-avatars.com/api/?name={{ urlencode(session('user_name', 'User')) }}&background=00236f&color=ffffff&size=40" 
                      alt="{{ session('user_name', 'User') }}"/>
             </div>
         </div>

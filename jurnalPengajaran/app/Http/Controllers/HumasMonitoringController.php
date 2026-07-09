@@ -24,4 +24,12 @@ class HumasMonitoringController extends Controller
 
         return view('humas.monitoring', compact('unreportedClasses', 'dataMaster', 'totalDataMaster'));
     }
+    public function remindTeacher(Request $request)
+    {
+        // Simulate sending notification
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengingat berhasil dikirim ke ' . $request->teacher
+        ]);
+    }
 }

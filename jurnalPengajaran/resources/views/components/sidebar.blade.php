@@ -6,20 +6,32 @@
         <div>
             <h1 class="font-headline-md text-headline-md text-primary leading-tight">E-Jurnal</h1>
             <p class="text-[10px] font-label-caps uppercase tracking-widest text-on-surface-variant opacity-70">
-                {{ Auth::user()->role ?? 'Administrasi Terpadu' }}
+                {{ session('admin_role') ?? session('user_role') ?? 'Administrasi Terpadu' }}
             </p>
         </div>
     </div>
     
     <nav class="flex-1 space-y-1">
         @php
-            $menuItems = [
-                ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
-                ['route' => 'jurnal', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar'],
-                ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring'],
-                ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master'],
-                ['route' => 'laporan', 'icon' => 'description', 'label' => 'Laporan'],
-            ];
+            $role = session('user_role');
+            $menuItems = [];
+            
+            if ($role === 'admin' || $role === 'humas') {
+                $menuItems = [
+                    ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring'],
+                    ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master'],
+                    ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan'],
+                ];
+            } elseif ($role === 'guru') {
+                $menuItems = [
+                    ['route' => 'jurnal', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar'],
+                    ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
+                ];
+            } elseif ($role === 'parent') {
+                $menuItems = [
+                    ['route' => 'dashboard.timeline', 'icon' => 'dashboard', 'label' => 'Timeline'],
+                ];
+            }
         @endphp
         
         @foreach($menuItems as $item)
