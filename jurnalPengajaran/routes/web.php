@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HumasMonitoringController;
 use App\Http\Controllers\GuruJurnalController;
+use App\Http\Controllers\GuruDashboardController;
 use App\Http\Controllers\Admin\DataMasterController;
 
 // Guest Routes
@@ -24,7 +25,7 @@ Route::middleware(['auth.session'])->group(function () {
         if ($role === 'admin' || $role === 'humas') {
             return redirect()->route('monitoring');
         } elseif ($role === 'guru') {
-            return redirect()->route('jurnal');
+            return redirect()->route('guru.dashboard');
         } elseif ($role === 'parent') {
             return redirect()->route('dashboard.timeline');
         }
@@ -47,8 +48,6 @@ Route::middleware(['auth.session', 'role:admin,humas'])->prefix('admin')->group(
     
     // Generate Report
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
-    // Generate Report
-    Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
     Route::get('/report/export-pdf', [HumasMonitoringController::class, 'exportReport'])->name('report.export.pdf');
 });
 
@@ -57,7 +56,11 @@ Route::post('/remind-teacher', [HumasMonitoringController::class, 'remindTeacher
 
 // ============ GURU ROUTES ============
 Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function () {
-    Route::get('/jurnal', [GuruJurnalController::class, 'index'])->name('jurnal');
+    // Halaman Pilihan Ruang Kelas & Mapel (Sesuai Gambar Baru)
+    Route::get('/dashboard', [GuruDashboardController::class,'index'])->name('guru.dashboard');
+    
+    // Halaman Input Form Jurnal Utama
+    Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('jurnal');
     Route::post('/jurnal', [GuruJurnalController::class, 'store'])->name('guru.jurnal.store');
 });
 

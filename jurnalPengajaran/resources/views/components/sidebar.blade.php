@@ -18,28 +18,34 @@
             
             if ($role === 'admin' || $role === 'humas') {
                 $menuItems = [
-                    ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring'],
-                    ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master'],
-                    ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan'],
+                    ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'param' => ''],
+                    ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'param' => ''],
+                    ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan', 'param' => ''],
                 ];
             } elseif ($role === 'guru') {
                 $menuItems = [
-                    ['route' => 'jurnal', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar'],
-                    ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
+                    // Kita bedakan parameternya atau deteksi jalurnya agar warna active state tidak tabrakan
+                    ['route' => 'guru.dashboard', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar', 'match' => 'guru/jurnal*'],
+                    ['route' => 'guru.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'match' => 'guru/dashboard'],
                 ];
             } elseif ($role === 'parent') {
                 $menuItems = [
-                    ['route' => 'dashboard.timeline', 'icon' => 'dashboard', 'label' => 'Timeline'],
+                    ['route' => 'dashboard.timeline', 'icon' => 'dashboard', 'label' => 'Timeline', 'match' => 'parent/*'],
                 ];
             }
         @endphp
         
         @foreach($menuItems as $item)
+            @php
+                // Cek status aktif menggunakan request()->is() berdasarkan pola URL agar lebih akurat jika route-nya sama
+                $isActive = isset($item['match']) ? request()->is($item['match']) : request()->routeIs($item['route']);
+            @endphp
+
             <a href="{{ route($item['route']) }}" 
                class="flex items-center gap-3 px-3 py-2.5 transition-all group rounded-lg
-                      {{ request()->routeIs($item['route']) ? 'bg-secondary-container text-on-secondary-container font-bold' : 'text-on-surface-variant hover:bg-surface-container-high' }}">
+                      {{ $isActive ? 'bg-secondary-container text-on-secondary-container font-bold' : 'text-on-surface-variant hover:bg-surface-container-high' }}">
                 <span class="material-symbols-outlined group-hover:translate-x-1 duration-200 
-                             {{ request()->routeIs($item['route']) ? 'text-on-secondary-container' : '' }}">
+                             {{ $isActive ? 'text-on-secondary-container' : '' }}">
                     {{ $item['icon'] }}
                 </span>
                 <span class="font-label-caps text-label-caps uppercase">{{ $item['label'] }}</span>

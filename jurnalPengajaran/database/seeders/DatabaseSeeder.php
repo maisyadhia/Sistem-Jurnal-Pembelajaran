@@ -7,36 +7,36 @@ use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // Disable foreign key checks
+        // 1. Jalankan seeder baru kita yang sudah sinkron dengan jadwal Excel
+        $this->call([
+            GuruSeeder::class,
+            KelasSeeder::class,
+            MapelSeeder::class,
+            JadwalPelajaranSeeder::class,
+        ]);
+        
+        // 2. Disable foreign key checks untuk proses pembersihan data lama
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
         
-        // Truncate tables in correct order
-        \App\Models\Jurnal::truncate();
-        \App\Models\Note::truncate();
-        \App\Models\Activity::truncate();
-        \App\Models\DataMaster::truncate();
-        \App\Models\UnreportedClass::truncate();
-        \App\Models\Student::truncate();
+        // Truncate tabel-tabel bawaan agar bersih
+        if (class_exists(\App\Models\Jurnal::class)) \App\Models\Jurnal::truncate();
+        if (class_exists(\App\Models\Note::class)) \App\Models\Note::truncate();
+        if (class_exists(\App\Models\Activity::class)) \App\Models\Activity::truncate();
+        if (class_exists(\App\Models\UnreportedClass::class)) \App\Models\UnreportedClass::truncate();
+        if (class_exists(\App\Models\Student::class)) \App\Models\Student::truncate();
         
-        // Enable foreign key checks
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        // Call seeders
+        // 3. Panggil seeder pelengkap lainnya yang tidak tabrakan
+        // CATATAN: DataMasterSeeder KITA MATIKAN/HAPUS karena sudah digantikan oleh EJurnalMasterSeeder
         $this->call([
             AdminSeeder::class,
             StudentSeeder::class,
-            DataMasterSeeder::class,
             UnreportedClassSeeder::class,
         ]);
 
         $this->command->info('✅ Database seeded successfully!');
-        $this->command->info('');
-        $this->command->info('📝 Login credentials:');
-        $this->command->info('  👨‍💼 Admin (Kepala Madrasah): NIK=197811272005011002, Password=admin123');
-        $this->command->info('  👨‍💼 Humas: NIK=198301062006042012, Password=humas123');
-        $this->command->info('  👨‍🏫 Guru: NIK=199107312025051003, Password=guru123');
-        $this->command->info('  👨‍👩‍👦 Wali Murid: NISN=1234567890, DOB=2007-05-15');
     }
 }
