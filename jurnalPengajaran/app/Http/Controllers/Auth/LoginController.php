@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use App\Models\Admin;
 use App\Models\Guru;
@@ -49,6 +48,7 @@ class LoginController extends Controller
         }
 
         // Login sebagai Admin/Guru menggunakan NIK
+        // Cek di tabel admins dulu
         $admin = Admin::where('nik', $request->nik)
                       ->where('role', $request->role)
                       ->first();
@@ -70,31 +70,20 @@ class LoginController extends Controller
                 return redirect()->route('guru.dashboard');
             }
         }
-        // Jika admin tidak cocok, coba login sebagai Guru
+
+        // Jika tidak ditemukan di admins, coba di tabel guru
         $guru = Guru::where('nik', $request->nik)
-                    ->where('role', $request->role)
                     ->first();
 
         if ($guru && password_verify($request->password, $guru->password)) {
             Session::flush();
-
             Session::put('guru_id', $guru->id);
-            // some guru records use nama_guru, fallback to name
-            $guruName = $guru->nama_guru ?? $guru->name ?? '';
-            Session::put('guru_name', $guruName);
-
-            Session::put('user_role', $guru->role);
-            Session::put('user_name', $guruName);
-
+            Session::put('guru_name', $guru->nama_guru ?? $guru->name ?? '');
+            Session::put('user_role', 'guru');
+            Session::put('user_name', $guru->nama_guru ?? $guru->name ?? '');
             Session::put('is_logged_in', true);
 
-            if ($guru->role == 'admin' || $guru->role == 'humas') {
-                return redirect()->route('monitoring');
-            }
-
-            if ($guru->role == 'guru') {
-                return redirect()->route('guru.dashboard');
-            }
+            return redirect()->route('guru.dashboard');
         }
 
         return back()->withErrors([

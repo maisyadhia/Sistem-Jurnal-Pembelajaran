@@ -18,30 +18,29 @@
             
             if ($role === 'admin' || $role === 'humas') {
                 $menuItems = [
-                    ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'param' => ''],
-                    ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'param' => ''],
-                    ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan', 'param' => ''],
+                    ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'params' => []],
+                    ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'params' => []],
+                    ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan', 'params' => ['format' => 'pdf']],
                 ];
             } elseif ($role === 'guru') {
+                // Untuk guru, hanya tampilkan dashboard, bukan jurnal langsung
                 $menuItems = [
-                    // Kita bedakan parameternya atau deteksi jalurnya agar warna active state tidak tabrakan
-                    ['route' => 'guru.dashboard', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar', 'match' => 'guru/jurnal*'],
-                    ['route' => 'guru.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'match' => 'guru/dashboard'],
+                    ['route' => 'guru.dashboard', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar', 'params' => []],
+                    ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'params' => []],
                 ];
             } elseif ($role === 'parent') {
                 $menuItems = [
-                    ['route' => 'dashboard.timeline', 'icon' => 'dashboard', 'label' => 'Timeline', 'match' => 'parent/*'],
+                    ['route' => 'dashboard.timeline', 'icon' => 'dashboard', 'label' => 'Timeline', 'params' => []],
                 ];
             }
         @endphp
         
         @foreach($menuItems as $item)
             @php
-                // Cek status aktif menggunakan request()->is() berdasarkan pola URL agar lebih akurat jika route-nya sama
-                $isActive = isset($item['match']) ? request()->is($item['match']) : request()->routeIs($item['route']);
+                $isActive = request()->routeIs($item['route']);
             @endphp
 
-            <a href="{{ route($item['route']) }}" 
+            <a href="{{ route($item['route'], $item['params'] ?? []) }}" 
                class="flex items-center gap-3 px-3 py-2.5 transition-all group rounded-lg
                       {{ $isActive ? 'bg-secondary-container text-on-secondary-container font-bold' : 'text-on-surface-variant hover:bg-surface-container-high' }}">
                 <span class="material-symbols-outlined group-hover:translate-x-1 duration-200 

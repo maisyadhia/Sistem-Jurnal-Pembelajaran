@@ -181,14 +181,19 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onclick="window.location.href='{{ route('data-master.edit', $item->id) }}'" 
-                                                class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+                                        <a href="{{ route('data-master.edit', $item->id) }}" 
+                                           class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
                                             <span class="material-symbols-outlined text-lg">edit</span>
-                                        </button>
-                                        <button onclick="confirmDelete({{ $item->id }})" 
-                                                class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
-                                            <span class="material-symbols-outlined text-lg">delete</span>
-                                        </button>
+                                        </a>
+                                        <form method="POST" action="{{ route('data-master.destroy', $item->id) }}" 
+                                              class="inline-block" 
+                                              onsubmit="return confirmDelete({{ $item->id }})">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
+                                                <span class="material-symbols-outlined text-lg">delete</span>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -219,7 +224,7 @@
 </div>
 
 <!-- FAB -->
-<button class="fixed bottom-8 right-8 w-14 h-14 bg-secondary text-on-secondary rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-50 group" onclick="window.location.href='{{ route('jurnal') }}'">
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-secondary text-on-secondary rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-50 group" onclick="window.location.href='{{ route('guru.dashboard') }}'">
     <span class="material-symbols-outlined text-2xl group-hover:rotate-90 transition-transform duration-300">add</span>
     <span class="absolute right-16 bg-on-background text-white px-3 py-1.5 rounded-lg text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Input Jurnal Cepat</span>
 </button>
@@ -278,25 +283,10 @@
             }
         });
     });
-
+    
     // Delete confirmation
-    <!-- Bagian Delete Button di tabel -->
-    <td class="px-6 py-4 text-right">
-        <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <a href="{{ route('data-master.edit', $item->id) }}" 
-            class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
-                <span class="material-symbols-outlined text-lg">edit</span>
-            </a>
-            <form method="POST" action="{{ route('data-master.destroy', $item->id) }}" 
-                class="inline-block" 
-                onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
-                    <span class="material-symbols-outlined text-lg">delete</span>
-                </button>
-            </form>
-        </div>
-    </td>
+    function confirmDelete(id) {
+        return confirm('Apakah Anda yakin ingin menghapus data ini?');
+    }
 </script>
 @endpush

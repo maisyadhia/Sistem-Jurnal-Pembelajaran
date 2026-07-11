@@ -29,24 +29,6 @@ class AdminSeeder extends Seeder
                 'phone' => '081234567891',
                 'position' => 'Korbid Kurikulum',
             ],
-            [
-                'nik' => '199107312025051003',
-                'name' => 'Dwi Sulistyo Widayanto, S.Pd',
-                'email' => 'dwi@min2malang.sch.id',
-                'password' => Hash::make('guru123'),
-                'role' => 'guru',
-                'phone' => '081234567892',
-                'position' => 'Guru Penjasorkes',
-            ],
-            [
-                'nik' => '198501152023211017',
-                'name' => 'Bahtiar Ilmi Yanuar Atmojo, S.Kom.',
-                'email' => 'bahtiar@min2malang.sch.id',
-                'password' => Hash::make('guru123'),
-                'role' => 'guru',
-                'phone' => '081234567893',
-                'position' => 'Guru TIK',
-            ],
         ];
 
         foreach ($admins as $admin) {

@@ -5,12 +5,24 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 
 class GuruJurnalController extends Controller
 {
     public function index($kelas_id, $mapel_id)
     {
+        // Coba dapatkan guru_id dari session
         $guruId = session('guru_id');
+        
+        // Jika tidak ada, coba dari admin session
+        if (!$guruId) {
+            $guruId = session('admin_id');
+        }
+        
+        // Jika masih tidak ada, redirect ke login
+        if (!$guruId) {
+            return redirect()->route('login')->withErrors('Sesi berakhir, silakan login kembali.');
+        }
 
         $hari = Carbon::now()
                 ->locale('id')
@@ -28,11 +40,17 @@ class GuruJurnalController extends Controller
             ->where('jadwals.hari', $hari)
             ->first();
 
-        // 2. Ambil daftar siswa yang berada di kelas ini untuk ditampilkan di dropdown multiselect
+        // 2. Ambil daftar siswa yang berada di kelas ini
         $daftar_siswa = DB::table('students')
             ->where('class', $jadwal ? $jadwal->nama_kelas : '')
             ->orderBy('name')
             ->get();
+
+        // Jika tidak ada jadwal, redirect ke dashboard guru
+        if (!$jadwal) {
+            return redirect()->route('guru.dashboard')
+                ->with('warning', 'Tidak ada jadwal untuk kelas dan mata pelajaran ini pada hari ' . $hari);
+        }
 
         return view(
             'guru.jurnal',
@@ -53,12 +71,16 @@ class GuruJurnalController extends Controller
             'topic' => 'required|string|min:10',
             'next_target' => 'required|string|min:10',
         ], [
-            'topic.required' => 'Bahasan hari ini wajib diisi woy!',
-            'topic.min' => 'Bahasan hari ini minimal 10 karakter ya.',
+            'topic.required' => 'Bahasan hari ini wajib diisi!',
+            'topic.min' => 'Bahasan hari ini minimal 10 karakter!',
             'next_target.required' => 'Target pertemuan berikutnya wajib diisi!',
         ]);
 
         $guruId = session('guru_id');
+        if (!$guruId) {
+            $guruId = session('admin_id');
+        }
+
         $hari = Carbon::now()->locale('id')->translatedFormat('l');
 
         $jadwal = DB::table('jadwals')
@@ -68,7 +90,7 @@ class GuruJurnalController extends Controller
             ->where('hari', $hari)
             ->first();
 
-        // 💡 PROSES STRUKTUR DATA BARU (Menggabungkan ID, Status, dan Catatan Anak)
+        // Proses data siswa
         $laporanSiswa = [];
         if ($request->has('student_ids')) {
             foreach ($request->student_ids as $s_id) {
@@ -80,7 +102,6 @@ class GuruJurnalController extends Controller
             }
         }
 
-        // Cek apakah ada yang absen (Sakit/Izin/Alpha) untuk menggantikan checkbox lama
         $adaAbsen = 0;
         foreach ($laporanSiswa as $ls) {
             if ($ls['status'] !== 'Hadir') {
@@ -89,20 +110,16 @@ class GuruJurnalController extends Controller
             }
         }
 
-        // Masukkan paket data utuh ke tabel jurnals
         DB::table('jurnals')->insert([
             'kelas_id' => $request->kelas_id,
             'mapel_id' => $request->mapel_id,
-            
-            // Kolom ini sekarang menyimpan list anak, status absen, dan catatan spesifiknya woy!
-            'student_ids' => !empty($laporanSiswa) ? json_encode($laporanSiswa) : null, 
-            
+            'student_ids' => !empty($laporanSiswa) ? json_encode($laporanSiswa) : null,
             'jam_ke' => $jadwal ? $jadwal->jam_ke : 1,
             'materi' => $request->topic,
             'target_next' => $request->next_target,
-            'catatan_perkembangan' => null, // Sudah pindah ke dalam struktur JSON per siswa
+            'catatan_perkembangan' => null,
             'rpp_sesuai' => $request->has('rpp_completed') ? 1 : 0,
-            'ada_absen' => $adaAbsen, // Otomatis bernilai 1 jika ada anak yang tidak hadir
+            'ada_absen' => $adaAbsen,
             'tanggal' => Carbon::today(),
             'created_at' => now(),
             'updated_at' => now(),

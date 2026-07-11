@@ -8,16 +8,17 @@ use App\Http\Controllers\GuruJurnalController;
 use App\Http\Controllers\GuruDashboardController;
 use App\Http\Controllers\Admin\DataMasterController;
 
-// Guest Routes
-Route::get('/', function () {
-    return redirect()->route('login');
-});
-
+// ============ GUEST ROUTES ============
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 
-// ============ ROUTES UNTUK SEMUA ROLE ============
+// ============ ROUTES UNTUK SEMUA ROLE (AUTHENTICATED) ============
 Route::middleware(['auth.session'])->group(function () {
+    // Root redirect ke dashboard
+    Route::get('/', function () {
+        return redirect()->route('dashboard');
+    });
+    
     // Dashboard redirect berdasarkan role
     Route::get('/dashboard', function () {
         $role = session('user_role');
@@ -48,7 +49,6 @@ Route::middleware(['auth.session', 'role:admin,humas'])->prefix('admin')->group(
     
     // Generate Report
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
-    Route::get('/report/export-pdf', [HumasMonitoringController::class, 'exportReport'])->name('report.export.pdf');
 });
 
 // ============ REMIND TEACHER ============
@@ -56,10 +56,10 @@ Route::post('/remind-teacher', [HumasMonitoringController::class, 'remindTeacher
 
 // ============ GURU ROUTES ============
 Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function () {
-    // Halaman Pilihan Ruang Kelas & Mapel (Sesuai Gambar Baru)
-    Route::get('/dashboard', [GuruDashboardController::class,'index'])->name('guru.dashboard');
+    // Halaman Pilihan Ruang Kelas & Mapel
+    Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('guru.dashboard');
     
-    // Halaman Input Form Jurnal Utama
+    // Halaman Input Form Jurnal Utama (membutuhkan parameter)
     Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('jurnal');
     Route::post('/jurnal', [GuruJurnalController::class, 'store'])->name('guru.jurnal.store');
 });

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 
 class GuruDashboardController extends Controller
 {
@@ -12,7 +13,12 @@ class GuruDashboardController extends Controller
         $guruId = session('guru_id');
 
         if (!$guruId) {
-            return redirect()->route('login');
+            // Try to get from admin session if using Admin model
+            if (session('admin_id')) {
+                $guruId = session('admin_id');
+            } else {
+                return redirect()->route('login');
+            }
         }
 
         // 1. Ambil daftar kelas unik untuk $daftar_kelas
@@ -32,6 +38,12 @@ class GuruDashboardController extends Controller
             ->distinct()
             ->orderBy('mapel_master.nama_mapel')
             ->get();
+
+        // Jika tidak ada data jadwal, tampilkan pesan
+        if ($daftar_kelas->isEmpty()) {
+            return view('guru.dashboard', compact('daftar_kelas', 'daftar_mapel'))
+                ->with('warning', 'Belum ada jadwal yang ditugaskan untuk Anda.');
+        }
 
         return view('guru.dashboard', compact('daftar_kelas', 'daftar_mapel'));
     }
