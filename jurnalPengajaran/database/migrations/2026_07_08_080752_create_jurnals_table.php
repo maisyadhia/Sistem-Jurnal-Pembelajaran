@@ -10,15 +10,26 @@ return new class extends Migration
     {
         Schema::create('jurnals', function (Blueprint $table) {
             $table->id();
-            $table->integer('teacher_id');
-            $table->date('date');
-            $table->string('class');
-            $table->string('subject');
-            $table->string('time');
-            $table->text('topic');
-            $table->text('next_target');
-            $table->boolean('rpp_completed')->default(false);
-            $table->boolean('absent_students')->default(false);
+            
+            // Relasi Identitas Pengajaran
+            $table->unsignedBigInteger('guru_id');
+            $table->unsignedBigInteger('kelas_id');
+            $table->unsignedBigInteger('mapel_id');
+            
+            // Kolom penampung data absensi & catatan kustom per siswa (Format JSON) woy!
+            $table->json('student_id')->nullable(); 
+            
+            // Detail Informasi Pengajaran
+            $table->integer('jam_ke')->default(1);
+            $table->text('materi'); // Menampung isi 'topic'
+            $table->text('target_next'); // Menampung isi 'next_target'
+            
+            // Status Checkbox Utama
+            $table->boolean('rpp_sesuai')->default(false); // Menampung 'rpp_completed'
+            $table->boolean('ada_absen')->default(false); // Menampung 'absent_students'
+            
+            // Informasi Waktu
+            $table->date('tanggal');
             $table->timestamps();
         });
     }

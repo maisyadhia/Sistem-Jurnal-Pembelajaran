@@ -16,11 +16,18 @@
         background-position: right 1rem center;
         background-repeat: no-repeat;
     }
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="max-w-4xl mx-auto w-full flex flex-col gap-8 py-6">
+<div class="max-w-4xl mx-auto w-full flex flex-col gap-6 py-6">
     
     <section class="text-center md:text-left">
         <h2 class="font-display-lg text-3xl font-bold text-slate-800 mb-1">Pilih Sesi Mengajar</h2>
@@ -28,6 +35,24 @@
     </section>
 
     <div class="glass-card p-8 rounded-2xl shadow-xl shadow-slate-100/50 max-w-2xl mx-auto w-full">
+        @if(session('warning'))
+            <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-center text-amber-800 animate-fade-in">
+                <span class="material-symbols-outlined text-amber-600">warning</span>
+                <div class="flex-1 font-body-sm font-medium">
+                    {{ session('warning') }}
+                </div>
+            </div>
+        @endif
+
+        @if(session('success'))
+            <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex gap-3 items-center text-emerald-800 animate-fade-in">
+                <span class="material-symbols-outlined text-emerald-600">check_circle</span>
+                <div class="flex-1 font-body-sm font-medium">
+                    {{ session('success') }}
+                </div>
+            </div>
+        @endif
+
         <div class="flex items-center gap-3 mb-8 pb-4 border-b border-slate-200/60">
             <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center">
                 <span class="material-symbols-outlined font-semibold">grid_view</span>
