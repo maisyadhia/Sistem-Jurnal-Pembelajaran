@@ -114,7 +114,7 @@
                 <div class="space-y-1.5" id="passwordContainer">
                     <label class="block font-label-caps text-label-caps text-on-surface-variant" for="password" id="passwordLabel">PASSWORD</label>
                     <div class="relative group">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline group-focus-within:text-primary transition-colors">lock</span>
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline group-focus-within:text-primary transition-colors" id="passwordIcon">lock</span>
                         <input class="w-full h-[40px] pl-11 bg-surface border border-outline-variant rounded-lg text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('password') border-error @enderror" 
                                id="password" 
                                name="password" 
@@ -122,6 +122,9 @@
                                placeholder="Masukkan password" 
                                required/>
                     </div>
+                    <p class="font-body-sm text-on-surface-variant" id="passwordHint" style="display:none;">
+                        Format: YYYY-MM-DD (Tahun-Bulan-Tanggal), contoh: 2015-08-17
+                    </p>
                     @error('password')
                         <p class="text-error text-sm mt-1">{{ $message }}</p>
                     @enderror
@@ -170,6 +173,8 @@
         const passwordContainer = document.getElementById('passwordContainer');
         const passwordLabel = document.getElementById('passwordLabel');
         const passwordInput = document.getElementById('password');
+        const passwordIcon = document.getElementById('passwordIcon');
+        const passwordHint = document.getElementById('passwordHint');
         const infoText = document.getElementById('infoText');
 
         const roleConfig = {
@@ -178,6 +183,9 @@
                 nikPlaceholder: 'Masukkan NIK Anda',
                 passwordLabel: 'PASSWORD',
                 passwordPlaceholder: 'Masukkan password',
+                inputType: 'password',
+                icon: 'lock',
+                showHint: false,
                 info: '<strong>Admin/Humas:</strong> Masukkan NIK dan password Anda.'
             },
             guru: {
@@ -185,13 +193,19 @@
                 nikPlaceholder: 'Masukkan NIK Anda',
                 passwordLabel: 'PASSWORD',
                 passwordPlaceholder: 'Masukkan password',
+                inputType: 'password',
+                icon: 'lock',
+                showHint: false,
                 info: '<strong>Guru:</strong> Masukkan NIK dan password Anda.'
             },
             parent: {
                 nikLabel: 'NISN (NOMOR INDUK SISWA NASIONAL)',
                 nikPlaceholder: 'Masukkan NISN siswa',
                 passwordLabel: 'TANGGAL LAHIR SISWA',
-                passwordPlaceholder: 'YYYY-MM-DD',
+                passwordPlaceholder: '',
+                inputType: 'date',
+                icon: 'calendar_month',
+                showHint: true,
                 info: '<strong>Wali Murid:</strong> Masukkan NISN dan Tanggal Lahir siswa. Tidak perlu registrasi.'
             }
         };
@@ -210,13 +224,23 @@
                 nikLabel.textContent = config.nikLabel;
                 nikInput.placeholder = config.nikPlaceholder;
                 passwordLabel.textContent = config.passwordLabel;
-                passwordInput.placeholder = config.passwordPlaceholder;
+
+                // Toggle input type: date picker untuk wali murid, password untuk lainnya
+                passwordInput.type = config.inputType;
+                if (config.inputType === 'date') {
+                    passwordInput.removeAttribute('placeholder');
+                } else {
+                    passwordInput.placeholder = config.passwordPlaceholder;
+                }
+
+                // Update icon di dalam field
+                passwordIcon.textContent = config.icon;
+
+                // Tampilkan/sembunyikan hint format tanggal
+                passwordHint.style.display = config.showHint ? 'block' : 'none';
                 
                 // Update info
                 infoText.innerHTML = config.info;
-                
-                // Show/hide password container
-                passwordContainer.style.display = role === 'parent' ? 'block' : 'block';
             });
         });
     });
@@ -229,6 +253,12 @@
     }
     .role-btn.active .material-symbols-outlined {
         color: #00236f;
+    }
+
+    /* Styling native date picker icon biar konsisten dengan tema */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        filter: invert(38%) sepia(15%) saturate(1224%) hue-rotate(202deg) brightness(94%) contrast(88%);
     }
 </style>
 @endpush

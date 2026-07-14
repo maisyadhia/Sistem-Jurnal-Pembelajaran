@@ -54,13 +54,13 @@
             <div class="relative z-10">
                 <h3 class="font-label-caps text-label-caps text-primary mb-4">Catatan Wali Kelas</h3>
                 <p class="font-body-sm text-body-sm text-on-surface-variant italic">
-                    "{{ $note->content ?? 'Aditya menunjukkan peningkatan signifikan dalam partisipasi diskusi kelas Biologi. Pertahankan fokusnya.' }}"
+                    "{{ $note->content ?? 'Belum ada catatan dari guru untuk periode ini.' }}"
                 </p>
                 <div class="mt-4 flex items-center gap-2">
                     <div class="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center">
                         <span class="material-symbols-outlined text-tertiary text-sm">person</span>
                     </div>
-                    <span class="font-label-caps text-[10px] text-on-surface-variant">{{ $note->teacher ?? 'Drs. Bambang S.' }}</span>
+                    <span class="font-label-caps text-[10px] text-on-surface-variant">{{ $note->teacher ?? '-' }}</span>
                 </div>
             </div>
             <div class="absolute -right-4 -bottom-4 opacity-5">
@@ -82,7 +82,38 @@
             <h3 class="font-headline-md text-headline-md text-on-background mb-8">Aktivitas Belajar</h3>
             <div class="relative timeline-line space-y-12">
                 @forelse($activities as $activity)
-                    <x-timeline-item :activity="$activity" />
+                    <div class="relative pl-14">
+                        <!-- Dot Marker -->
+                        <div class="absolute left-0 top-0 w-10 h-10 rounded-full bg-primary-container flex items-center justify-center z-10">
+                            <span class="material-symbols-outlined text-primary text-lg">
+                                {{ ($activity->status ?? 'hadir') === 'hadir' ? 'check_circle' : 'cancel' }}
+                            </span>
+                        </div>
+
+                        <div class="bg-surface-container-low border border-outline-variant rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2 flex-wrap gap-1">
+                                <span class="font-label-caps text-label-caps text-primary">{{ $activity->mapel }}</span>
+                                <span class="text-xs text-on-surface-variant">
+                                    {{ \Carbon\Carbon::parse($activity->tanggal)->translatedFormat('d M Y') }} · Jam ke-{{ $activity->jam_ke }}
+                                </span>
+                            </div>
+
+                            <p class="font-body-base text-on-background mb-1">{{ $activity->materi }}</p>
+
+                            @if(!empty($activity->catatan))
+                                <p class="text-body-sm text-on-surface-variant italic mt-2">"{{ $activity->catatan }}"</p>
+                            @endif
+
+                            <div class="flex items-center gap-2 mt-3">
+                                <span class="material-symbols-outlined text-outline text-sm">person</span>
+                                <span class="text-xs text-on-surface-variant">{{ $activity->guru }}</span>
+
+                                @if(($activity->status ?? null) !== 'hadir')
+                                    <span class="ml-auto text-xs font-medium text-error bg-error-container px-2 py-0.5 rounded-full">Tidak Hadir</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 @empty
                     <p class="text-center text-on-surface-variant">Belum ada aktivitas untuk periode ini.</p>
                 @endforelse

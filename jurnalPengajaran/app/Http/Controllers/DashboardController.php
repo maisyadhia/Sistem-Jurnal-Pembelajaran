@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Activity;
 use App\Models\Student;
-use App\Models\Note;
-use Illuminate\Support\Facades\DB; // Memanggil Query Builder Laravel
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -17,56 +15,75 @@ class DashboardController extends Controller
     {
         // 1. Ambil data siswa berdasarkan session login wali murid
         $studentId = session('student_id', 1);
-        $student = Student::with('activities', 'notes')->find($studentId);
-        
+        $student = Student::find($studentId);
+
         if (!$student) {
             $student = (object) [
-                'name' => 'Aditya Pratama',
+                'name'  => 'Aditya Pratama',
                 'class' => 'Kelas XI - IPA 2'
             ];
         }
 
-        // 2. Ambil data linimasa aktivitas umum siswa
-        $activities = Activity::where('student_id', $studentId)
-                              ->orderBy('date_time', 'desc')
-                              ->take(10)
-                              ->get();
-
-        // 3. Ambil catatan spesifik dari kolom JSON jurnals
-        $jurnalHariIni = DB::table('jurnals')
+        // 2. Ambil seluruh entri jurnal, join tabel mapel_master & guru
+        $jurnalEntries = DB::table('jurnals')
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
-            ->select('jurnals.*', 'mapel_master.nama_mapel')
+            ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
+            ->select(
+                'jurnals.tanggal',
+                'jurnals.jam_ke',
+                'jurnals.materi',
+                'jurnals.student_ids',
+                'mapel_master.nama_mapel',
+                'guru.nama_guru'
+            )
             ->whereNotNull('jurnals.student_ids')
-            ->latest('jurnals.tanggal')
+            ->orderByDesc('jurnals.tanggal')
+            ->orderByDesc('jurnals.jam_ke')
             ->get();
 
+        $activities = collect();
         $note = null;
 
-        // Looping untuk mencari apakah ada data anak ini di dalam baris-baris jurnal
-        foreach ($jurnalHariIni as $jurnal) {
+        // 3. Looping untuk mencari apakah ada data anak ini di dalam baris-baris jurnal
+        foreach ($jurnalEntries as $jurnal) {
             $studentsData = json_decode($jurnal->student_ids, true);
-            if (is_array($studentsData)) {
-                foreach ($studentsData as $data) {
-                    if ($data['student_id'] == $studentId) {
-                        // Jika ketemu, bungkus datanya agar seragam dengan format view lamamu
+
+            if (!is_array($studentsData)) {
+                continue;
+            }
+
+            foreach ($studentsData as $data) {
+                if (($data['student_id'] ?? null) == $studentId) {
+                    // Bungkus datanya agar seragam dengan format view
+                    $item = (object) [
+                        'mapel'   => $jurnal->nama_mapel,
+                        'guru'    => $jurnal->nama_guru,
+                        'tanggal' => $jurnal->tanggal,
+                        'jam_ke'  => $jurnal->jam_ke,
+                        'materi'  => $jurnal->materi,
+                        'status'  => $data['status'] ?? 'hadir',
+                        'catatan' => $data['catatan'] ?? null,
+                    ];
+
+                    $activities->push($item);
+
+                    // Catatan wali kelas paling baru yang benar-benar berisi teks
+                    if (!$note && !empty($item->catatan)) {
                         $note = (object) [
-                            'nama_mapel' => $jurnal->nama_mapel,
-                            'tanggal'    => $jurnal->tanggal,
-                            'materi'     => $jurnal->materi,
-                            'status'     => $data['status'],
-                            'body'       => $data['catatan'] ?? 'Anak Anda mengikuti pembelajaran dengan baik hari ini.'
+                            'content' => $item->catatan,
+                            'teacher' => $item->guru,
                         ];
-                        break 2; // Stop pencarian kalau sudah ketemu yang terbaru
                     }
+
+                    break; // Stop pencarian di jurnal ini, lanjut ke jurnal berikutnya
                 }
             }
         }
 
-        // 4. Sistem Penyelamat (Fallback): Jika tidak ada catatan baru, pakai database Note lama
-        if (!$note) {
-            $note = Note::where('student_id', $studentId)->latest()->first();
-        }
-
-        return view('dashboard.timeline', compact('student', 'activities', 'note'));
+        return view('dashboard.timeline', [
+            'student'    => $student,
+            'activities' => $activities->take(10),
+            'note'       => $note,
+        ]);
     }
 }

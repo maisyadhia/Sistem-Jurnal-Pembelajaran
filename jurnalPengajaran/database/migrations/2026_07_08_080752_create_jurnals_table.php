@@ -16,8 +16,6 @@ return new class extends Migration
             $table->unsignedBigInteger('kelas_id');
             $table->unsignedBigInteger('mapel_id');
             
-            // Kolom penampung data absensi & catatan kustom per siswa (Format JSON) woy!
-            $table->json('student_id')->nullable(); 
             
             // Detail Informasi Pengajaran
             $table->integer('jam_ke')->default(1);
