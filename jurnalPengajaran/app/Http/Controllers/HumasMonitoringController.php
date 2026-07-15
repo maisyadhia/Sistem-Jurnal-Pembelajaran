@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Traits\LogsAdminActivity;
 use Illuminate\Http\Request;
 use App\Models\UnreportedClass;
 use App\Models\DataMaster;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class HumasMonitoringController extends Controller
 {
+    use LogsAdminActivity;
+
     public function index()
     {
         $complianceRate = $this->calculateComplianceRate();
@@ -37,11 +40,9 @@ class HumasMonitoringController extends Controller
 
     private function calculateComplianceRate()
     {
-        // Ambil dari tabel guru (bukan admin)
         $totalTeachers = DB::table('guru')->count();
         if ($totalTeachers == 0) return 0;
 
-        // Hitung jurnal hari ini dari tabel jurnals
         $todayJurnals = DB::table('jurnals')
             ->whereDate('tanggal', today())
             ->count();
@@ -51,7 +52,6 @@ class HumasMonitoringController extends Controller
 
     private function getOnTimeCount()
     {
-        // Misal: jurnal yang dibuat sebelum jam 12 siang
         return DB::table('jurnals')
             ->whereDate('tanggal', today())
             ->whereTime('created_at', '<=', '12:00:00')
@@ -60,7 +60,6 @@ class HumasMonitoringController extends Controller
 
     private function getLateCount()
     {
-        // Misal: jurnal yang dibuat setelah jam 12 siang
         return DB::table('jurnals')
             ->whereDate('tanggal', today())
             ->whereTime('created_at', '>', '12:00:00')
@@ -75,44 +74,46 @@ class HumasMonitoringController extends Controller
                 'class' => 'required|string',
             ]);
 
-            // 1. Cari guru di database
+            // Log aktivitas remind
+            $this->logActivity(
+                'remind',
+                'monitoring',
+                "Mengirim pengingat ke guru {$request->teacher} untuk kelas {$request->class}",
+                null,
+                ['teacher' => $request->teacher, 'class' => $request->class]
+            );
+
+            // Cari guru di database
             $guru = DB::table('guru')
                 ->where('nama_guru', 'like', '%' . $request->teacher . '%')
                 ->first();
 
             if (!$guru) {
-                // Coba cari di tabel admin
                 $guru = DB::table('admins')
                     ->where('name', 'like', '%' . $request->teacher . '%')
                     ->first();
             }
 
-            // 2. Simpan ke tabel notifications (buat dulu)
-            $notificationId = DB::table('notifications')->insertGetId([
-                'user_id' => $guru->id ?? null,
-                'user_type' => 'guru',
-                'message' => "Pengingat: Kelas {$request->class} belum mengisi jurnal hari ini.",
-                'link' => route('guru.pilih.sesi'),
-                'is_read' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            // Simpan ke tabel notifications
+            if ($guru) {
+                DB::table('notifications')->insert([
+                    'user_id' => $guru->id,
+                    'user_type' => 'guru',
+                    'message' => "Pengingat: Kelas {$request->class} belum mengisi jurnal hari ini.",
+                    'link' => route('guru.pilih.sesi'),
+                    'is_read' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
 
-            // 3. Log aktivitas
             \Illuminate\Support\Facades\Log::info('Reminder sent', [
                 'teacher' => $request->teacher,
                 'class' => $request->class,
                 'guru_id' => $guru->id ?? null,
-                'notification_id' => $notificationId,
                 'sent_by' => session('user_name'),
                 'sent_at' => now()
             ]);
-
-            // 4. Jika guru ditemukan, bisa kirim email (opsional)
-            if ($guru && isset($guru->email)) {
-                // Kirim email notifikasi
-                // Mail::to($guru->email)->send(new ReminderNotification($request->class));
-            }
 
             return response()->json([
                 'success' => true,
@@ -134,10 +135,7 @@ class HumasMonitoringController extends Controller
         $date = $request->get('date', today()->format('Y-m-d'));
         $period = $request->get('period', 'weekly');
 
-        // Ambil data guru dari tabel 'guru'
         $teachers = DB::table('guru')->get();
-        
-        // Ambil data jurnal dari tabel 'jurnals'
         $jurnals = DB::table('jurnals')
             ->whereDate('tanggal', $date)
             ->get();
@@ -153,6 +151,15 @@ class HumasMonitoringController extends Controller
             'jurnals' => $jurnals,
             'unreported' => UnreportedClass::where('date', $date)->where('reported', false)->get(),
         ];
+
+        // Log aktivitas export
+        $this->logActivity(
+            'export',
+            'report',
+            "Mengekspor laporan kepatuhan periode {$period} tanggal {$date}",
+            null,
+            ['date' => $date, 'period' => $period, 'format' => $request->get('format', 'csv')]
+        );
 
         if ($request->get('format') === 'pdf') {
             return view('humas.report-pdf', $data);

@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DataMasterController;
 use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\MapelController;
+use App\Http\Controllers\Admin\LogController;
 
 // ============ GUEST ROUTES ============
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -75,6 +76,13 @@ Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-m
     
     // Generate Report
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
+});
+
+// ====== ADMIN LOGS ======
+Route::prefix('admin/logs')->group(function () {
+    Route::get('/', [LogController::class, 'index'])->name('admin.logs');
+    Route::get('/{id}', [LogController::class, 'show'])->name('admin.logs.show');
+    Route::delete('/clear', [LogController::class, 'clear'])->name('admin.logs.clear');
 });
 
 // Di routes/web.php

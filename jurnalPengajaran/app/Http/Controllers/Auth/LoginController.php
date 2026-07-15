@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Traits\LogsAdminActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use App\Models\Admin;
@@ -11,6 +12,8 @@ use App\Models\Student;
 
 class LoginController extends Controller
 {
+    use LogsAdminActivity;
+
     public function showLoginForm()
     {
         return view('auth.login');
@@ -25,7 +28,6 @@ class LoginController extends Controller
         ]);
 
         if ($request->role === 'admin') {
-            // LOGIN ADMIN menggunakan username (bukan NIK)
             $admin = Admin::where('username', $request->nik)
                          ->whereIn('role', ['admin', 'humas'])
                          ->first();
@@ -40,6 +42,15 @@ class LoginController extends Controller
                 Session::put('is_logged_in', true);
                 Session::put('login_type', 'admin');
 
+                // Log aktivitas login
+                $this->logActivity(
+                    'login',
+                    'auth',
+                    "Admin {$admin->name} ({$admin->role}) login ke sistem",
+                    null,
+                    ['username' => $admin->username, 'role' => $admin->role]
+                );
+
                 return redirect()->route('monitoring');
             }
 
@@ -49,8 +60,6 @@ class LoginController extends Controller
         }
 
         if ($request->role === 'guru') {
-            // LOGIN GURU menggunakan NIK
-            // VALIDASI PANJANG NIK
             if (strlen($request->nik) < 16) {
                 return back()->withErrors([
                     'nik' => 'NIK Guru harus minimal 16 digit!',
@@ -77,7 +86,6 @@ class LoginController extends Controller
         }
 
         if ($request->role === 'parent') {
-            // LOGIN PARENT menggunakan NISN
             $student = Student::where('nisn', $request->nik)
                               ->where('dob', $request->password)
                               ->first();
@@ -107,6 +115,15 @@ class LoginController extends Controller
 
     public function logout(Request $request)
     {
+        // Log aktivitas logout
+        if (Session::get('admin_id')) {
+            $this->logActivity(
+                'logout',
+                'auth',
+                "Admin " . Session::get('admin_name') . " logout dari sistem"
+            );
+        }
+
         Session::flush();
         return redirect()->route('login');
     }

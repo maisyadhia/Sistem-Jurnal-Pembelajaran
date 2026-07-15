@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Traits\LogsAdminActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class GuruController extends Controller
 {
+    use LogsAdminActivity;
+
     public function index()
     {
         $guru = DB::table('guru')->orderBy('nama_guru')->get();
@@ -30,7 +33,7 @@ class GuruController extends Controller
             'role' => 'required|in:guru,admin,humas',
         ]);
 
-        DB::table('guru')->insert([
+        $data = [
             'kode_guru' => $request->kode_guru,
             'nik' => $request->nik,
             'nama_guru' => $request->nama_guru,
@@ -38,7 +41,18 @@ class GuruController extends Controller
             'role' => $request->role,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        DB::table('guru')->insert($data);
+
+        // Log aktivitas
+        $this->logActivity(
+            'create',
+            'guru',
+            "Menambahkan guru baru: {$request->nama_guru} (NIK: {$request->nik})",
+            null,
+            ['kode_guru' => $request->kode_guru, 'nik' => $request->nik, 'nama_guru' => $request->nama_guru, 'role' => $request->role]
+        );
 
         return redirect()->route('data-master.guru')
             ->with('success', 'Guru berhasil ditambahkan!');
@@ -63,6 +77,9 @@ class GuruController extends Controller
             'role' => 'required|in:guru,admin,humas',
         ]);
 
+        // Ambil data lama
+        $oldData = DB::table('guru')->where('id', $id)->first();
+
         $data = [
             'kode_guru' => $request->kode_guru,
             'nik' => $request->nik,
@@ -77,13 +94,34 @@ class GuruController extends Controller
 
         DB::table('guru')->where('id', $id)->update($data);
 
+        // Log aktivitas
+        $this->logActivity(
+            'update',
+            'guru',
+            "Mengupdate data guru: {$request->nama_guru} (NIK: {$request->nik})",
+            ['kode_guru' => $oldData->kode_guru, 'nik' => $oldData->nik, 'nama_guru' => $oldData->nama_guru, 'role' => $oldData->role],
+            ['kode_guru' => $request->kode_guru, 'nik' => $request->nik, 'nama_guru' => $request->nama_guru, 'role' => $request->role]
+        );
+
         return redirect()->route('data-master.guru')
             ->with('success', 'Guru berhasil diupdate!');
     }
 
     public function destroy($id)
     {
+        $guru = DB::table('guru')->where('id', $id)->first();
+        
         DB::table('guru')->where('id', $id)->delete();
+
+        // Log aktivitas
+        $this->logActivity(
+            'delete',
+            'guru',
+            "Menghapus data guru: {$guru->nama_guru} (NIK: {$guru->nik})",
+            ['kode_guru' => $guru->kode_guru, 'nik' => $guru->nik, 'nama_guru' => $guru->nama_guru, 'role' => $guru->role],
+            null
+        );
+
         return redirect()->route('data-master.guru')
             ->with('success', 'Guru berhasil dihapus!');
     }
