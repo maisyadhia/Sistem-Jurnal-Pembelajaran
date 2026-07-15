@@ -129,18 +129,24 @@
                 @php
                     $status = 'Belum Mengisi';
                     $statusClass = 'warning';
+                    
+                    // Cek apakah guru sudah mengisi jurnal
                     foreach($jurnals as $jurnal) {
-                        if ($jurnal->teacher_id == $teacher->id) {
+                        if (isset($jurnal->guru_id) && $jurnal->guru_id == $teacher->id) {
                             $status = 'Sudah Mengisi';
                             $statusClass = 'success';
                             break;
                         }
                     }
+                    
+                    // Ambil nama dari kolom yang benar
+                    $teacherName = $teacher->nama_guru ?? $teacher->name ?? $teacher->nama ?? '-';
+                    $teacherNik = $teacher->nik ?? $teacher->nip ?? '-';
                 @endphp
                 <tr>
                     <td>{{ $no++ }}</td>
-                    <td>{{ $teacher->name }}</td>
-                    <td>{{ $teacher->nik }}</td>
+                    <td>{{ $teacherName }}</td>
+                    <td>{{ $teacherNik }}</td>
                     <td>
                         <span class="status-badge {{ $statusClass }}">
                             {{ $status }}
@@ -151,7 +157,7 @@
         </tbody>
     </table>
 
-    @if($unreported->count() > 0)
+    @if(isset($unreported) && $unreported->count() > 0)
         <h3 style="margin-top: 30px;">Kelas Tanpa Catatan</h3>
         <table>
             <thead>
@@ -167,9 +173,9 @@
                 @foreach($unreported as $class)
                     <tr>
                         <td>{{ $no++ }}</td>
-                        <td>{{ $class->code }}</td>
-                        <td>{{ $class->subject }}</td>
-                        <td>{{ $class->teacher }}</td>
+                        <td>{{ $class->code ?? $class->nama_kelas ?? '-' }}</td>
+                        <td>{{ $class->subject ?? $class->nama_mapel ?? '-' }}</td>
+                        <td>{{ $class->teacher ?? $class->nama_guru ?? '-' }}</td>
                     </tr>
                 @endforeach
             </tbody>

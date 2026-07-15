@@ -85,6 +85,14 @@ class HumasMonitoringController extends Controller
         $date = $request->get('date', today()->format('Y-m-d'));
         $period = $request->get('period', 'weekly');
 
+        // Ambil data guru dari tabel 'guru'
+        $teachers = DB::table('guru')->get();
+        
+        // Ambil data jurnal dari tabel 'jurnals'
+        $jurnals = DB::table('jurnals')
+            ->whereDate('tanggal', $date)
+            ->get();
+
         $data = [
             'title' => 'Laporan Kepatuhan Guru',
             'date' => $date,
@@ -92,8 +100,8 @@ class HumasMonitoringController extends Controller
             'complianceRate' => $this->calculateComplianceRate(),
             'onTimeCount' => $this->getOnTimeCount(),
             'lateCount' => $this->getLateCount(),
-            'teachers' => DB::table('guru')->get(),
-            'jurnals' => DB::table('jurnals')->whereDate('tanggal', $date)->get(),
+            'teachers' => $teachers,
+            'jurnals' => $jurnals,
             'unreported' => UnreportedClass::where('date', $date)->where('reported', false)->get(),
         ];
 

@@ -7,6 +7,9 @@ use App\Http\Controllers\HumasMonitoringController;
 use App\Http\Controllers\GuruJurnalController;
 use App\Http\Controllers\GuruDashboardController;
 use App\Http\Controllers\Admin\DataMasterController;
+use App\Http\Controllers\Admin\GuruController;
+use App\Http\Controllers\Admin\KelasController;
+use App\Http\Controllers\Admin\MapelController;
 
 // ============ GUEST ROUTES ============
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -14,12 +17,10 @@ Route::post('/login', [LoginController::class, 'login']);
 
 // ============ ROUTES UNTUK SEMUA ROLE (AUTHENTICATED) ============
 Route::middleware(['auth.session'])->group(function () {
-    // Root redirect ke dashboard
     Route::get('/', function () {
         return redirect()->route('dashboard');
     });
     
-    // Dashboard redirect berdasarkan role
     Route::get('/dashboard', function () {
         $role = session('user_role');
         
@@ -39,13 +40,38 @@ Route::middleware(['auth.session'])->group(function () {
 Route::middleware(['auth.session', 'role:admin,humas'])->prefix('admin')->group(function () {
     Route::get('/monitoring', [HumasMonitoringController::class, 'index'])->name('monitoring');
     
-    // Data Master
-    Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-master');
-    Route::get('/data-master/create', [DataMasterController::class, 'create'])->name('data-master.create');
-    Route::post('/data-master', [DataMasterController::class, 'store'])->name('data-master.store');
-    Route::get('/data-master/{id}/edit', [DataMasterController::class, 'edit'])->name('data-master.edit');
-    Route::put('/data-master/{id}', [DataMasterController::class, 'update'])->name('data-master.update');
-    Route::delete('/data-master/{id}', [DataMasterController::class, 'destroy'])->name('data-master.destroy');
+   // ====== DATA MASTER ======
+Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-master');
+    
+    // ====== GURU CRUD ======
+    Route::prefix('data-master/guru')->group(function () {
+        Route::get('/', [GuruController::class, 'index'])->name('data-master.guru');
+        Route::get('/create', [GuruController::class, 'create'])->name('data-master.guru.create');
+        Route::post('/', [GuruController::class, 'store'])->name('data-master.guru.store');
+        Route::get('/{id}/edit', [GuruController::class, 'edit'])->name('data-master.guru.edit');
+        Route::put('/{id}', [GuruController::class, 'update'])->name('data-master.guru.update');
+        Route::delete('/{id}', [GuruController::class, 'destroy'])->name('data-master.guru.destroy');
+    });
+    
+    // ====== KELAS CRUD ======
+    Route::prefix('data-master/kelas')->group(function () {
+        Route::get('/', [KelasController::class, 'index'])->name('data-master.kelas');
+        Route::get('/create', [KelasController::class, 'create'])->name('data-master.kelas.create');
+        Route::post('/', [KelasController::class, 'store'])->name('data-master.kelas.store');
+        Route::get('/{id}/edit', [KelasController::class, 'edit'])->name('data-master.kelas.edit');
+        Route::put('/{id}', [KelasController::class, 'update'])->name('data-master.kelas.update');
+        Route::delete('/{id}', [KelasController::class, 'destroy'])->name('data-master.kelas.destroy');
+    });
+    
+    // ====== MAPEL CRUD ======
+    Route::prefix('data-master/mapel')->group(function () {
+        Route::get('/', [MapelController::class, 'index'])->name('data-master.mapel');
+        Route::get('/create', [MapelController::class, 'create'])->name('data-master.mapel.create');
+        Route::post('/', [MapelController::class, 'store'])->name('data-master.mapel.store');
+        Route::get('/{id}/edit', [MapelController::class, 'edit'])->name('data-master.mapel.edit');
+        Route::put('/{id}', [MapelController::class, 'update'])->name('data-master.mapel.update');
+        Route::delete('/{id}', [MapelController::class, 'destroy'])->name('data-master.mapel.destroy');
+    });
     
     // Generate Report
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
@@ -56,13 +82,8 @@ Route::post('/remind-teacher', [HumasMonitoringController::class, 'remindTeacher
 
 // ============ GURU ROUTES ============
 Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function () {
-    // Halaman Pilih Ruang Kelas & Mapel (ini yang sekarang di dashboard)
     Route::get('/pilih-sesi', [GuruDashboardController::class, 'index'])->name('guru.pilih.sesi');
-    
-    // Dashboard ringkasan (BARU - untuk menu dashboard)
     Route::get('/dashboard', [GuruDashboardController::class, 'dashboard'])->name('guru.dashboard');
-    
-    // Halaman Input Form Jurnal Utama (membutuhkan parameter)
     Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('guru.jurnal.form');
     Route::post('/jurnal', [GuruJurnalController::class, 'store'])->name('guru.jurnal.store');
 });

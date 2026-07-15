@@ -140,7 +140,7 @@
                     <h3 class="font-headline-md text-headline-md">Data Master Terkini</h3>
                 </div>
                 <div class="flex gap-2">
-                    <button onclick="window.location.href='{{ route('data-master.create') }}'" 
+                    <button onclick="window.location.href='{{ route('data-master.guru.create') }}'" 
                             class="bg-primary text-on-primary px-4 py-1.5 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity">
                         <span class="material-symbols-outlined text-sm">add</span> TAMBAH DATA
                     </button>
@@ -181,11 +181,11 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <a href="{{ route('data-master.edit', $item->id) }}" 
+                                        <a href="{{ route('data-master.guru.edit', $item->id) }}" 
                                            class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
                                             <span class="material-symbols-outlined text-lg">edit</span>
                                         </a>
-                                        <form method="POST" action="{{ route('data-master.destroy', $item->id) }}" 
+                                        <form method="POST" action="{{ route('data-master.guru.destroy', $item->id) }}" 
                                               class="inline-block" 
                                               onsubmit="return confirmDelete({{ $item->id }})">
                                             @csrf
