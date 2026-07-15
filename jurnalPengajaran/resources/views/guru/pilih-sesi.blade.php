@@ -35,11 +35,17 @@
     </section>
 
     <div class="glass-card p-8 rounded-2xl shadow-xl shadow-slate-100/50 max-w-2xl mx-auto w-full">
-        @if(session('warning'))
+        <!-- 🚨 BOX WARNING DINAMIS DARI JAVASCRIPT -->
+        <div id="jsWarningBox" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-center text-amber-800 animate-fade-in">
+            <span class="material-symbols-outlined text-amber-600">warning</span>
+            <div class="flex-1 font-body-sm font-medium" id="jsWarningText"></div>
+        </div>
+
+        @if(session('warning') || isset($warning))
             <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-center text-amber-800 animate-fade-in">
                 <span class="material-symbols-outlined text-amber-600">warning</span>
                 <div class="flex-1 font-body-sm font-medium">
-                    {{ session('warning') }}
+                    {{ session('warning') ?? $warning }}
                 </div>
             </div>
         @endif
@@ -58,7 +64,7 @@
                 <span class="material-symbols-outlined font-semibold">grid_view</span>
             </div>
             <div>
-                <h3 class="text-lg font-bold text-slate-800">Konfirmasi Kelas & Mapel</h3>
+                <h3 class="text-lg font-bold text-slate-800">Konfirmasi Kelas &amp; Mapel</h3>
                 <p class="text-xs text-slate-400">Pastikan sesi yang dipilih sesuai dengan jadwal aktif hari ini.</p>
             </div>
         </div>
@@ -84,8 +90,11 @@
                 </select>
             </div>
 
-            <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <a href="{{ route('guru.dashboard') }}" ...>Kembali</a>
+            <!-- 💡 PEMBERSIHAN FOOTER: Sejajar lurus horizontal, simetris dan rapi  -->
+            <div class="flex justify-end items-center gap-6 pt-4 border-t border-slate-100">
+                <a href="{{ route('guru.dashboard') }}" class="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors py-2">
+                    Kembali
+                </a>
                 <button type="submit" class="flex items-center gap-2 px-8 py-3 bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm rounded-xl transition-all shadow-lg shadow-teal-600/15 active:scale-[0.98]">
                     <span>Buka Jurnal</span>
                     <span class="material-symbols-outlined text-sm">arrow_forward</span>
@@ -98,13 +107,28 @@
 
 @push('scripts')
 <script>
+    const jadwalHariIni = @json($jadwalHariIni ?? []);
+    const hariNamaIndo = "{{ $namaHariIndo }}";
+
     document.getElementById('selectSesiForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         const kelasId = document.getElementById('kelas').value;
         const mapelId = document.getElementById('mapel').value;
+        const warningBox = document.getElementById('jsWarningBox');
+        const warningText = document.getElementById('jsWarningText');
 
-        // Redirect dinamis ke Form Jurnal dengan parameter ID yang dipilih
+        warningBox.classList.add('hidden');
+
+        const adaJadwal = jadwalHariIni.some(j => j.kelas_id == kelasId && j.mapel_id == mapelId);
+
+        if (!adaJadwal) {
+            warningText.innerHTML = `Anda tidak memiliki jadwal mengajar di kelas/mata pelajaran tersebut pada hari <strong>${hariNamaIndo}</strong> ini .`;
+            warningBox.classList.remove('hidden');
+            warningBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
+
         window.location.href = `/guru/jurnal/${kelasId}/${mapelId}`;
     });
 </script>

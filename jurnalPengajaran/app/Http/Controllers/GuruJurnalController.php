@@ -17,8 +17,9 @@ class GuruJurnalController extends Controller
             return redirect()->route('login')->withErrors('Sesi berakhir, silakan login kembali.');
         }
 
-        // Kunci hari aktif saat ini untuk menjaga kedisiplinan 
-        $hari = Carbon::now()->locale('id')->translatedFormat('l');
+        // Kunci hari aktif saat ini dalam format bahasa Indonesia 
+        Carbon::setLocale('id');
+        $hari = Carbon::now()->translatedFormat('l'); // Menghasilkan: 'Senin', 'Selasa', dll.
         $tanggal = Carbon::today();
 
         // 2. Cari jadwal yang COCOK antara Kelas, Mapel, DAN HARI INI
@@ -28,17 +29,17 @@ class GuruJurnalController extends Controller
             ->where('jadwals.guru_id', $guruId)
             ->where('jadwals.kelas_id', $kelas_id)
             ->where('jadwals.mapel_id', $mapel_id) 
-            ->where('jadwals.hari', $hari) // 🛡️ Penjaga kedisiplinan agar guru tidak molor/salah hari
+            ->where('jadwals.hari', $hari) // 🛡️ Penjaga kedisiplinan murni lewat backend laravel !
             ->select('jadwals.*', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
             ->first();
 
-        // Jika tidak ada jadwal hari ini, langsung tolak balik ke dashboard 
+        // 💡 JIKA TIDAK ADA JADWAL HARI INI, KITA TENDANG BALIK KE DASHBOARD DENGAN WARNING !
         if (!$jadwal) {
             return redirect()->route('guru.dashboard')
-                ->with('warning', 'Akses ditolak! Anda tidak memiliki jadwal mengajar aktif untuk kelas dan mata pelajaran ini pada hari ' . $hari);
+                ->with('warning', 'Akses ditolak! Anda tidak memiliki jadwal mengajar aktif untuk kelas dan mata pelajaran ini pada hari ' . $hari . ' !');
         }
 
-        // 3. Ambil daftar siswa yang berada di kelas ini (Aman karena $jadwal dipastikan valid)
+        // 3. Ambil daftar siswa yang berada di kelas ini
         $daftar_siswa = DB::table('students')
             ->where('class', $jadwal->nama_kelas)
             ->orderBy('name')
@@ -53,15 +54,6 @@ class GuruJurnalController extends Controller
                 'daftar_siswa'
             )
         );
-    }
-
-    // Method untuk halaman pilih kelas & mapel
-    public function pilihKelasMapel()
-    {
-        $daftar_kelas = KelasMaster::all();
-        $daftar_mapel = Jurnal::all(); // atau Mapel::all() sesuai model Anda
-        
-        return view('guru.pilih-jurnal', compact('daftar_kelas', 'daftar_mapel'));
     }
 
     public function store(Request $request)
@@ -79,7 +71,9 @@ class GuruJurnalController extends Controller
         ]);
 
         $guruId = session('guru_id') ?? session('admin_id');
-        $hari = Carbon::now()->locale('id')->translatedFormat('l');
+        
+        Carbon::setLocale('id');
+        $hari = Carbon::now()->translatedFormat('l');
 
         // Cari jadwal mengajar untuk menentukan jam_ke secara otomatis
         $jadwal = DB::table('jadwals')
@@ -128,7 +122,7 @@ class GuruJurnalController extends Controller
             'updated_at'  => now(),
         ]);
         
-        // 4. Redirect
+        // 4. Redirect balik dengan pesan sukses
         if (session()->has('admin_id')) {
             return redirect()->route('monitoring')->with('success', 'Jurnal Berhasil Diinputkan oleh Admin!');
         }
