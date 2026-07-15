@@ -12,7 +12,7 @@ class AdminSeeder extends Seeder
     {
         $admins = [
             [
-                'nik' => '197811272005011002',
+                'username' => 'admin', // ID Admin
                 'name' => 'Nanang Sukmawan S., S.Pd., M.Pd.I.',
                 'email' => 'nanang@min2malang.sch.id',
                 'password' => Hash::make('admin123'),
@@ -21,7 +21,7 @@ class AdminSeeder extends Seeder
                 'position' => 'Kepala Madrasah',
             ],
             [
-                'nik' => '198301062006042012',
+                'username' => 'humas', // ID Admin
                 'name' => 'Lilik Fauziyah, M.Pd',
                 'email' => 'lilik@min2malang.sch.id',
                 'password' => Hash::make('humas123'),
@@ -33,7 +33,7 @@ class AdminSeeder extends Seeder
 
         foreach ($admins as $admin) {
             Admin::updateOrCreate(
-                ['nik' => $admin['nik']],
+                ['username' => $admin['username']],
                 $admin
             );
         }

@@ -6,7 +6,15 @@
         <div>
             <h1 class="font-headline-md text-headline-md text-primary leading-tight">E-Jurnal</h1>
             <p class="text-[10px] font-label-caps uppercase tracking-widest text-on-surface-variant opacity-70">
-                {{ session('admin_role') ?? session('user_role') ?? 'Administrasi Terpadu' }}
+                @if(session('user_role') === 'admin' || session('user_role') === 'humas')
+                    {{ session('admin_role') ?? 'Administrator' }}
+                @elseif(session('user_role') === 'guru')
+                    Guru
+                @elseif(session('user_role') === 'parent')
+                    Wali Murid
+                @else
+                    {{ session('user_role') ?? 'Administrasi Terpadu' }}
+                @endif
             </p>
         </div>
     </div>
@@ -23,10 +31,9 @@
                     ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan', 'params' => ['format' => 'pdf']],
                 ];
             } elseif ($role === 'guru') {
-                // Untuk guru, hanya tampilkan dashboard, bukan jurnal langsung
                 $menuItems = [
-                    ['route' => 'guru.dashboard', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar', 'params' => []],
-                    ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'params' => []],
+                    ['route' => 'guru.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'params' => []],
+                    ['route' => 'guru.pilih.sesi', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar', 'params' => []],
                 ];
             } elseif ($role === 'parent') {
                 $menuItems = [

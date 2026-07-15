@@ -11,7 +11,7 @@ class Admin extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'nik',
+        'username',
         'name',
         'email',
         'password',
@@ -28,10 +28,5 @@ class Admin extends Authenticatable
     public function isAdmin()
     {
         return $this->role === 'admin' || $this->role === 'humas';
-    }
-
-    public function isGuru()
-    {
-        return $this->role === 'guru';
     }
 }

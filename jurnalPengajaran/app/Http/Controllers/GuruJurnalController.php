@@ -55,6 +55,15 @@ class GuruJurnalController extends Controller
         );
     }
 
+    // Method untuk halaman pilih kelas & mapel
+    public function pilihKelasMapel()
+    {
+        $daftar_kelas = KelasMaster::all();
+        $daftar_mapel = Jurnal::all(); // atau Mapel::all() sesuai model Anda
+        
+        return view('guru.pilih-jurnal', compact('daftar_kelas', 'daftar_mapel'));
+    }
+
     public function store(Request $request)
     {
         // 1. Validasi Input Form
@@ -103,25 +112,25 @@ class GuruJurnalController extends Controller
             }
         }
 
-        // 3. Masukkan data secara aman ke tabel jurnals
+        // 3. Masukkan data ke tabel jurnals
         DB::table('jurnals')->insert([
             'guru_id'     => $guruId,
-            'kelas_id' => $request->kelas_id,
-            'mapel_id' => $request->mapel_id,
+            'kelas_id'    => $request->kelas_id,
+            'mapel_id'    => $request->mapel_id,
             'student_ids' => !empty($laporanSiswa) ? json_encode($laporanSiswa) : null,
-            'jam_ke' => $jamKe,
-            'materi' => $request->topic,
+            'jam_ke'      => $jamKe,
+            'materi'      => $request->topic,
             'target_next' => $request->next_target,
-            'rpp_sesuai' => $request->has('rpp_completed') ? 1 : 0,
-            'ada_absen' => $adaAbsen,
-            'tanggal' => Carbon::today(),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'rpp_sesuai'  => $request->has('rpp_completed') ? 1 : 0,
+            'ada_absen'   => $adaAbsen,
+            'tanggal'     => Carbon::today(),
+            'created_at'  => now(),
+            'updated_at'  => now(),
         ]);
         
-        // 4. Pengalihan cerdas sesuai hak akses session login
+        // 4. Redirect
         if (session()->has('admin_id')) {
-            return redirect()->route('admin.monitoring')->with('success', 'Jurnal Berhasil Diinputkan oleh Admin!');
+            return redirect()->route('monitoring')->with('success', 'Jurnal Berhasil Diinputkan oleh Admin!');
         }
 
         return redirect()->route('guru.dashboard')->with('success', 'Jurnal Berhasil Dikirim & Diarsipkan!');

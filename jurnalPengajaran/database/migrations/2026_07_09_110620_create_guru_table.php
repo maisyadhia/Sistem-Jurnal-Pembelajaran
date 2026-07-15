@@ -12,8 +12,8 @@ return new class extends Migration
 
             $table->id();
 
+            $table->string('nik', 20)->unique();
             $table->string('kode_guru')->unique();
-            $table->string('nik')->nullable();
             $table->string('nama_guru');
             $table->string('password');
 
@@ -21,7 +21,7 @@ return new class extends Migration
                 'admin',
                 'guru',
                 'humas'
-            ]);
+            ])->default('guru');
 
             $table->timestamps();
         });

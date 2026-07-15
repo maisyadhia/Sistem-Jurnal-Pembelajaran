@@ -56,11 +56,14 @@ Route::post('/remind-teacher', [HumasMonitoringController::class, 'remindTeacher
 
 // ============ GURU ROUTES ============
 Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function () {
-    // Halaman Pilihan Ruang Kelas & Mapel
-    Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('guru.dashboard');
+    // Halaman Pilih Ruang Kelas & Mapel (ini yang sekarang di dashboard)
+    Route::get('/pilih-sesi', [GuruDashboardController::class, 'index'])->name('guru.pilih.sesi');
+    
+    // Dashboard ringkasan (BARU - untuk menu dashboard)
+    Route::get('/dashboard', [GuruDashboardController::class, 'dashboard'])->name('guru.dashboard');
     
     // Halaman Input Form Jurnal Utama (membutuhkan parameter)
-    Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('jurnal');
+    Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('guru.jurnal.form');
     Route::post('/jurnal', [GuruJurnalController::class, 'store'])->name('guru.jurnal.store');
 });
 

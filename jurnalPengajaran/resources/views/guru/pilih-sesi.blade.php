@@ -85,9 +85,7 @@
             </div>
 
             <div class="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <a href="{{ route('dashboard') }}" class="px-6 py-3 rounded-xl border border-slate-200 text-slate-500 font-medium text-sm hover:bg-slate-50 transition-all">
-                    Kembali
-                </a>
+                <a href="{{ route('guru.dashboard') }}" ...>Kembali</a>
                 <button type="submit" class="flex items-center gap-2 px-8 py-3 bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm rounded-xl transition-all shadow-lg shadow-teal-600/15 active:scale-[0.98]">
                     <span>Buka Jurnal</span>
                     <span class="material-symbols-outlined text-sm">arrow_forward</span>
