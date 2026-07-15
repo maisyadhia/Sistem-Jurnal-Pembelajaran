@@ -243,46 +243,85 @@
     
     // Remind teacher functionality
     document.querySelectorAll('.remind-teacher').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const teacher = this.dataset.teacher;
-            const classCode = this.dataset.class;
-            if (confirm(`Kirim pengingat ke ${teacher} untuk kelas ${classCode}?`)) {
-                const originalText = this.textContent;
-                this.textContent = 'TERKIRIM';
-                this.classList.remove('text-error', 'border-error');
-                this.classList.add('text-secondary', 'border-secondary');
-                this.disabled = true;
-                
-                // Simulate API call
-                fetch('{{ route('remind-teacher') }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({
-                        teacher: teacher,
-                        class: classCode
-                    })
-                }).then(response => response.json())
-                  .then(data => {
-                      if (data.success) {
-                          setTimeout(() => {
-                              this.textContent = originalText;
-                              this.classList.remove('text-secondary', 'border-secondary');
-                              this.classList.add('text-error', 'border-error');
-                              this.disabled = false;
-                          }, 3000);
-                      }
-                  }).catch(() => {
-                      this.textContent = originalText;
-                      this.classList.remove('text-secondary', 'border-secondary');
-                      this.classList.add('text-error', 'border-error');
-                      this.disabled = false;
-                  });
-            }
-        });
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const teacher = this.dataset.teacher;
+        const classCode = this.dataset.class;
+        
+        if (!teacher || !classCode) {
+            alert('Data guru atau kelas tidak lengkap!');
+            return;
+        }
+        
+        if (confirm(`Kirim pengingat ke ${teacher} untuk kelas ${classCode}?`)) {
+            const originalHtml = this.innerHTML;
+            const originalClass = this.className;
+            
+            this.disabled = true;
+            this.innerHTML = 'MENGIRIM...';
+            this.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            fetch('{{ route('remind-teacher') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    teacher: teacher,
+                    class: classCode
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Tampilkan pesan sukses dengan info tambahan
+                    let statusText = '✓ TERKIRIM';
+                    if (data.guru_found === false) {
+                        statusText = '✓ TERKIRIM (Guru tidak ditemukan di database)';
+                    }
+                    this.innerHTML = statusText;
+                    this.classList.remove('text-error', 'border-error', 'opacity-50', 'cursor-not-allowed');
+                    this.classList.add('text-green-600', 'border-green-600', 'bg-green-50');
+                    
+                    // Tampilkan notifikasi toast
+                    showToast('Pengingat berhasil dikirim ke ' + teacher);
+                    
+                    setTimeout(() => {
+                        this.innerHTML = originalHtml;
+                        this.className = originalClass;
+                        this.disabled = false;
+                    }, 3000);
+                } else {
+                    throw new Error(data.message || 'Gagal mengirim');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Gagal mengirim pengingat: ' + error.message);
+                this.innerHTML = originalHtml;
+                this.className = originalClass;
+                this.disabled = false;
+            });
+        }
     });
+});
+
+// Fungsi toast notification
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-fade-in';
+    toast.innerHTML = `
+        <span class="material-symbols-outlined">check_circle</span>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
     
     // Delete confirmation
     function confirmDelete(id) {

@@ -72,6 +72,13 @@ class GuruDashboardController extends Controller
             }
         }
 
+        // Ambil notifikasi untuk guru ini
+    $notifications = DB::table('notifications')
+        ->where('user_id', $guruId)
+        ->where('is_read', 0)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
         // 1. Total Kelas
         $totalKelas = DB::table('jadwals')
             ->where('guru_id', $guruId)
@@ -135,7 +142,8 @@ class GuruDashboardController extends Controller
             'totalKelas', 
             'totalMapel', 
             'jurnalHariIni',
-            'jurnalTerbaru'
+            'jurnalTerbaru',
+            'notifications'
         ));
     }
 }

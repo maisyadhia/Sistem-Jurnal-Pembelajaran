@@ -77,8 +77,12 @@ Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-m
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
 });
 
+// Di routes/web.php
+Route::post('/notification/read/{id}', [NotificationController::class, 'markAsRead'])->name('notification.read');
+
 // ============ REMIND TEACHER ============
 Route::post('/remind-teacher', [HumasMonitoringController::class, 'remindTeacher'])->name('remind-teacher');
+
 
 // ============ GURU ROUTES ============
 Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function () {

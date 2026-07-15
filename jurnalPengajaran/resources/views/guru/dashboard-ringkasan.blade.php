@@ -247,5 +247,28 @@
             </table>
         </div>
     </div>
+
+    <!-- Notifications -->
+    @if(isset($notifications) && $notifications->count() > 0)
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-amber-500">notifications_active</span>
+            Notifikasi
+            <span class="ml-auto text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">{{ $notifications->count() }}</span>
+        </h3>
+        <div class="divide-y divide-slate-100">
+            @foreach($notifications as $notif)
+            <div class="py-3 flex items-start gap-3">
+                <span class="material-symbols-outlined text-amber-500 text-sm">info</span>
+                <div class="flex-1">
+                    <p class="text-sm text-slate-700">{{ $notif->message }}</p>
+                    <p class="text-xs text-slate-400">{{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}</p>
+                </div>
+                <a href="{{ $notif->link ?? '#' }}" class="text-xs text-blue-600 hover:underline">Lihat</a>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

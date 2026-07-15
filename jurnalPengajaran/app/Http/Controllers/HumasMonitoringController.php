@@ -69,15 +69,64 @@ class HumasMonitoringController extends Controller
 
     public function remindTeacher(Request $request)
     {
-        $request->validate([
-            'teacher' => 'required|string',
-            'class' => 'required|string',
-        ]);
+        try {
+            $request->validate([
+                'teacher' => 'required|string',
+                'class' => 'required|string',
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => "Pengingat berhasil dikirim ke {$request->teacher} untuk kelas {$request->class}"
-        ]);
+            // 1. Cari guru di database
+            $guru = DB::table('guru')
+                ->where('nama_guru', 'like', '%' . $request->teacher . '%')
+                ->first();
+
+            if (!$guru) {
+                // Coba cari di tabel admin
+                $guru = DB::table('admins')
+                    ->where('name', 'like', '%' . $request->teacher . '%')
+                    ->first();
+            }
+
+            // 2. Simpan ke tabel notifications (buat dulu)
+            $notificationId = DB::table('notifications')->insertGetId([
+                'user_id' => $guru->id ?? null,
+                'user_type' => 'guru',
+                'message' => "Pengingat: Kelas {$request->class} belum mengisi jurnal hari ini.",
+                'link' => route('guru.pilih.sesi'),
+                'is_read' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // 3. Log aktivitas
+            \Illuminate\Support\Facades\Log::info('Reminder sent', [
+                'teacher' => $request->teacher,
+                'class' => $request->class,
+                'guru_id' => $guru->id ?? null,
+                'notification_id' => $notificationId,
+                'sent_by' => session('user_name'),
+                'sent_at' => now()
+            ]);
+
+            // 4. Jika guru ditemukan, bisa kirim email (opsional)
+            if ($guru && isset($guru->email)) {
+                // Kirim email notifikasi
+                // Mail::to($guru->email)->send(new ReminderNotification($request->class));
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Pengingat berhasil dikirim ke {$request->teacher} untuk kelas {$request->class}",
+                'guru_found' => $guru ? true : false
+            ]);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Reminder failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function exportReport(Request $request)
