@@ -29,7 +29,7 @@ class JadwalPelajaranSeeder extends Seeder
             ['hari' => 'Senin', 'jam' => 3, 'mulai' => '08:10:00', 'selesai' => '08:45:00', 'kelas' => '5B', 'mapel' => 'AA', 'guru' => 'BG'],
             ['hari' => 'Senin', 'jam' => 3, 'mulai' => '08:10:00', 'selesai' => '08:45:00', 'kelas' => '5C', 'mapel' => 'PPKn', 'guru' => 'M'],
             ['hari' => 'Senin', 'jam' => 3, 'mulai' => '08:10:00', 'selesai' => '08:45:00', 'kelas' => '5D', 'mapel' => 'BI', 'guru' => 'N'],
-            ['hari' => 'Senin', 'jam' => 3, 'mulai' => '08:10:00', 'selesai' => '08:45:00', 'kelas' => '5E', 'mapel' => 'MAT', 'guru' => 'I'],
+            ['hari' => 'Senin', 'jam' => 3, 'mulai' => '08:10:00', 'selesai' => '08:45:00', 'kelas' => '5A', 'mapel' => 'MAT', 'guru' => 'I'],
             ['hari' => 'Senin', 'jam' => 3, 'mulai' => '08:10:00', 'selesai' => '08:45:00', 'kelas' => '5F', 'mapel' => 'SBDP', 'guru' => 'AZ'],
             ['hari' => 'Senin', 'jam' => 3, 'mulai' => '08:10:00', 'selesai' => '08:45:00', 'kelas' => '5G', 'mapel' => 'BJ', 'guru' => 'T'],
 
@@ -59,7 +59,7 @@ class JadwalPelajaranSeeder extends Seeder
 
             // ==================== HARI RABU ====================
             // Jam ke-1 (07.00 - 07.35)
-            ['hari' => 'Rabu', 'jam' => 1, 'mulai' => '07:00:00', 'selesai' => '07:35:00', 'kelas' => '5A', 'mapel' => 'IPAS', 'guru' => 'I'],
+            ['hari' => 'Rabu', 'jam' => 1, 'mulai' => '07:00:00', 'selesai' => '07:35:00', 'kelas' => '5A', 'mapel' => 'MAT', 'guru' => 'I'],
             ['hari' => 'Rabu', 'jam' => 1, 'mulai' => '07:00:00', 'selesai' => '07:35:00', 'kelas' => '5B', 'mapel' => 'PJOK', 'guru' => 'AC'],
             ['hari' => 'Rabu', 'jam' => 1, 'mulai' => '07:00:00', 'selesai' => '07:35:00', 'kelas' => '5C', 'mapel' => 'BI', 'guru' => 'BA'],
 

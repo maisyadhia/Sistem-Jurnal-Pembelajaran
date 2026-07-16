@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             StudentSeeder::class,
             UnreportedClassSeeder::class,
+            JurnalSeeder::class,
         ]);
 
         $this->command->info('✅ Database seeded successfully!');

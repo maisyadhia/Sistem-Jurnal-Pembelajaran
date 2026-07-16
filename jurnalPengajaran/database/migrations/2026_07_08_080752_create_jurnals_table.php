@@ -15,7 +15,9 @@ return new class extends Migration
             $table->unsignedBigInteger('guru_id');
             $table->unsignedBigInteger('kelas_id');
             $table->unsignedBigInteger('mapel_id');
-            
+
+            //REKAP DETAIL ABSENSI & CATATAN SISWA
+            $table->json('student_ids')->nullable();
             
             // Detail Informasi Pengajaran
             $table->integer('jam_ke')->default(1);

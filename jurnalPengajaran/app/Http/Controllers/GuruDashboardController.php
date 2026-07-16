@@ -73,11 +73,11 @@ class GuruDashboardController extends Controller
         }
 
         // Ambil notifikasi untuk guru ini
-    $notifications = DB::table('notifications')
-        ->where('user_id', $guruId)
-        ->where('is_read', 0)
-        ->orderBy('created_at', 'desc')
-        ->get();
+        $notifications = DB::table('notifications')
+            ->where('user_id', $guruId)
+            ->where('is_read', 0)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         // 1. Total Kelas
         $totalKelas = DB::table('jadwals')
@@ -97,19 +97,16 @@ class GuruDashboardController extends Controller
             ->whereDate('tanggal', today())
             ->count();
 
-        // 🛡️ 4. PERBAIKAN QUERY UTAMA: Kunci Left Join dengan 'hari' dan Hapus groupBy
-        // Ambil nama hari bahasa Indonesia untuk mencocokkan jadwal asal jurnal tersebut 
-        \Carbon\Carbon::setLocale('id');
-
+        // 🛡️ 4. PERBAIKAN UTAMA: Ganti pencocokan hari kalender dengan jam_ke agar jam seeder terdeteksi akurat woy!
         $queryJurnal = DB::table('jurnals')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
             ->leftJoin('jadwals', function($join) use ($guruId) {
                 $join->on('jurnals.kelas_id', '=', 'jadwals.kelas_id')
                      ->on('jurnals.mapel_id', '=', 'jadwals.mapel_id')
+                     ->on('jurnals.jam_ke', '=', 'jadwals.jam_ke')
                      ->where('jadwals.guru_id', '=', $guruId)
-                     // 💡 KUNCI DI SINI: Samakan hari di jadwal dengan hari input jurnal (dari created_at)
-                     ->on('jadwals.hari', '=', DB::raw("CASE DAYOFWEEK(jurnals.created_at)
+                     ->on('jadwals.hari', '=', DB::raw("CASE DAYOFWEEK(jurnals.tanggal)
                         WHEN 1 THEN 'Minggu'
                         WHEN 2 THEN 'Senin'
                         WHEN 3 THEN 'Selasa'
@@ -117,7 +114,7 @@ class GuruDashboardController extends Controller
                         WHEN 5 THEN 'Kamis'
                         WHEN 6 THEN 'Jumat'
                         WHEN 7 THEN 'Sabtu'
-                     END"));
+                    END"));
             })
             ->where('jurnals.guru_id', $guruId)
             ->select(
@@ -133,7 +130,7 @@ class GuruDashboardController extends Controller
             $queryJurnal->whereDate('jurnals.tanggal', $request->tanggal);
         }
 
-        // 💡 groupBy Dihapus total agar tidak memicu Syntax Error / Access Violation !
+        // Ambil data limit 10 baris teratas tanpa groupBy pembawa eror strict mode
         $jurnalTerbaru = $queryJurnal->orderBy('jurnals.created_at', 'desc')
             ->limit(10)
             ->get();
