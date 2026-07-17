@@ -23,9 +23,18 @@
     
     <!-- Date Filter -->
     <div class="flex items-center gap-2 bg-surface-container-lowest p-1 rounded-xl border border-outline-variant">
-        <button class="px-4 py-2 font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all date-filter">Hari Ini</button>
-        <button class="px-4 py-2 font-label-caps text-label-caps bg-primary text-on-primary rounded-lg shadow-sm date-filter active">1 Minggu</button>
-        <button class="px-4 py-2 font-label-caps text-label-caps text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-all date-filter">1 Bulan</button>
+        <a href="{{ route('dashboard.timeline', ['filter' => 'hari_ini']) }}" 
+           class="px-4 py-2 font-label-caps text-label-caps rounded-lg transition-all text-center {{ $currentFilter === 'hari_ini' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-low' }}">
+           Hari Ini
+        </a>
+        <a href="{{ route('dashboard.timeline', ['filter' => '1_minggu']) }}" 
+           class="px-4 py-2 font-label-caps text-label-caps rounded-lg transition-all text-center {{ $currentFilter === '1_minggu' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-low' }}">
+           1 Minggu
+        </a>
+        <a href="{{ route('dashboard.timeline', ['filter' => '1_bulan']) }}" 
+           class="px-4 py-2 font-label-caps text-label-caps rounded-lg transition-all text-center {{ $currentFilter === '1_bulan' ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-low' }}">
+           1 Bulan
+        </a>
         <div class="px-2">
             <span class="material-symbols-outlined text-outline cursor-pointer">calendar_today</span>
         </div>
@@ -38,7 +47,7 @@
     <div class="lg:col-span-4 space-y-gutter">
         <div class="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="font-label-caps text-label-caps text-primary">Kehadiran Minggu Ini</h3>
+                <h3 class="font-label-caps text-label-caps text-primary">Kehadiran Periode Ini</h3>
                 <span class="material-symbols-outlined text-secondary">check_circle</span>
             </div>
             <div class="flex items-baseline gap-2">
@@ -50,21 +59,26 @@
             </div>
         </div>
         
-        <div class="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl relative overflow-hidden">
-            <div class="relative z-10">
-                <h3 class="font-label-caps text-label-caps text-primary mb-4">Catatan Wali Kelas</h3>
-                <p class="font-body-sm text-body-sm text-on-surface-variant italic">
-                    "{{ $note->content ?? 'Belum ada catatan dari guru untuk periode ini.' }}"
-                </p>
-                <div class="mt-4 flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center">
-                        <span class="material-symbols-outlined text-tertiary text-sm">person</span>
+        <!-- CATATAN GURU -->
+        <div class="bg-surface-container-lowest border border-outline-variant p-6 rounded-xl">
+            <h3 class="font-label-caps text-label-caps text-primary mb-4">Semua Catatan Guru ({{ $notes->count() }})</h3>
+            
+            <div class="max-h-[300px] overflow-y-auto pr-1 space-y-4 scrollbar-thin">
+                @forelse($notes as $note)
+                    <div class="p-3 bg-surface-container-low rounded-lg border border-outline-variant relative">
+                        <p class="font-body-sm text-body-sm text-on-surface-variant italic mb-2">
+                            "{{ $note->content }}"
+                        </p>
+                        <div class="flex flex-col gap-1 text-[10px] text-on-surface-variant/80 border-t border-outline-variant/50 pt-2">
+                            <span class="font-semibold text-primary">{{ $note->teacher }} ({{ $note->mapel }})</span>
+                            <span>{{ \Carbon\Carbon::parse($note->tanggal)->translatedFormat('d M Y') }}</span>
+                        </div>
                     </div>
-                    <span class="font-label-caps text-[10px] text-on-surface-variant">{{ $note->teacher ?? '-' }}</span>
-                </div>
-            </div>
-            <div class="absolute -right-4 -bottom-4 opacity-5">
-                <span class="material-symbols-outlined text-9xl">format_quote</span>
+                @empty
+                    <p class="font-body-sm text-body-sm text-on-surface-variant italic text-center py-4">
+                        Belum ada catatan dari guru untuk periode ini.
+                    </p>
+                @endforelse
             </div>
         </div>
         
@@ -80,46 +94,65 @@
     <div class="lg:col-span-8">
         <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 md:p-8">
             <h3 class="font-headline-md text-headline-md text-on-background mb-8">Aktivitas Belajar</h3>
+            
             <div class="relative timeline-line space-y-12">
-                @forelse($activities as $activity)
-                    <div class="relative pl-14">
-                        <!-- Dot Marker -->
-                        <div class="absolute left-0 top-0 w-10 h-10 rounded-full bg-primary-container flex items-center justify-center z-10">
-                            <span class="material-symbols-outlined text-primary text-lg">
-                                {{ ($activity->status ?? 'hadir') === 'hadir' ? 'check_circle' : 'cancel' }}
-                            </span>
-                        </div>
+                @php
+                    // 💡 PENGELOMPOKAN KUNCI: Kelompokkan data collection $activities berdasarkan Bulan & Tahun secara dinamis woy!
+                    $groupedActivities = $activities->groupBy(function($activity) {
+                        return \Carbon\Carbon::parse($activity->tanggal)->translatedFormat('F Y');
+                    });
+                @endphp
 
-                        <div class="bg-surface-container-low border border-outline-variant rounded-lg p-4">
-                            <div class="flex items-center justify-between mb-2 flex-wrap gap-1">
-                                <span class="font-label-caps text-label-caps text-primary">{{ $activity->mapel }}</span>
-                                <span class="text-xs text-on-surface-variant">
-                                    {{ \Carbon\Carbon::parse($activity->tanggal)->translatedFormat('d M Y') }} · Jam ke-{{ $activity->jam_ke }}
+                @forelse($groupedActivities as $bulan => $items)
+                    <!-- 💡 Pembatas Header Bulan woy -->
+                    <div class="relative pl-4 mt-8 first:mt-0">
+                        <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-teal-50 text-teal-800 text-xs font-bold rounded-full border border-teal-200 shadow-sm uppercase tracking-wider relative z-10">
+                            <span class="material-symbols-outlined text-sm">calendar_month</span>
+                            {{ $bulan }}
+                        </div>
+                    </div>
+
+                    <!-- List Aktivitas Belajar Di Bulan Tersebut -->
+                    @foreach($items as $activity)
+                        <div class="relative pl-14">
+                            <!-- Dot Marker -->
+                            <div class="absolute left-0 top-0 w-10 h-10 rounded-full bg-primary-container flex items-center justify-center z-10">
+                                <span class="material-symbols-outlined text-primary text-lg">
+                                    {{ ($activity->status ?? 'hadir') === 'hadir' ? 'check_circle' : 'cancel' }}
                                 </span>
                             </div>
 
-                            <p class="font-body-base text-on-background mb-1">{{ $activity->materi }}</p>
+                            <div class="bg-surface-container-low border border-outline-variant rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2 flex-wrap gap-1">
+                                    <span class="font-label-caps text-label-caps text-primary">{{ $activity->mapel }}</span>
+                                    <span class="text-xs text-on-surface-variant">
+                                        {{ \Carbon\Carbon::parse($activity->tanggal)->translatedFormat('d M Y') }} · Jam ke-{{ $activity->jam_ke }}
+                                    </span>
+                                </div>
 
-                            @if(!empty($activity->catatan))
-                                <p class="text-body-sm text-on-surface-variant italic mt-2">"{{ $activity->catatan }}"</p>
-                            @endif
+                                <p class="font-body-base text-on-background mb-1">{{ $activity->materi }}</p>
 
-                            <div class="flex items-center gap-2 mt-3">
-                                <span class="material-symbols-outlined text-outline text-sm">person</span>
-                                <span class="text-xs text-on-surface-variant">{{ $activity->guru }}</span>
-
-                                @if(($activity->status ?? null) !== 'hadir')
-                                    <span class="ml-auto text-xs font-medium text-error bg-error-container px-2 py-0.5 rounded-full">Tidak Hadir</span>
+                                @if(!empty($activity->catatan))
+                                    <p class="text-body-sm text-on-surface-variant italic mt-2">"{{ $activity->catatan }}"</p>
                                 @endif
+
+                                <div class="flex items-center gap-2 mt-3">
+                                    <span class="material-symbols-outlined text-outline text-sm">person</span>
+                                    <span class="text-xs text-on-surface-variant">{{ $activity->guru }}</span>
+
+                                    @if(($activity->status ?? null) !== 'hadir')
+                                        <span class="ml-auto text-xs font-medium text-error bg-error-container px-2 py-0.5 rounded-full">Tidak Hadir</span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @endforeach
                 @empty
-                    <p class="text-center text-on-surface-variant">Belum ada aktivitas untuk periode ini.</p>
+                    <p class="text-center text-on-surface-variant py-8">Belum ada aktivitas untuk periode ini.</p>
                 @endforelse
             </div>
             
-            <div class="mt-12 flex justify-center">
+            <!-- <div class="mt-12 flex justify-center">
                 <button class="flex items-center gap-2 px-6 py-2 border border-outline-variant rounded-full font-label-caps text-label-caps text-primary hover:bg-surface-container-low transition-colors">
                     <span class="material-symbols-outlined text-sm">expand_more</span>
                     Tampilkan Aktivitas Sebelumnya
@@ -127,7 +160,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> -->
 @endsection
 
 @push('styles')
@@ -146,21 +179,15 @@
             left: 16px;
         }
     }
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 20px;
+    }
 </style>
-@endpush
-
-@push('scripts')
-<script>
-    // Date filter switching
-    document.querySelectorAll('.date-filter').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.date-filter').forEach(b => {
-                b.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
-                b.classList.add('text-on-surface-variant', 'hover:bg-surface-container-low');
-            });
-            this.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
-            this.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-low');
-        });
-    });
-</script>
 @endpush
