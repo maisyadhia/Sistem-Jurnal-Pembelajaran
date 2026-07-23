@@ -114,8 +114,15 @@
                 <p class="text-[11px] text-slate-400">Daftar rekaman administrasi kelas yang telah diinput.</p>
             </div>
             
-            <!-- MODERN QUICK FILTERS & CUSTOM CALENDAR -->
+            <!-- QUICK FILTERS, CALENDAR & TOMBOL EXCEL  -->
             <div class="flex items-center gap-2 flex-wrap">
+                <!-- Tombol Download Excel -->
+                <a href="{{ route('guru.jurnal.export', request()->all()) }}" 
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-sm transition-all">
+                    <span class="material-symbols-outlined text-sm">download</span>
+                    Excel
+                </a>
+
                 <!-- Quick Filter Buttons -->
                 <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
                     <a href="{{ route('guru.dashboard', ['filter' => 'hari_ini']) }}" 
@@ -185,7 +192,7 @@
                                 {{ $jurnal->materi }}
                             </td>
                             
-                            <!-- 💡 DETAIL RINGKAS + INTIPAN SEKILAS + POP-UP LIHAT LEBIH LANJUT -->
+                            <!-- DETAIL RINGKAS + INTIPAN SEKILAS + POP-UP LIHAT LEBIH LANJUT -->
                             <td class="py-2.5 px-3 text-xs">
                                 @php
                                     $students = json_decode($jurnal->student_ids, true);
@@ -218,7 +225,6 @@
 
                                 <div class="flex flex-col gap-1">
                                     @if($totalKet > 0)
-                                        <!-- INTIPAN SEKILAS SISWA TIDAK HADIR -->
                                         @if(count($absenList) > 0)
                                             <div class="flex items-center gap-1 flex-wrap">
                                                 <span class="font-bold text-red-600 text-[10px] uppercase">❌ Absen:</span>
@@ -235,7 +241,6 @@
                                             </div>
                                         @endif
 
-                                        <!-- INTIPAN SEKILAS CATATAN SISWA -->
                                         @if(count($noteList) > 0)
                                             <div class="text-[11px] text-slate-600 truncate max-w-[200px]">
                                                 <span class="font-bold text-teal-700 text-[10px] uppercase">📝 Catatan:</span>
@@ -243,7 +248,6 @@
                                             </div>
                                         @endif
 
-                                        <!-- TOMBOL LIHAT LEBIH LANJUT UNTUK POP-UP -->
                                         <button type="button" 
                                                 onclick="openDetailModal({{ json_encode($absenList) }}, {{ json_encode($noteList) }}, '{{ $jurnal->nama_kelas }} - {{ $jurnal->nama_mapel }}')"
                                                 class="mt-1 text-teal-700 hover:text-teal-900 font-bold text-[10px] uppercase tracking-wider flex items-center gap-0.5 w-fit">
@@ -251,7 +255,6 @@
                                             <span class="material-symbols-outlined text-xs">arrow_forward</span>
                                         </button>
                                     @else
-                                        <!-- HADIR SEMUA -->
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-medium border border-emerald-200 w-fit">
                                             <span class="w-1 h-1 rounded-full bg-emerald-500"></span> Hadir Semua
                                         </span>
@@ -295,7 +298,7 @@
     @endif
 </div>
 
-<!-- 💡 MODAL POP-UP DETAIL ABSENSI & CATATAN SISWA -->
+<!-- MODAL POP-UP DETAIL ABSENSI & CATATAN SISWA -->
 <div id="modalDetailJurnal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 flex flex-col gap-4 animate-fade-in">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">

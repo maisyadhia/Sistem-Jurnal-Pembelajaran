@@ -96,6 +96,7 @@ Route::post('/remind-teacher', [HumasMonitoringController::class, 'remindTeacher
 Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function () {
     Route::get('/pilih-sesi', [GuruDashboardController::class, 'index'])->name('guru.pilih.sesi');
     Route::get('/dashboard', [GuruDashboardController::class, 'dashboard'])->name('guru.dashboard');
+    Route::get('/jurnal/export-excel', [GuruDashboardController::class, 'exportExcel'])->name('guru.jurnal.export');      
     Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('guru.jurnal.form');
     Route::post('/jurnal', [GuruJurnalController::class, 'store'])->name('guru.jurnal.store');
 });
