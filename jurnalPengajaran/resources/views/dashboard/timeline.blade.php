@@ -97,14 +97,14 @@
             
             <div class="relative timeline-line space-y-12">
                 @php
-                    // 💡 PENGELOMPOKAN KUNCI: Kelompokkan data collection $activities berdasarkan Bulan & Tahun secara dinamis woy!
+                    // Kelompokkan data collection $activities berdasarkan Bulan & Tahun secara dinamis
                     $groupedActivities = $activities->groupBy(function($activity) {
                         return \Carbon\Carbon::parse($activity->tanggal)->translatedFormat('F Y');
                     });
                 @endphp
 
                 @forelse($groupedActivities as $bulan => $items)
-                    <!-- 💡 Pembatas Header Bulan woy -->
+                    <!-- Pembatas Header Bulan -->
                     <div class="relative pl-4 mt-8 first:mt-0">
                         <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-teal-50 text-teal-800 text-xs font-bold rounded-full border border-teal-200 shadow-sm uppercase tracking-wider relative z-10">
                             <span class="material-symbols-outlined text-sm">calendar_month</span>
@@ -118,7 +118,7 @@
                             <!-- Dot Marker -->
                             <div class="absolute left-0 top-0 w-10 h-10 rounded-full bg-primary-container flex items-center justify-center z-10">
                                 <span class="material-symbols-outlined text-primary text-lg">
-                                    {{ ($activity->status ?? 'hadir') === 'hadir' ? 'check_circle' : 'cancel' }}
+                                    {{ strtolower($activity->status ?? 'hadir') === 'hadir' ? 'check_circle' : 'cancel' }}
                                 </span>
                             </div>
 
@@ -140,8 +140,15 @@
                                     <span class="material-symbols-outlined text-outline text-sm">person</span>
                                     <span class="text-xs text-on-surface-variant">{{ $activity->guru }}</span>
 
-                                    @if(($activity->status ?? null) !== 'hadir')
-                                        <span class="ml-auto text-xs font-medium text-error bg-error-container px-2 py-0.5 rounded-full">Tidak Hadir</span>
+                                    <!-- Badge Status Kehadiran (Hijau jika Hadir, Merah jika Tidak Hadir) -->
+                                    @if(strtolower($activity->status ?? 'hadir') !== 'hadir')
+                                        <span class="ml-auto text-xs font-medium text-error bg-error-container px-2 py-0.5 rounded-full">
+                                            {{ ucfirst($activity->status ?? 'Tidak Hadir') }}
+                                        </span>
+                                    @else
+                                        <span class="ml-auto text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                            Hadir
+                                        </span>
                                     @endif
                                 </div>
                             </div>
@@ -151,16 +158,9 @@
                     <p class="text-center text-on-surface-variant py-8">Belum ada aktivitas untuk periode ini.</p>
                 @endforelse
             </div>
-            
-            <!-- <div class="mt-12 flex justify-center">
-                <button class="flex items-center gap-2 px-6 py-2 border border-outline-variant rounded-full font-label-caps text-label-caps text-primary hover:bg-surface-container-low transition-colors">
-                    <span class="material-symbols-outlined text-sm">expand_more</span>
-                    Tampilkan Aktivitas Sebelumnya
-                </button>
-            </div>
         </div>
     </div>
-</div> -->
+</div>
 @endsection
 
 @push('styles')

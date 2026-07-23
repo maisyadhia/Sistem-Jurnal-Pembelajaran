@@ -73,13 +73,14 @@ class DashboardController extends Controller
 
             foreach ($studentsData as $data) {
                 if (($data['student_id'] ?? null) == $studentId) {
+                  $rawStatus = isset($data['status']) ? strtolower(trim($data['status'])) : 'hadir';  
                     $item = (object) [
                         'mapel'   => $jurnal->nama_mapel,
                         'guru'    => $jurnal->nama_guru,
                         'tanggal' => $jurnal->tanggal,
                         'jam_ke'  => $jurnal->jam_ke,
                         'materi'  => $jurnal->materi,
-                        'status'  => $data['status'] ?? 'hadir',
+                        'status'  => $rawStatus,
                         'catatan' => $data['catatan'] ?? null,
                     ];
 
