@@ -40,7 +40,14 @@
         $menuItems = [
             ['route' => 'dashboard.timeline', 'icon' => 'dashboard', 'label' => 'Timeline', 'params' => []],
         ];
-    }
+    } elseif ($role === 'admin' || $role === 'humas') {
+    $menuItems = [
+        ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'params' => []],
+        ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'params' => []],
+        ['route' => 'admin.logs', 'icon' => 'history', 'label' => 'Log Aktivitas', 'params' => []],
+        ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan', 'params' => ['format' => 'pdf']],
+    ];
+}
 @endphp
         
         @foreach($menuItems as $item)

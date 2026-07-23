@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\GuruController;
 use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\MapelController;
 use App\Http\Controllers\Admin\LogController;
+use App\Http\Controllers\Admin\SiswaController;
+use App\Http\Controllers\Admin\JadwalController;
 
 // ============ GUEST ROUTES ============
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -99,6 +101,26 @@ Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function
     Route::get('/jurnal/export-excel', [GuruDashboardController::class, 'exportExcel'])->name('guru.jurnal.export');      
     Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('guru.jurnal.form');
     Route::post('/jurnal', [GuruJurnalController::class, 'store'])->name('guru.jurnal.store');
+});
+
+// ====== SISWA CRUD ======
+Route::prefix('data-master/siswa')->group(function () {
+    Route::get('/', [SiswaController::class, 'index'])->name('data-master.siswa');
+    Route::get('/create', [SiswaController::class, 'create'])->name('data-master.siswa.create');
+    Route::post('/', [SiswaController::class, 'store'])->name('data-master.siswa.store');
+    Route::get('/{id}/edit', [SiswaController::class, 'edit'])->name('data-master.siswa.edit');
+    Route::put('/{id}', [SiswaController::class, 'update'])->name('data-master.siswa.update');
+    Route::delete('/{id}', [SiswaController::class, 'destroy'])->name('data-master.siswa.destroy');
+});
+
+// ====== JADWAL CRUD ======
+Route::prefix('data-master/jadwal')->group(function () {
+    Route::get('/', [JadwalController::class, 'index'])->name('data-master.jadwal');
+    Route::get('/create', [JadwalController::class, 'create'])->name('data-master.jadwal.create');
+    Route::post('/', [JadwalController::class, 'store'])->name('data-master.jadwal.store');
+    Route::get('/{id}/edit', [JadwalController::class, 'edit'])->name('data-master.jadwal.edit');
+    Route::put('/{id}', [JadwalController::class, 'update'])->name('data-master.jadwal.update');
+    Route::delete('/{id}', [JadwalController::class, 'destroy'])->name('data-master.jadwal.destroy');
 });
 
 // ============ PARENT ROUTES ============
