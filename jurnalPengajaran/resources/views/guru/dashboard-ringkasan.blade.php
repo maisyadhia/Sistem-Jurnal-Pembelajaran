@@ -114,7 +114,7 @@
                 <p class="text-[11px] text-slate-400">Daftar rekaman administrasi kelas yang telah diinput.</p>
             </div>
             
-            <!-- 💡 MODERN QUICK FILTERS & CUSTOM CALENDAR -->
+            <!-- MODERN QUICK FILTERS & CUSTOM CALENDAR -->
             <div class="flex items-center gap-2 flex-wrap">
                 <!-- Quick Filter Buttons -->
                 <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
@@ -134,7 +134,6 @@
 
                 <!-- Custom Date Picker Form -->
                 <form method="GET" action="{{ route('guru.dashboard') }}" id="form-custom-date" class="flex items-center gap-1.5 relative">
-                    <!-- Input date tersembunyi yang diletakkan di atas tombol kalender -->
                     <input type="date" id="custom-date-picker" name="tanggal" value="{{ request('tanggal') }}" 
                            class="absolute inset-0 opacity-0 w-8 cursor-pointer z-20" onchange="document.getElementById('form-custom-date').submit();">
                     
@@ -186,6 +185,7 @@
                                 {{ $jurnal->materi }}
                             </td>
                             
+                            <!-- 💡 DETAIL RINGKAS + INTIPAN SEKILAS + POP-UP LIHAT LEBIH LANJUT -->
                             <td class="py-2.5 px-3 text-xs">
                                 @php
                                     $students = json_decode($jurnal->student_ids, true);
@@ -197,7 +197,7 @@
                                             $siswaDb = DB::table('students')->where('id', $s['student_id'])->first();
                                             $namaSiswa = $siswaDb ? $siswaDb->name : 'Siswa ID: ' . $s['student_id'];
 
-                                            if (isset($s['status']) && $s['status'] !== 'Hadir') {
+                                            if (isset($s['status']) && strtolower($s['status']) !== 'hadir') {
                                                 $absenList[] = [
                                                     'nama' => $namaSiswa,
                                                     'status' => $s['status']
@@ -212,40 +212,46 @@
                                             }
                                         }
                                     }
+
+                                    $totalKet = count($absenList) + count($noteList);
                                 @endphp
 
-                                <div class="flex flex-col gap-1.5">
-                                    @if(count($absenList) > 0)
-                                        <div class="space-y-0.5">
-                                            <p class="font-bold text-red-700 text-[9px] uppercase tracking-wider">❌ Tidak Hadir:</p>
-                                            <div class="flex flex-col gap-0.5 pl-0.5">
-                                                @foreach($absenList as $absen)
-                                                    @php
-                                                        $badgeBg = $absen['status'] === 'Alpha' ? 'bg-red-50 text-red-700 border-red-200' : ($absen['status'] === 'Sakit' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200');
-                                                    @endphp
-                                                    <span class="inline-flex items-center gap-1 text-[11px]">
-                                                        <span class="px-1 py-0.5 rounded border text-[8px] font-bold {{ $badgeBg }}">{{ $absen['status'] }}</span>
-                                                        <span class="text-slate-700 font-medium">{{ $absen['nama'] }}</span>
+                                <div class="flex flex-col gap-1">
+                                    @if($totalKet > 0)
+                                        <!-- INTIPAN SEKILAS SISWA TIDAK HADIR -->
+                                        @if(count($absenList) > 0)
+                                            <div class="flex items-center gap-1 flex-wrap">
+                                                <span class="font-bold text-red-600 text-[10px] uppercase">❌ Absen:</span>
+                                                <span class="inline-flex items-center gap-1">
+                                                    @php $a1 = $absenList[0]; @endphp
+                                                    <span class="text-slate-800 font-semibold text-[11px]">{{ $a1['nama'] }}</span>
+                                                    <span class="px-1 py-0.2 rounded text-[9px] font-bold {{ $a1['status'] === 'Alpha' ? 'bg-red-100 text-red-700' : ($a1['status'] === 'Sakit' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700') }}">
+                                                        {{ $a1['status'] }}
                                                     </span>
-                                                @endforeach
+                                                </span>
+                                                @if(count($absenList) > 1)
+                                                    <span class="text-[10px] text-slate-400 font-bold">+{{ count($absenList) - 1 }} siswa</span>
+                                                @endif
                                             </div>
-                                        </div>
-                                    @endif
+                                        @endif
 
-                                    @if(count($noteList) > 0)
-                                        <div class="space-y-0.5 {{ count($absenList) > 0 ? 'pt-1 border-t border-slate-100' : '' }}">
-                                            <p class="font-bold text-teal-700 text-[9px] uppercase tracking-wider">📝 Catatan Khusus:</p>
-                                            <ul class="list-disc list-inside space-y-0.5 pl-0.5 text-[11px] text-slate-600">
-                                                @foreach($noteList as $note)
-                                                    <li class="leading-tight">
-                                                        <strong class="text-slate-800">{{ $note['nama'] }}</strong>: <span class="italic">"{{ $note['text'] }}"</span>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        </div>
-                                    @endif
+                                        <!-- INTIPAN SEKILAS CATATAN SISWA -->
+                                        @if(count($noteList) > 0)
+                                            <div class="text-[11px] text-slate-600 truncate max-w-[200px]">
+                                                <span class="font-bold text-teal-700 text-[10px] uppercase">📝 Catatan:</span>
+                                                <span class="italic">"{{ \Illuminate\Support\Str::limit($noteList[0]['text'], 25) }}"</span>
+                                            </div>
+                                        @endif
 
-                                    @if(count($absenList) === 0 && count($noteList) === 0)
+                                        <!-- TOMBOL LIHAT LEBIH LANJUT UNTUK POP-UP -->
+                                        <button type="button" 
+                                                onclick="openDetailModal({{ json_encode($absenList) }}, {{ json_encode($noteList) }}, '{{ $jurnal->nama_kelas }} - {{ $jurnal->nama_mapel }}')"
+                                                class="mt-1 text-teal-700 hover:text-teal-900 font-bold text-[10px] uppercase tracking-wider flex items-center gap-0.5 w-fit">
+                                            Lihat Lebih Lanjut
+                                            <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                                        </button>
+                                    @else
+                                        <!-- HADIR SEMUA -->
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-medium border border-emerald-200 w-fit">
                                             <span class="w-1 h-1 rounded-full bg-emerald-500"></span> Hadir Semua
                                         </span>
@@ -288,4 +294,95 @@
     </div>
     @endif
 </div>
+
+<!-- 💡 MODAL POP-UP DETAIL ABSENSI & CATATAN SISWA -->
+<div id="modalDetailJurnal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 flex flex-col gap-4 animate-fade-in">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-teal-600">assignment_ind</span>
+                <h4 class="font-bold text-slate-800 text-base" id="modalTitle">Detail Siswa</h4>
+            </div>
+            <button type="button" onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">
+                &times;
+            </button>
+        </div>
+
+        <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+            <!-- Container Absen -->
+            <div id="containerAbsenModal" class="space-y-2">
+                <p class="font-bold text-red-600 text-xs uppercase tracking-wider flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">person_off</span> Siswa Tidak Hadir:
+                </p>
+                <div id="listAbsenModal" class="flex flex-col gap-1.5 pl-2"></div>
+            </div>
+
+            <!-- Container Catatan -->
+            <div id="containerCatatanModal" class="space-y-2 pt-2 border-t border-slate-100">
+                <p class="font-bold text-teal-600 text-xs uppercase tracking-wider flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">chat</span> Catatan Khusus Siswa:
+                </p>
+                <div id="listCatatanModal" class="flex flex-col gap-1.5 pl-2"></div>
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex justify-end">
+            <button type="button" onclick="closeDetailModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-lg text-xs hover:bg-slate-200 transition-colors">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+    function openDetailModal(absenList, noteList, title) {
+        document.getElementById('modalTitle').textContent = 'Detail Siswa: ' + title;
+        
+        const containerAbsen = document.getElementById('containerAbsenModal');
+        const listAbsen = document.getElementById('listAbsenModal');
+        listAbsen.innerHTML = '';
+
+        if (absenList.length > 0) {
+            containerAbsen.classList.remove('hidden');
+            absenList.forEach(item => {
+                let badgeBg = item.status === 'Alpha' ? 'bg-red-100 text-red-700 border-red-200' : (item.status === 'Sakit' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200');
+                
+                listAbsen.innerHTML += `
+                    <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100 text-xs">
+                        <span class="font-semibold text-slate-800">${item.nama}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeBg}">${item.status}</span>
+                    </div>
+                `;
+            });
+        } else {
+            containerAbsen.classList.add('hidden');
+        }
+
+        const containerCatatan = document.getElementById('containerCatatanModal');
+        const listCatatan = document.getElementById('listCatatanModal');
+        listCatatan.innerHTML = '';
+
+        if (noteList.length > 0) {
+            containerCatatan.classList.remove('hidden');
+            noteList.forEach(item => {
+                listCatatan.innerHTML += `
+                    <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs">
+                        <p class="font-bold text-slate-800 mb-0.5">${item.nama}</p>
+                        <p class="text-slate-600 italic">"${item.text}"</p>
+                    </div>
+                `;
+            });
+        } else {
+            containerCatatan.classList.add('hidden');
+        }
+
+        document.getElementById('modalDetailJurnal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() {
+        document.getElementById('modalDetailJurnal').classList.add('hidden');
+    }
+</script>
+@endpush
