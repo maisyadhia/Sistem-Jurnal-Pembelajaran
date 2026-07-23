@@ -129,15 +129,18 @@
                         @forelse($daftar_siswa as $siswa)
                             <div class="p-4 bg-surface-container-low/60 rounded-xl border border-outline-variant/50 transition-all student-card">
                                 <label class="flex items-center gap-3 cursor-pointer">
+                                    <!-- 💡 TAMBAHAN 'checked': Otomatis tercentang semua dari awal woy -->
                                     <input class="w-5 h-5 rounded text-primary focus:ring-primary border-outline-variant cursor-pointer student-checkbox" 
                                            type="checkbox" 
                                            name="student_ids[]" 
                                            value="{{ $siswa->id }}"
+                                           checked
                                            onchange="toggleStudentDetail(this, 'detail-{{ $siswa->id }}')"/>
                                     <span class="font-body-base text-on-surface font-semibold">{{ $siswa->name }}</span>
                                 </label>
 
-                                <div id="detail-{{ $siswa->id }}" class="hidden mt-4 pl-8 space-y-3 border-l-2 border-primary/30 animate-fade-in">
+                                <!-- 💡 Hapus class 'hidden': Supaya opsi status Hadir/Sakit/Izin/Alpha langsung terbuka woy -->
+                                <div id="detail-{{ $siswa->id }}" class="mt-4 pl-8 space-y-3 border-l-2 border-primary/30 animate-fade-in">
                                     <div class="flex items-center gap-6">
                                         <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Status:</span>
                                         <div class="flex items-center gap-4">
