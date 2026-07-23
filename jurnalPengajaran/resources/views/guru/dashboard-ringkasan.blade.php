@@ -8,8 +8,8 @@
         transition: all 0.2s ease;
     }
     .stat-card:hover {
-        transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
     }
     .animate-fade-in {
         animation: fadeIn 0.3s ease-out forwards;
@@ -106,7 +106,7 @@
         </a>
     </div>
 
-    <!-- 📊 TABEL RIWAYAT JURNAL (💡 Diperkecil padding p-6 jadi p-4 ) -->
+    <!-- 📊 TABEL RIWAYAT JURNAL -->
     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-3">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
@@ -114,28 +114,46 @@
                 <p class="text-[11px] text-slate-400">Daftar rekaman administrasi kelas yang telah diinput.</p>
             </div>
             
-            <form method="GET" action="{{ route('guru.dashboard') }}" class="flex items-end gap-2">
-                <div class="flex flex-col gap-0.5">
-                    <label for="filter_date" class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Pilih Tanggal</label>
-                    <input type="date" id="filter_date" name="tanggal" value="{{ request('tanggal') }}" 
-                           class="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-[11px] text-slate-700 outline-none focus:border-teal-500 cursor-pointer">
-                </div>
-                <button type="submit" class="bg-slate-800 text-white px-2.5 py-1.5 text-[11px] font-semibold rounded-lg hover:bg-slate-900 transition-colors flex items-center gap-1">
-                    <span class="material-symbols-outlined text-xs">filter_alt</span>
-                    Filter
-                </button>
-                @if(request('tanggal'))
-                    <a href="{{ route('guru.dashboard') }}" class="bg-slate-100 text-slate-600 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg hover:bg-slate-200 transition-colors">
-                        Reset
+            <!-- 💡 MODERN QUICK FILTERS & CUSTOM CALENDAR -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <!-- Quick Filter Buttons -->
+                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <a href="{{ route('guru.dashboard', ['filter' => 'hari_ini']) }}" 
+                       class="px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all text-center {{ $currentFilter === 'hari_ini' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200' }}">
+                       Hari Ini
                     </a>
-                @endif
-            </form>
+                    <a href="{{ route('guru.dashboard', ['filter' => '1_minggu']) }}" 
+                       class="px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all text-center {{ $currentFilter === '1_minggu' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200' }}">
+                       1 Minggu
+                    </a>
+                    <a href="{{ route('guru.dashboard', ['filter' => '1_bulan']) }}" 
+                       class="px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all text-center {{ $currentFilter === '1_bulan' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200' }}">
+                       1 Bulan
+                    </a>
+                </div>
+
+                <!-- Custom Date Picker Form -->
+                <form method="GET" action="{{ route('guru.dashboard') }}" id="form-custom-date" class="flex items-center gap-1.5 relative">
+                    <!-- Input date tersembunyi yang diletakkan di atas tombol kalender -->
+                    <input type="date" id="custom-date-picker" name="tanggal" value="{{ request('tanggal') }}" 
+                           class="absolute inset-0 opacity-0 w-8 cursor-pointer z-20" onchange="document.getElementById('form-custom-date').submit();">
+                    
+                    <div class="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center bg-white hover:bg-slate-50 transition-colors cursor-pointer relative z-10 {{ $currentFilter === 'custom' ? 'border-slate-800 text-slate-800 bg-slate-50' : 'text-slate-400' }}">
+                        <span class="material-symbols-outlined text-lg">calendar_today</span>
+                    </div>
+
+                    @if($currentFilter)
+                        <a href="{{ route('guru.dashboard') }}" class="bg-slate-100 text-slate-600 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg hover:bg-slate-200 transition-colors">
+                            Reset
+                        </a>
+                    @endif
+                </form>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <!-- 💡 Ukuran font header diperkecil ke text-[10px]  -->
                     <tr class="border-b border-slate-200 text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50/70">
                         <th class="py-2.5 px-3">Waktu Input</th>
                         <th class="py-3 px-3">Kelas</th>
@@ -147,7 +165,6 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs sm:text-sm text-slate-700">
                     @forelse($jurnalTerbaru as $jurnal)
-                        <!-- 💡 Baris tabel diperketat padding vertikalnya jadi py-2.5  -->
                         <tr class="hover:bg-slate-50/50 transition-colors align-top">
                             <td class="py-2.5 px-3 whitespace-nowrap text-xs text-slate-500">
                                 {{ \Carbon\Carbon::parse($jurnal->created_at)->format('d M Y H:i') }}
@@ -239,7 +256,7 @@
                     @empty
                         <tr>
                             <td colspan="6" class="py-6 text-center text-slate-400 italic text-xs">
-                                Tidak ada data jurnal ditemukan .
+                                Tidak ada data jurnal ditemukan.
                             </td>
                         </tr>
                     @endforelse

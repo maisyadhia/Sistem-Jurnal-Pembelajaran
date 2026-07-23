@@ -60,6 +60,7 @@ class GuruDashboardController extends Controller
     }
 
     // Dashboard Ringkasan (route: guru.dashboard)
+    // Dashboard Ringkasan (route: guru.dashboard)
     public function dashboard(Request $request)
     {
         $guruId = session('guru_id');
@@ -97,7 +98,7 @@ class GuruDashboardController extends Controller
             ->whereDate('tanggal', today())
             ->count();
 
-        // 🛡️ 4. PERBAIKAN UTAMA: Ganti pencocokan hari kalender dengan jam_ke agar jam seeder terdeteksi akurat woy!
+        // 🛡️ 4. QUERY UTAMA: Join Tabel
         $queryJurnal = DB::table('jurnals')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
@@ -114,7 +115,7 @@ class GuruDashboardController extends Controller
                         WHEN 5 THEN 'Kamis'
                         WHEN 6 THEN 'Jumat'
                         WHEN 7 THEN 'Sabtu'
-                    END"));
+                     END"));
             })
             ->where('jurnals.guru_id', $guruId)
             ->select(
@@ -125,12 +126,30 @@ class GuruDashboardController extends Controller
                 'jadwals.jam_selesai'
             );
 
-        // Filter tanggal non-JS
+        // 💡 FILTER LOGIC: Deteksi Quick Filter atau Tanggal Spesifik woy
+        $currentFilter = $request->query('filter'); 
+        $startDate = null;
+
         if ($request->filled('tanggal')) {
+            // Jika guru memilih dari kalender kustom
             $queryJurnal->whereDate('jurnals.tanggal', $request->tanggal);
+            $currentFilter = 'custom';
+        } elseif ($currentFilter) {
+            // Jika guru mengklik tombol Quick Filter
+            if ($currentFilter === 'hari_ini') {
+                $startDate = \Carbon\Carbon::today()->toDateString();
+            } elseif ($currentFilter === '1_minggu') {
+                $startDate = \Carbon\Carbon::now()->subWeek()->toDateString();
+            } elseif ($currentFilter === '1_bulan') {
+                $startDate = \Carbon\Carbon::now()->subMonth()->toDateString();
+            }
+
+            if ($startDate) {
+                $queryJurnal->whereDate('jurnals.tanggal', '>=', $startDate);
+            }
         }
 
-        // Ambil data limit 10 baris teratas tanpa groupBy pembawa eror strict mode
+        // Ambil data limit 10 baris teratas
         $jurnalTerbaru = $queryJurnal->orderBy('jurnals.created_at', 'desc')
             ->limit(10)
             ->get();
@@ -140,7 +159,8 @@ class GuruDashboardController extends Controller
             'totalMapel', 
             'jurnalHariIni',
             'jurnalTerbaru',
-            'notifications'
+            'notifications',
+            'currentFilter'
         ));
     }
 }
