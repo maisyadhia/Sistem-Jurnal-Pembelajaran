@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\MapelController;
 use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\JadwalController;
+use App\Http\Controllers\NotificationController;
 
 // ============ GUEST ROUTES ============
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -89,7 +90,6 @@ Route::prefix('admin/logs')->group(function () {
 
 // Di routes/web.php
 Route::post('/notification/read/{id}', [NotificationController::class, 'markAsRead'])->name('notification.read');
-
 // ============ REMIND TEACHER ============
 Route::post('/remind-teacher', [HumasMonitoringController::class, 'remindTeacher'])->name('remind-teacher');
 

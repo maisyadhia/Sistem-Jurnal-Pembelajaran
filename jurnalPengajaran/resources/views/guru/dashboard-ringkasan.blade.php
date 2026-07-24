@@ -114,7 +114,7 @@
                 <p class="text-[11px] text-slate-400">Daftar rekaman administrasi kelas yang telah diinput.</p>
             </div>
             
-            <!-- QUICK FILTERS, CALENDAR & TOMBOL EXCEL  -->
+            <!-- QUICK FILTERS, CALENDAR & TOMBOL EXCEL -->
             <div class="flex items-center gap-2 flex-wrap">
                 <!-- Tombol Download Excel -->
                 <a href="{{ route('guru.jurnal.export', request()->all()) }}" 
@@ -192,7 +192,7 @@
                                 {{ $jurnal->materi }}
                             </td>
                             
-                            <!-- DETAIL RINGKAS + INTIPAN SEKILAS + POP-UP LIHAT LEBIH LANJUT -->
+                            <!-- 💡 DETAIL RINGKAS + AMAN DARI ERROR TANDA KUTIP -->
                             <td class="py-2.5 px-3 text-xs">
                                 @php
                                     $students = json_decode($jurnal->student_ids, true);
@@ -248,9 +248,13 @@
                                             </div>
                                         @endif
 
+                                        <!-- 💡 TOMBOL LIHAT LEBIH LANJUT (DATA ATTRIBUTES SAFE) -->
                                         <button type="button" 
-                                                onclick="openDetailModal({{ json_encode($absenList) }}, {{ json_encode($noteList) }}, '{{ $jurnal->nama_kelas }} - {{ $jurnal->nama_mapel }}')"
-                                                class="mt-1 text-teal-700 hover:text-teal-900 font-bold text-[10px] uppercase tracking-wider flex items-center gap-0.5 w-fit">
+                                                data-absen='@json($absenList)'
+                                                data-catatan='@json($noteList)'
+                                                data-title="{{ $jurnal->nama_kelas }} - {{ $jurnal->nama_mapel }}"
+                                                onclick="openDetailModalSafe(this)"
+                                                class="mt-1 text-teal-700 hover:text-teal-900 font-bold text-[10px] uppercase tracking-wider flex items-center gap-0.5 w-fit cursor-pointer">
                                             Lihat Lebih Lanjut
                                             <span class="material-symbols-outlined text-xs">arrow_forward</span>
                                         </button>
@@ -340,7 +344,12 @@
 
 @push('scripts')
 <script>
-    function openDetailModal(absenList, noteList, title) {
+    // 💡 FUNGSI PEMICU MODAL AMAN DARI ERROR SYNTAX TANDA KUTIP 
+    function openDetailModalSafe(btn) {
+        const absenList = JSON.parse(btn.getAttribute('data-absen') || '[]');
+        const noteList = JSON.parse(btn.getAttribute('data-catatan') || '[]');
+        const title = btn.getAttribute('data-title') || 'Detail Siswa';
+
         document.getElementById('modalTitle').textContent = 'Detail Siswa: ' + title;
         
         const containerAbsen = document.getElementById('containerAbsenModal');

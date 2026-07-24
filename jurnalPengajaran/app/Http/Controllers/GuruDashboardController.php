@@ -72,7 +72,61 @@ class GuruDashboardController extends Controller
             }
         }
 
-        // Ambil notifikasi untuk guru ini
+        // 💡 1. SYSTEM AUTO-NOTIFIKASI KHUSUS UNTUK ROLE GURU SAJA 
+        if (session('user_role') === 'guru') {
+            Carbon::setLocale('id');
+            $today = Carbon::today()->toDateString();
+            $namaHariIndo = Carbon::now()->translatedFormat('l');
+
+            $jadwalHariIni = DB::table('jadwals')
+                ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
+                ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
+                ->where('jadwals.guru_id', $guruId)
+                ->where('jadwals.hari', $namaHariIndo)
+                ->select('jadwals.*', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
+                ->get();
+
+            foreach ($jadwalHariIni as $jadwal) {
+                // Cek apakah jurnal sudah diisi hari ini
+                $jurnalAda = DB::table('jurnals')
+                    ->where('guru_id', $guruId)
+                    ->where('kelas_id', $jadwal->kelas_id)
+                    ->where('mapel_id', $jadwal->mapel_id)
+                    ->whereDate('tanggal', $today)
+                    ->exists();
+
+                if ($jurnalAda) {
+                    // 🟢 JIKA SUDAH DIISI: Otomatis bersihkan / hilangkan notifikasi pengingat kelas ini!
+                    DB::table('notifications')
+                        ->where('user_id', $guruId)
+                        ->whereDate('created_at', $today)
+                        ->where('message', 'like', "%{$jadwal->nama_kelas}%")
+                        ->where('message', 'like', "%{$jadwal->nama_mapel}%")
+                        ->update(['is_read' => 1]);
+                } else {
+                    // 🔴 JIKA BELUM DIISI: Pastikan notifikasi pengingat ada & menyala!
+                    $notifPernahDibuat = DB::table('notifications')
+                        ->where('user_id', $guruId)
+                        ->whereDate('created_at', $today)
+                        ->where('message', 'like', "%{$jadwal->nama_kelas}%")
+                        ->where('message', 'like', "%{$jadwal->nama_mapel}%")
+                        ->where('is_read', 0)
+                        ->exists();
+
+                    if (!$notifPernahDibuat) {
+                        DB::table('notifications')->insert([
+                            'user_id'    => $guruId,
+                            'message'    => "Pengingat Otomatis: Anda belum mengisi jurnal mengajar kelas {$jadwal->nama_kelas} ({$jadwal->nama_mapel}) hari ini!",
+                            'is_read'    => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // Ambil notifikasi aktif (khusus user ini & yang belum diisi jurnalnya)
         $notifications = DB::table('notifications')
             ->where('user_id', $guruId)
             ->where('is_read', 0)
@@ -97,7 +151,7 @@ class GuruDashboardController extends Controller
             ->whereDate('tanggal', today())
             ->count();
 
-        // 🛡️ 4. QUERY UTAMA: Join Tabel
+        // 🛡️ 4. QUERY UTAMA
         $queryJurnal = DB::table('jurnals')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
@@ -107,13 +161,8 @@ class GuruDashboardController extends Controller
                      ->on('jurnals.jam_ke', '=', 'jadwals.jam_ke')
                      ->where('jadwals.guru_id', '=', $guruId)
                      ->on('jadwals.hari', '=', DB::raw("CASE DAYOFWEEK(jurnals.tanggal)
-                        WHEN 1 THEN 'Minggu'
-                        WHEN 2 THEN 'Senin'
-                        WHEN 3 THEN 'Selasa'
-                        WHEN 4 THEN 'Rabu'
-                        WHEN 5 THEN 'Kamis'
-                        WHEN 6 THEN 'Jumat'
-                        WHEN 7 THEN 'Sabtu'
+                        WHEN 1 THEN 'Minggu' WHEN 2 THEN 'Senin' WHEN 3 THEN 'Selasa'
+                        WHEN 4 THEN 'Rabu' WHEN 5 THEN 'Kamis' WHEN 6 THEN 'Jumat' WHEN 7 THEN 'Sabtu'
                      END"));
             })
             ->where('jurnals.guru_id', $guruId)
@@ -125,16 +174,14 @@ class GuruDashboardController extends Controller
                 'jadwals.jam_selesai'
             );
 
-        // 💡 FILTER LOGIC: Deteksi Quick Filter atau Tanggal Spesifik
+        // Filter Logic
         $currentFilter = $request->query('filter'); 
         $startDate = null;
 
         if ($request->filled('tanggal')) {
-            // Jika guru memilih dari kalender kustom
             $queryJurnal->whereDate('jurnals.tanggal', $request->tanggal);
             $currentFilter = 'custom';
         } elseif ($currentFilter) {
-            // Jika guru mengklik tombol Quick Filter
             if ($currentFilter === 'hari_ini') {
                 $startDate = \Carbon\Carbon::today()->toDateString();
             } elseif ($currentFilter === '1_minggu') {
@@ -148,7 +195,6 @@ class GuruDashboardController extends Controller
             }
         }
 
-        // Ambil data limit 10 baris teratas
         $jurnalTerbaru = $queryJurnal->orderBy('jurnals.created_at', 'desc')
             ->limit(10)
             ->get();
