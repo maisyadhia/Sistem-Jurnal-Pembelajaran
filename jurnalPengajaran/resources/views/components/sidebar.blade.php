@@ -21,34 +21,27 @@
     
     <nav class="flex-1 space-y-1">
         @php
-    $role = session('user_role');
-    $menuItems = [];
-    
-    if ($role === 'admin' || $role === 'humas') {
-        $menuItems = [
-            ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'params' => []],
-            ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'params' => []],
-            ['route' => 'admin.logs', 'icon' => 'history', 'label' => 'Log Aktivitas', 'params' => []],
-            ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan', 'params' => ['format' => 'pdf']],
-        ];
-    } elseif ($role === 'guru') {
-        $menuItems = [
-            ['route' => 'guru.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'params' => []],
-            ['route' => 'guru.pilih.sesi', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar', 'params' => []],
-        ];
-    } elseif ($role === 'parent') {
-        $menuItems = [
-            ['route' => 'dashboard.timeline', 'icon' => 'dashboard', 'label' => 'Timeline', 'params' => []],
-        ];
-    } elseif ($role === 'admin' || $role === 'humas') {
-    $menuItems = [
-        ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'params' => []],
-        ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'params' => []],
-        ['route' => 'admin.logs', 'icon' => 'history', 'label' => 'Log Aktivitas', 'params' => []],
-        ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan', 'params' => ['format' => 'pdf']],
-    ];
-}
-@endphp
+            $role = session('user_role');
+            $menuItems = [];
+            
+            if ($role === 'admin' || $role === 'humas') {
+                $menuItems = [
+                    ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'params' => []],
+                    ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'params' => []],
+                    ['route' => 'admin.logs', 'icon' => 'history', 'label' => 'Log Aktivitas', 'params' => []],
+                    ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan', 'params' => ['format' => 'pdf']],
+                ];
+            } elseif ($role === 'guru') {
+                $menuItems = [
+                    ['route' => 'guru.dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard', 'params' => []],
+                    ['route' => 'guru.pilih.sesi', 'icon' => 'edit_note', 'label' => 'Jurnal Mengajar', 'params' => []],
+                ];
+            } elseif ($role === 'parent') {
+                $menuItems = [
+                    ['route' => 'dashboard.timeline', 'icon' => 'dashboard', 'label' => 'Timeline', 'params' => []],
+                ];
+            }
+        @endphp
         
         @foreach($menuItems as $item)
             @php
@@ -67,10 +60,7 @@
         @endforeach
     </nav>
     
-    <div class="mt-auto space-y-4 pt-6 border-t border-outline-variant/30">
-        <button class="w-full bg-surface-container-highest text-primary font-bold py-2 px-4 rounded-lg text-sm border border-outline-variant/50 hover:bg-primary hover:text-white transition-colors">
-            Bantuan Teknis
-        </button>
+    <div class="mt-auto pt-6 border-t border-outline-variant/30">
         <form method="POST" action="{{ route('logout') }}">
             @csrf
             <button type="submit" class="flex items-center gap-3 px-3 py-2 text-error hover:bg-error-container/20 rounded-lg transition-all group w-full">

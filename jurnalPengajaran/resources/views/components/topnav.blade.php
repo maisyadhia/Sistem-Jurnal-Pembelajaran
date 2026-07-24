@@ -12,11 +12,6 @@
     </div>
     
     <div class="flex items-center gap-6">
-        <div class="hidden lg:flex items-center bg-surface-container-low px-4 py-1.5 rounded-full border border-outline-variant/30">
-            <span class="material-symbols-outlined text-sm mr-2 text-outline">search</span>
-            <input class="bg-transparent border-none focus:ring-0 text-sm w-48" placeholder="Cari aktivitas..." type="text"/>
-        </div>
-        
         <div class="flex items-center gap-3">
             @php
                 // Ambil Notifikasi Belum Dibaca KHUSUS untuk GURU yang Sedang Login 
@@ -60,7 +55,7 @@
 
                         <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto custom-scrollbar" id="notifListContainer">
                             @forelse($unreadNotifications as $notif)
-                                <!-- 💡 DIKLIK LANGSUNG MENUJU HALAMAN ISI JURNAL  -->
+                                <!-- DIKLIK LANGSUNG MENUJU HALAMAN ISI JURNAL -->
                                 <a href="{{ route('guru.pilih.sesi') }}" class="p-3 hover:bg-amber-50/60 transition-colors flex items-start gap-3 relative group block">
                                     <span class="material-symbols-outlined text-amber-500 text-base mt-0.5">warning</span>
                                     <div class="flex-1 text-xs">
@@ -91,10 +86,6 @@
                 </button>
             @endif
 
-            <button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full">
-                <span class="material-symbols-outlined">help</span>
-            </button>
-            
             <div class="h-8 w-px bg-outline-variant"></div>
             
             <div class="flex items-center gap-3 pl-2">
