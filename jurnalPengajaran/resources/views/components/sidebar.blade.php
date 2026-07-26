@@ -1,10 +1,12 @@
 <aside class="hidden md:flex flex-col h-full py-6 px-4 w-64 bg-surface-container-low border-r border-outline-variant">
+    <!-- BRAND & LOGO HEADER -->
     <div class="mb-10 px-2 flex items-center gap-3">
-        <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">school</span>
+        <div class="w-10 h-10 flex items-center justify-center filter drop-shadow-sm">
+            <!-- LOGO SIMJAR -->
+            <img class="w-full h-full object-contain" src="{{ asset('images/logoJurnal.png') }}" alt="Logo SIMJAR"/>
         </div>
         <div>
-            <h1 class="font-headline-md text-headline-md text-primary leading-tight">E-Jurnal</h1>
+            <h1 class="font-headline-md text-headline-md text-primary font-bold leading-tight tracking-tight">SIMJAR</h1>
             <p class="text-[10px] font-label-caps uppercase tracking-widest text-on-surface-variant opacity-70">
                 @if(session('user_role') === 'admin' || session('user_role') === 'humas')
                     {{ session('admin_role') ?? 'Administrator' }}
@@ -19,6 +21,7 @@
         </div>
     </div>
     
+    <!-- NAVIGATION MENU -->
     <nav class="flex-1 space-y-1">
         @php
             $role = session('user_role');
@@ -60,6 +63,7 @@
         @endforeach
     </nav>
     
+    <!-- FOOTER / LOGOUT -->
     <div class="mt-auto pt-6 border-t border-outline-variant/30">
         <form method="POST" action="{{ route('logout') }}">
             @csrf
