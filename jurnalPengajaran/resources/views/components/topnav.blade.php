@@ -14,7 +14,7 @@
     <div class="flex items-center gap-6">
         <div class="flex items-center gap-3">
             @php
-                // Ambil Notifikasi Belum Dibaca KHUSUS untuk GURU yang Sedang Login 
+                // Ambil Notifikasi Belum Dibaca KHUSUS untuk GURU yang Sedang Login
                 $userId = session('guru_id') ?? session('admin_id') ?? session('user_id');
                 $unreadNotifications = collect();
 
@@ -27,8 +27,8 @@
                 }
             @endphp
 
-            <!-- 💡 NOTIFICATION DROPDOWN MENU (HANYA DITAMPILKAN JIKA USER ADALAH GURU) -->
-            @if(session('user_role') === 'guru')
+            <!--NOTIFICATION DROPDOWN MENU (HANYA UNTUK GURU DAN BUKAN DI HALAMAN TIMELINE/PARENT) -->
+            @if(session('user_role') === 'guru' && !request()->routeIs('dashboard.timeline'))
                 <div class="relative" id="notifDropdownContainer">
                     <button type="button" onclick="toggleNotificationDropdown()" 
                             class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full relative focus:outline-none">
@@ -55,7 +55,6 @@
 
                         <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto custom-scrollbar" id="notifListContainer">
                             @forelse($unreadNotifications as $notif)
-                                <!-- DIKLIK LANGSUNG MENUJU HALAMAN ISI JURNAL -->
                                 <a href="{{ route('guru.pilih.sesi') }}" class="p-3 hover:bg-amber-50/60 transition-colors flex items-start gap-3 relative group block">
                                     <span class="material-symbols-outlined text-amber-500 text-base mt-0.5">warning</span>
                                     <div class="flex-1 text-xs">
@@ -79,14 +78,17 @@
                         </div>
                     </div>
                 </div>
-            @else
-                <!-- Lonceng biasa/pasif untuk role non-guru -->
+            @elseif(session('user_role') !== 'parent' && !request()->routeIs('dashboard.timeline'))
+                <!-- Lonceng biasa/pasif untuk role non-guru (Admin/Humas), dan disembunyikan total untuk Parent / Wali Murid -->
                 <button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full">
                     <span class="material-symbols-outlined">notifications</span>
                 </button>
             @endif
 
-            <div class="h-8 w-px bg-outline-variant"></div>
+            <!-- Garis Pemisah (Hanya tampil jika ada elemen di sebelah kirinya) -->
+            @if(session('user_role') !== 'parent' && !request()->routeIs('dashboard.timeline'))
+                <div class="h-8 w-px bg-outline-variant"></div>
+            @endif
             
             <div class="flex items-center gap-3 pl-2">
                 <div class="text-right hidden sm:block">
