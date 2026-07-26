@@ -4,100 +4,106 @@
 
 @section('content')
 <div class="grid md:grid-cols-2">
-    <!-- Brand Column -->
-    <section class="hidden md:flex flex-col justify-between p-margin-desktop bg-primary text-on-primary">
-        <div>
+    <!-- Brand Column (Desktop Only) -->
+    <section class="hidden md:flex flex-col justify-between p-margin-desktop bg-gradient-to-br from-primary via-primary to-primary-container text-on-primary relative overflow-hidden">
+        <!-- Decorative Background Circle -->
+        <div class="absolute -right-16 -bottom-16 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div class="relative z-10">
             <div class="flex items-center gap-3 mb-8">
-                <div class="w-12 h-12 bg-on-primary rounded-lg flex items-center justify-center">
-                    <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">school</span>
+                <div class="w-12 h-12 flex items-center justify-center filter drop-shadow-md">
+                    <img class="w-full h-full object-contain" src="{{ asset('images/logoJurnal.png') }}" alt="Logo SIMJAR"/>
                 </div>
                 <div>
-                    <h1 class="font-headline-md text-headline-md leading-tight">E-Jurnal</h1>
-                    <p class="font-label-caps text-label-caps opacity-80">Administrasi Terpadu</p>
+                    <h1 class="font-headline-md text-headline-md font-bold tracking-tight leading-tight">SIMJAR</h1>
+                    <p class="font-label-caps text-[11px] opacity-80 uppercase tracking-wider">Sistem Informasi Jurnal Ajar</p>
                 </div>
             </div>
-            <h2 class="font-display-lg text-display-lg mb-4">Akses Terpusat</h2>
-            <p class="font-body-base text-body-base opacity-90 leading-relaxed mb-6">
+            
+            <h2 class="font-display-lg text-display-lg mb-4 font-bold">Akses Terpusat</h2>
+            <p class="font-body-base text-body-base opacity-90 leading-relaxed mb-8">
                 Sistem informasi jurnal mengajar terintegrasi untuk guru, admin, dan wali murid.
             </p>
-            <div class="space-y-4">
-                <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined mt-1 text-secondary-container">verified_user</span>
+            
+            <div class="space-y-5">
+                <div class="flex items-start gap-3.5 bg-white/5 p-3.5 rounded-xl border border-white/10 backdrop-blur-sm">
+                    <span class="material-symbols-outlined mt-0.5 text-secondary-container">verified_user</span>
                     <div>
                         <p class="font-body-base font-semibold">Keamanan Terjamin</p>
-                        <p class="font-body-sm opacity-80">Data terenkripsi dengan standar keamanan institusi.</p>
+                        <p class="font-body-sm text-xs opacity-80">Data terenkripsi dengan standar keamanan institusi.</p>
                     </div>
                 </div>
-                <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined mt-1 text-secondary-container">layers</span>
+                <div class="flex items-start gap-3.5 bg-white/5 p-3.5 rounded-xl border border-white/10 backdrop-blur-sm">
+                    <span class="material-symbols-outlined mt-0.5 text-secondary-container">layers</span>
                     <div>
                         <p class="font-body-base font-semibold">Multi-Role Access</p>
-                        <p class="font-body-sm opacity-80">Satu sistem untuk guru, admin, dan wali murid.</p>
+                        <p class="font-body-sm text-xs opacity-80">Satu sistem untuk guru, admin, dan wali murid.</p>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="mt-8 pt-8 border-t border-white/10">
-            <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20">
-                    <img class="w-full h-full object-cover" src="{{ asset('images/school-logo.png') }}" alt="School Logo"/>
+        <div class="mt-8 pt-6 border-t border-white/10 relative z-10">
+            <div class="flex items-center gap-3.5">
+                <div class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center filter drop-shadow">
+                    <img class="w-full h-full object-contain" src="{{ asset('images/logoMIN2.png') }}" alt="School Logo"/>
                 </div>
                 <div>
-                    <p class="font-label-caps text-label-caps">Institusi Pendidikan</p>
-                    <p class="font-body-sm font-medium">{{ config('app.school_name', 'MIN 2 Kota Malang') }}</p>
+                    <p class="font-label-caps text-[10px] uppercase tracking-wider opacity-70">Institusi Pendidikan</p>
+                    <p class="font-body-sm font-semibold text-sm">{{ config('app.school_name', 'MIN 2 Kota Malang') }}</p>
                 </div>
             </div>
         </div>
     </section>
     
-    <!-- Login Form -->
-    <section class="p-margin-mobile md:p-margin-desktop bg-surface-container-lowest">
-        <div class="md:hidden flex flex-col items-center mb-8">
-            <div class="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
-                <span class="material-symbols-outlined text-on-primary text-4xl" style="font-variation-settings: 'FILL' 1;">school</span>
+    <!-- Login Form Column -->
+    <section class="p-6 md:p-margin-desktop bg-surface-container-lowest flex flex-col justify-center">
+        <!-- 💡 HEADER ESTETIK KHUSUS HP (MOBILE ONLY) -->
+        <div class="md:hidden flex flex-col items-center mb-6 pt-2">
+            <div class="w-16 h-16 flex items-center justify-center mb-3 filter drop-shadow-md">
+                <img class="w-full h-full object-contain" src="{{ asset('images/logoJurnal.png') }}" alt="Logo SIMJAR"/>
             </div>
-            <h1 class="font-display-lg-mobile text-display-lg-mobile text-primary text-center">E-Jurnal</h1>
-            <p class="font-label-caps text-label-caps text-on-surface-variant text-center">Akses Terpusat</p>
+            <h1 class="text-2xl font-black text-primary tracking-tight text-center">SIMJAR</h1>
+            <p class="text-[11px] font-semibold text-on-surface-variant/80 uppercase tracking-widest text-center mt-0.5">Sistem Informasi Jurnal Ajar</p>
         </div>
         
-        <div class="max-w-sm mx-auto">
-            <header class="mb-8">
-                <h3 class="font-headline-md text-headline-md text-on-background mb-2">Masuk ke Sistem</h3>
-                <p class="font-body-sm text-on-surface-variant">
+        <div class="max-w-sm mx-auto w-full">
+            <header class="mb-6 text-center md:text-left">
+                <h3 class="font-headline-md text-xl md:text-headline-md font-bold text-on-background mb-1">Masuk ke Sistem</h3>
+                <p class="font-body-sm text-xs md:text-sm text-on-surface-variant">
                     Pilih peran Anda untuk mengakses sistem.
                 </p>
             </header>
             
-            <form method="POST" action="{{ route('login') }}" class="space-y-5" id="loginForm">
+            <form method="POST" action="{{ route('login') }}" class="space-y-4" id="loginForm">
                 @csrf
                 
-                <!-- Role Selection -->
+                <!-- Role Selection Buttons -->
                 <div class="space-y-1.5">
-                    <label class="block font-label-caps text-label-caps text-on-surface-variant">Pilih Peran</label>
+                    <label class="block font-label-caps text-[11px] font-bold tracking-wider text-on-surface-variant uppercase">Pilih Peran</label>
                     <div class="grid grid-cols-3 gap-2">
-                        <button type="button" class="role-btn px-4 py-2 rounded-lg border border-outline-variant text-center hover:bg-surface-container-low transition-all active" data-role="admin">
-                            <span class="material-symbols-outlined text-lg block mx-auto">admin_panel_settings</span>
-                            <span class="text-xs font-medium">Admin/Humas</span>
+                        <button type="button" class="role-btn px-2 py-2.5 rounded-xl border border-outline-variant/60 text-center hover:bg-surface-container-low transition-all duration-200 active flex flex-col items-center justify-center gap-1" data-role="admin">
+                            <span class="material-symbols-outlined text-xl">admin_panel_settings</span>
+                            <span class="text-[11px] font-bold leading-none">Admin/Humas</span>
                         </button>
-                        <button type="button" class="role-btn px-4 py-2 rounded-lg border border-outline-variant text-center hover:bg-surface-container-low transition-all" data-role="guru">
-                            <span class="material-symbols-outlined text-lg block mx-auto">school</span>
-                            <span class="text-xs font-medium">Guru</span>
+                        <button type="button" class="role-btn px-2 py-2.5 rounded-xl border border-outline-variant/60 text-center hover:bg-surface-container-low transition-all duration-200 flex flex-col items-center justify-center gap-1" data-role="guru">
+                            <span class="material-symbols-outlined text-xl">school</span>
+                            <span class="text-[11px] font-bold leading-none">Guru</span>
                         </button>
-                        <button type="button" class="role-btn px-4 py-2 rounded-lg border border-outline-variant text-center hover:bg-surface-container-low transition-all" data-role="parent">
-                            <span class="material-symbols-outlined text-lg block mx-auto">family_history</span>
-                            <span class="text-xs font-medium">Wali Murid</span>
+                        <button type="button" class="role-btn px-2 py-2.5 rounded-xl border border-outline-variant/60 text-center hover:bg-surface-container-low transition-all duration-200 flex flex-col items-center justify-center gap-1" data-role="parent">
+                            <span class="material-symbols-outlined text-xl">family_history</span>
+                            <span class="text-[11px] font-bold leading-none">Wali Murid</span>
                         </button>
                     </div>
                     <input type="hidden" name="role" id="selectedRole" value="admin">
                 </div>
                 
-                <!-- NIK / NISN Input -->
+                <!-- Username / NIK / NISN Input -->
                 <div class="space-y-1.5">
-                    <label class="block font-label-caps text-label-caps text-on-surface-variant" for="nik" id="nikLabel">USERNAME</label>
+                    <label class="block font-label-caps text-[11px] font-bold tracking-wider text-on-surface-variant uppercase" for="nik" id="nikLabel">USERNAME</label>
                     <div class="relative group">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline group-focus-within:text-primary transition-colors">badge</span>
-                        <input class="w-full h-[40px] pl-11 bg-surface border border-outline-variant rounded-lg text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('nik') border-error @enderror" 
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline group-focus-within:text-primary transition-colors text-xl">badge</span>
+                        <input class="w-full h-11 pl-11 pr-4 bg-surface border border-outline-variant/70 rounded-xl text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all duration-200 @error('nik') border-error @enderror" 
                                id="nik" 
                                name="nik" 
                                type="text" 
@@ -106,61 +112,47 @@
                                value="{{ old('nik') }}"/>
                     </div>
                     @error('nik')
-                        <p class="text-error text-sm mt-1">{{ $message }}</p>
+                        <p class="text-error text-xs mt-1 font-medium">{{ $message }}</p>
                     @enderror
-                    <p id="nikHelp" class="font-body-sm text-on-surface-variant" style="display:none;">
+                    <p id="nikHelp" class="font-body-sm text-xs text-on-surface-variant" style="display:none;">
                         <span id="nikHelpText"></span>
                     </p>
                 </div>
                 
-                <!-- Password / DOB Input -->
+                <!-- Password Input -->
                 <div class="space-y-1.5" id="passwordContainer">
-                    <label class="block font-label-caps text-label-caps text-on-surface-variant" for="password" id="passwordLabel">PASSWORD</label>
+                    <label class="block font-label-caps text-[11px] font-bold tracking-wider text-on-surface-variant uppercase" for="password" id="passwordLabel">PASSWORD</label>
                     <div class="relative group">
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline group-focus-within:text-primary transition-colors" id="passwordIcon">lock</span>
-                        <input class="w-full h-[40px] pl-11 bg-surface border border-outline-variant rounded-lg text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('password') border-error @enderror" 
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline group-focus-within:text-primary transition-colors text-xl" id="passwordIcon">lock</span>
+                        <input class="w-full h-11 pl-11 pr-4 bg-surface border border-outline-variant/70 rounded-xl text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all duration-200 @error('password') border-error @enderror" 
                                id="password" 
                                name="password" 
                                type="password" 
                                placeholder="Masukkan password" 
                                required/>
                     </div>
-                    <p class="font-body-sm text-on-surface-variant" id="passwordHint" style="display:none;">
+                    <p class="font-body-sm text-[11px] text-on-surface-variant/80 mt-1" id="passwordHint" style="display:none;">
                         Format: YYYY-MM-DD (Tahun-Bulan-Tanggal), contoh: 2015-08-17
                     </p>
                     @error('password')
-                        <p class="text-error text-sm mt-1">{{ $message }}</p>
+                        <p class="text-error text-xs mt-1 font-medium">{{ $message }}</p>
                     @enderror
                 </div>
                 
-                <!-- Info Alert -->
-                <div class="bg-surface-container-high/50 p-4 rounded-lg flex gap-3 border border-outline-variant" id="infoAlert">
-                    <span class="material-symbols-outlined text-secondary text-xl">info</span>
-                    <p class="font-body-sm text-on-surface-variant leading-tight" id="infoText">
+                <!-- Info Alert Card -->
+                <div class="bg-primary-container/20 p-3.5 rounded-xl flex items-start gap-3 border border-primary/10" id="infoAlert">
+                    <span class="material-symbols-outlined text-primary text-lg mt-0.5">info</span>
+                    <p class="text-xs text-on-surface-variant leading-relaxed" id="infoText">
                         <strong>Admin/Humas:</strong> Masukkan username dan password Anda.
                     </p>
                 </div>
                 
                 <!-- Submit Button -->
-                <button class="w-full bg-primary hover:bg-on-primary-fixed-variant text-on-primary font-semibold py-3 rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 active:scale-[0.98]" type="submit">
+                <button class="w-full h-11 bg-primary hover:bg-primary-container hover:text-primary text-on-primary font-bold text-sm rounded-xl shadow-md shadow-primary/20 hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] mt-2" type="submit">
                     <span>Masuk</span>
-                    <span class="material-symbols-outlined">arrow_forward</span>
+                    <span class="material-symbols-outlined text-lg">arrow_forward</span>
                 </button>
             </form>
-            
-            <footer class="mt-12 text-center">
-                <p class="font-body-sm text-on-surface-variant mb-4">Butuh bantuan akses?</p>
-                <div class="flex flex-wrap justify-center gap-2">
-                    <a class="px-4 py-2 bg-surface-container-low border border-outline-variant rounded-full text-body-sm font-medium hover:bg-surface-container-high transition-colors flex items-center gap-2" href="#">
-                        <span class="material-symbols-outlined text-lg">support_agent</span>
-                        Hubungi Admin
-                    </a>
-                    <a class="px-4 py-2 bg-surface-container-low border border-outline-variant rounded-full text-body-sm font-medium hover:bg-surface-container-high transition-colors flex items-center gap-2" href="#">
-                        <span class="material-symbols-outlined text-lg">help_center</span>
-                        Panduan
-                    </a>
-                </div>
-            </footer>
         </div>
     </section>
 </div>
@@ -169,11 +161,10 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ============ KONFIGURASI ROLE ============
     const roleConfig = {
         admin: {
             nikLabel: 'USERNAME',
-            nikPlaceholder: 'Masukkan username admin (contoh: admin, humas)',
+            nikPlaceholder: 'Masukkan username admin',
             nikHelp: 'Username adalah ID login untuk admin/humas',
             passwordLabel: 'PASSWORD',
             passwordPlaceholder: 'Masukkan password',
@@ -181,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
             icon: 'lock',
             showHint: false,
             info: '<strong>Admin/Humas:</strong> Masukkan username dan password Anda.',
-            minLength: null // Tidak ada validasi panjang
+            minLength: null
         },
         guru: {
             nikLabel: 'NIK (NOMOR INDUK KEPENDUDUKAN)',
@@ -193,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
             icon: 'lock',
             showHint: false,
             info: '<strong>Guru:</strong> Masukkan NIK 16 digit dan password Anda.',
-            minLength: 16 // Validasi minimal 16 digit
+            minLength: 16
         },
         parent: {
             nikLabel: 'NISN (NOMOR INDUK SISWA NASIONAL)',
@@ -209,14 +200,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ============ DOM ELEMENTS ============
     const roleButtons = document.querySelectorAll('.role-btn');
     const selectedRole = document.getElementById('selectedRole');
     const nikLabel = document.getElementById('nikLabel');
     const nikInput = document.getElementById('nik');
     const nikHelp = document.getElementById('nikHelp');
     const nikHelpText = document.getElementById('nikHelpText');
-    const passwordContainer = document.getElementById('passwordContainer');
     const passwordLabel = document.getElementById('passwordLabel');
     const passwordInput = document.getElementById('password');
     const passwordIcon = document.getElementById('passwordIcon');
@@ -224,16 +213,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const infoText = document.getElementById('infoText');
     const loginForm = document.getElementById('loginForm');
 
-    // ============ FUNGSI UPDATE UI ============
     function updateUIBasedOnRole(role) {
         const config = roleConfig[role];
         if (!config) return;
 
-        // Update label dan placeholder NIK
         nikLabel.textContent = config.nikLabel;
         nikInput.placeholder = config.nikPlaceholder;
         
-        // Update help text
         if (config.nikHelp) {
             nikHelpText.textContent = config.nikHelp;
             nikHelp.style.display = 'block';
@@ -241,7 +227,6 @@ document.addEventListener('DOMContentLoaded', function() {
             nikHelp.style.display = 'none';
         }
 
-        // Update password field
         passwordLabel.textContent = config.passwordLabel;
         passwordInput.type = config.inputType;
         if (config.inputType === 'date') {
@@ -250,16 +235,10 @@ document.addEventListener('DOMContentLoaded', function() {
             passwordInput.placeholder = config.passwordPlaceholder;
         }
 
-        // Update icon
         passwordIcon.textContent = config.icon;
-
-        // Tampilkan/sembunyikan hint
         passwordHint.style.display = config.showHint ? 'block' : 'none';
-        
-        // Update info
         infoText.innerHTML = config.info;
 
-        // Update validasi min length
         if (config.minLength) {
             nikInput.setAttribute('minlength', config.minLength);
         } else {
@@ -267,36 +246,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ============ EVENT LISTENER: ROLE BUTTONS ============
     roleButtons.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Update active state
-            roleButtons.forEach(b => b.classList.remove('active', 'bg-primary-container', 'border-primary'));
-            this.classList.add('active', 'bg-primary-container', 'border-primary');
+            roleButtons.forEach(b => b.classList.remove('active', 'bg-primary/10', 'border-primary', 'text-primary', 'shadow-sm'));
+            this.classList.add('active', 'bg-primary/10', 'border-primary', 'text-primary', 'shadow-sm');
             
             const role = this.dataset.role;
             selectedRole.value = role;
             updateUIBasedOnRole(role);
             
-            // Reset error state
             document.querySelectorAll('.border-error').forEach(el => {
                 el.classList.remove('border-error');
             });
         });
     });
 
-    // ============ VALIDASI CLIENT-SIDE ============
     loginForm.addEventListener('submit', function(e) {
         const role = selectedRole.value;
         const nik = nikInput.value.trim();
         const password = passwordInput.value.trim();
-        const config = roleConfig[role];
         
         let errors = [];
 
-        // Validasi berdasarkan role
         if (role === 'admin') {
-            // Admin: username tidak boleh kosong
             if (nik === '') {
                 errors.push('Username admin tidak boleh kosong!');
                 nikInput.classList.add('border-error');
@@ -304,7 +276,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 nikInput.classList.remove('border-error');
             }
             
-            // Password tidak boleh kosong
             if (password === '') {
                 errors.push('Password tidak boleh kosong!');
                 passwordInput.classList.add('border-error');
@@ -314,7 +285,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (role === 'guru') {
-            // Guru: NIK harus 16 digit
             if (nik.length < 16) {
                 errors.push('NIK Guru harus minimal 16 digit!');
                 nikInput.classList.add('border-error');
@@ -325,7 +295,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 nikInput.classList.remove('border-error');
             }
             
-            // Password tidak boleh kosong
             if (password === '') {
                 errors.push('Password tidak boleh kosong!');
                 passwordInput.classList.add('border-error');
@@ -335,7 +304,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (role === 'parent') {
-            // Parent: NISN tidak boleh kosong
             if (nik === '') {
                 errors.push('NISN tidak boleh kosong!');
                 nikInput.classList.add('border-error');
@@ -343,7 +311,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 nikInput.classList.remove('border-error');
             }
             
-            // Tanggal lahir tidak boleh kosong
             if (password === '') {
                 errors.push('Tanggal lahir harus diisi!');
                 passwordInput.classList.add('border-error');
@@ -352,12 +319,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Jika ada error, prevent submit
         if (errors.length > 0) {
             e.preventDefault();
             alert(errors.join('\n'));
             
-            // Focus ke field pertama yang error
             if (nikInput.classList.contains('border-error')) {
                 nikInput.focus();
             } else if (passwordInput.classList.contains('border-error')) {
@@ -367,15 +332,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ============ REAL-TIME VALIDASI ============
-    // Validasi NIK saat typing
     nikInput.addEventListener('input', function() {
         const role = selectedRole.value;
-        const config = roleConfig[role];
         
         if (role === 'guru') {
             const value = this.value;
-            // Hanya izinkan angka
             this.value = value.replace(/\D/g, '');
             
             if (this.value.length > 0 && this.value.length < 16) {
@@ -396,11 +357,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ============ INIT ============
-    // Set default role (admin)
     updateUIBasedOnRole('admin');
     
-    // Style untuk border warning
     const style = document.createElement('style');
     style.textContent = `
         .border-warning {
@@ -416,29 +374,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <style>
     .role-btn.active {
-        background-color: #dce1ff;
-        border-color: #4059aa;
+        background-color: rgba(0, 35, 111, 0.08);
+        border-color: #00236f;
+        color: #00236f;
     }
     .role-btn.active .material-symbols-outlined {
         color: #00236f;
     }
 
-    /* Styling native date picker icon */
     input[type="date"]::-webkit-calendar-picker-indicator {
         cursor: pointer;
         filter: invert(38%) sepia(15%) saturate(1224%) hue-rotate(202deg) brightness(94%) contrast(88%);
     }
     
-    /* Animasi untuk validasi */
     .border-error {
         border-color: #ef4444 !important;
-        animation: shake 0.5s;
+        animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
     }
     
     @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
     }
 </style>
 @endpush
