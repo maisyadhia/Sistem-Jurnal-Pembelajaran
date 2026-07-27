@@ -58,7 +58,6 @@
                             id="role" name="role" required>
                         <option value="guru" {{ old('role') == 'guru' ? 'selected' : '' }}>Guru</option>
                         <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                        <option value="humas" {{ old('role') == 'humas' ? 'selected' : '' }}>Humas</option>
                     </select>
                     @error('role')
                         <p class="text-error text-sm">{{ $message }}</p>

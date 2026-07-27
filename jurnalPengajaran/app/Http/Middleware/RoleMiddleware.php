@@ -12,6 +12,11 @@ class RoleMiddleware
     {
         $userRole = Session::get('user_role');
 
+        // Jika role 'humas' diubah menjadi 'admin' di session
+        if ($userRole === 'humas') {
+            $userRole = 'admin';
+        }
+
         if (!in_array($userRole, $roles)) {
             abort(403, 'Unauthorized access.');
         }

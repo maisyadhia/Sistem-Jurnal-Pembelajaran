@@ -21,11 +21,11 @@ class AdminSeeder extends Seeder
                 'position' => 'Kepala Madrasah',
             ],
             [
-                'username' => 'humas', // ID Admin
+                'username' => 'admin2',
                 'name' => 'Lilik Fauziyah, M.Pd',
                 'email' => 'lilik@min2malang.sch.id',
-                'password' => Hash::make('humas123'),
-                'role' => 'humas',
+                'password' => Hash::make('admin123'),
+                'role' => 'admin',
                 'phone' => '081234567891',
                 'position' => 'Korbid Kurikulum',
             ],

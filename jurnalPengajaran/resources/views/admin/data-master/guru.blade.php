@@ -53,7 +53,6 @@
                             <td class="px-4 py-4">
                                 <span class="px-2 py-1 rounded-full text-xs font-medium
                                     {{ $item->role == 'admin' ? 'bg-red-100 text-red-700' : '' }}
-                                    {{ $item->role == 'humas' ? 'bg-purple-100 text-purple-700' : '' }}
                                     {{ $item->role == 'guru' ? 'bg-blue-100 text-blue-700' : '' }}">
                                     {{ strtoupper($item->role) }}
                                 </span>

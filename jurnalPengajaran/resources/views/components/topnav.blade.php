@@ -93,8 +93,6 @@
                             Wali Murid
                         @elseif(session('user_role') == 'admin')
                             Admin
-                        @elseif(session('user_role') == 'humas')
-                            Humas
                         @elseif(session('user_role') == 'guru')
                             Guru
                         @else

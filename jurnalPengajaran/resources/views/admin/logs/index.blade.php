@@ -7,7 +7,7 @@
     <div class="p-6 border-b border-outline-variant flex justify-between items-center">
         <div>
             <h2 class="font-headline-md text-headline-md text-on-background">Log Aktivitas Admin</h2>
-            <p class="font-body-sm text-body-sm text-on-surface-variant">Riwayat aktivitas semua admin dan humas.</p>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">Riwayat aktivitas semua admin.</p>
         </div>
         <div class="flex gap-2">
             <button onclick="window.location.href='{{ route('admin.logs') }}'" 

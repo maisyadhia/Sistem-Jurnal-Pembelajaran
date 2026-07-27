@@ -15,7 +15,7 @@
         <div>
             <h1 class="font-headline-md text-headline-md text-primary font-bold leading-tight tracking-tight">SIMJAR</h1>
             <p class="text-[10px] font-label-caps uppercase tracking-widest text-on-surface-variant opacity-70">
-                @if(session('user_role') === 'admin' || session('user_role') === 'humas')
+                @if(session('user_role') === 'admin')
                     {{ session('admin_role') ?? 'Administrator' }}
                 @elseif(session('user_role') === 'guru')
                     Guru
@@ -34,7 +34,7 @@
             $role = session('user_role');
             $menuItems = [];
             
-            if ($role === 'admin' || $role === 'humas') {
+            if ($role === 'admin') {
                 $menuItems = [
                     ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'params' => []],
                     ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'params' => []],

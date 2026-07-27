@@ -28,7 +28,12 @@ Route::middleware(['auth.session'])->group(function () {
     Route::get('/dashboard', function () {
         $role = session('user_role');
         
-        if ($role === 'admin' || $role === 'humas') {
+        // Konversi humas ke admin
+        if ($role === 'humas') {
+            $role = 'admin';
+        }
+        
+        if ($role === 'admin') {
             return redirect()->route('monitoring');
         } elseif ($role === 'guru') {
             return redirect()->route('guru.dashboard');
@@ -40,12 +45,14 @@ Route::middleware(['auth.session'])->group(function () {
     })->name('dashboard');
 });
 
-// ============ ADMIN & HUMAS ROUTES ============
-Route::middleware(['auth.session', 'role:admin,humas'])->prefix('admin')->group(function () {
+// ============ ADMIN ROUTES (HANYA admin) ============
+Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(function () {
+    
+    // ====== MONITORING ======
     Route::get('/monitoring', [HumasMonitoringController::class, 'index'])->name('monitoring');
     
-   // ====== DATA MASTER ======
-Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-master');
+    // ====== DATA MASTER ======
+    Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-master');
     
     // ====== GURU CRUD ======
     Route::prefix('data-master/guru')->group(function () {
@@ -55,6 +62,16 @@ Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-m
         Route::get('/{id}/edit', [GuruController::class, 'edit'])->name('data-master.guru.edit');
         Route::put('/{id}', [GuruController::class, 'update'])->name('data-master.guru.update');
         Route::delete('/{id}', [GuruController::class, 'destroy'])->name('data-master.guru.destroy');
+    });
+    
+    // ====== SISWA CRUD ======
+    Route::prefix('data-master/siswa')->group(function () {
+        Route::get('/', [SiswaController::class, 'index'])->name('data-master.siswa');
+        Route::get('/create', [SiswaController::class, 'create'])->name('data-master.siswa.create');
+        Route::post('/', [SiswaController::class, 'store'])->name('data-master.siswa.store');
+        Route::get('/{id}/edit', [SiswaController::class, 'edit'])->name('data-master.siswa.edit');
+        Route::put('/{id}', [SiswaController::class, 'update'])->name('data-master.siswa.update');
+        Route::delete('/{id}', [SiswaController::class, 'destroy'])->name('data-master.siswa.destroy');
     });
     
     // ====== KELAS CRUD ======
@@ -77,51 +94,42 @@ Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-m
         Route::delete('/{id}', [MapelController::class, 'destroy'])->name('data-master.mapel.destroy');
     });
     
+    // ====== JADWAL CRUD ======
+    Route::prefix('data-master/jadwal')->group(function () {
+        Route::get('/', [JadwalController::class, 'index'])->name('data-master.jadwal');
+        Route::get('/create', [JadwalController::class, 'create'])->name('data-master.jadwal.create');
+        Route::post('/', [JadwalController::class, 'store'])->name('data-master.jadwal.store');
+        Route::get('/{id}/edit', [JadwalController::class, 'edit'])->name('data-master.jadwal.edit');
+        Route::put('/{id}', [JadwalController::class, 'update'])->name('data-master.jadwal.update');
+        Route::delete('/{id}', [JadwalController::class, 'destroy'])->name('data-master.jadwal.destroy');
+    });
+    
+    // ====== ADMIN LOGS ======
+    Route::prefix('logs')->group(function () {
+        Route::get('/', [LogController::class, 'index'])->name('admin.logs');
+        Route::get('/{id}', [LogController::class, 'show'])->name('admin.logs.show');
+        Route::delete('/clear', [LogController::class, 'clear'])->name('admin.logs.clear');
+    });
+    
     // ====== LAPORAN ======
     Route::get('/laporan', [HumasMonitoringController::class, 'laporanIndex'])->name('laporan.index');
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
 });
 
-// ====== ADMIN LOGS ======
-Route::prefix('admin/logs')->group(function () {
-    Route::get('/', [LogController::class, 'index'])->name('admin.logs');
-    Route::get('/{id}', [LogController::class, 'show'])->name('admin.logs.show');
-    Route::delete('/clear', [LogController::class, 'clear'])->name('admin.logs.clear');
-});
-
-// Di routes/web.php
-Route::post('/notification/read/{id}', [NotificationController::class, 'markAsRead'])->name('notification.read');
 // ============ REMIND TEACHER ============
 Route::post('/remind-teacher', [HumasMonitoringController::class, 'remindTeacher'])->name('remind-teacher');
 
+// ============ NOTIFICATION ============
+Route::post('/notification/read/{id}', [NotificationController::class, 'markAsRead'])->name('notification.read');
+Route::post('/notification/read/all', [NotificationController::class, 'markAllAsRead'])->name('notification.read.all');
 
 // ============ GURU ROUTES ============
 Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function () {
-    Route::get('/pilih-sesi', [GuruDashboardController::class, 'index'])->name('guru.pilih.sesi');
     Route::get('/dashboard', [GuruDashboardController::class, 'dashboard'])->name('guru.dashboard');
-    Route::get('/jurnal/export-excel', [GuruDashboardController::class, 'exportExcel'])->name('guru.jurnal.export');      
+    Route::get('/pilih-sesi', [GuruDashboardController::class, 'index'])->name('guru.pilih.sesi');
+    Route::get('/jurnal/export-excel', [GuruDashboardController::class, 'exportExcel'])->name('guru.jurnal.export');
     Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('guru.jurnal.form');
     Route::post('/jurnal', [GuruJurnalController::class, 'store'])->name('guru.jurnal.store');
-});
-
-// ====== SISWA CRUD ======
-Route::prefix('data-master/siswa')->group(function () {
-    Route::get('/', [SiswaController::class, 'index'])->name('data-master.siswa');
-    Route::get('/create', [SiswaController::class, 'create'])->name('data-master.siswa.create');
-    Route::post('/', [SiswaController::class, 'store'])->name('data-master.siswa.store');
-    Route::get('/{id}/edit', [SiswaController::class, 'edit'])->name('data-master.siswa.edit');
-    Route::put('/{id}', [SiswaController::class, 'update'])->name('data-master.siswa.update');
-    Route::delete('/{id}', [SiswaController::class, 'destroy'])->name('data-master.siswa.destroy');
-});
-
-// ====== JADWAL CRUD ======
-Route::prefix('data-master/jadwal')->group(function () {
-    Route::get('/', [JadwalController::class, 'index'])->name('data-master.jadwal');
-    Route::get('/create', [JadwalController::class, 'create'])->name('data-master.jadwal.create');
-    Route::post('/', [JadwalController::class, 'store'])->name('data-master.jadwal.store');
-    Route::get('/{id}/edit', [JadwalController::class, 'edit'])->name('data-master.jadwal.edit');
-    Route::put('/{id}', [JadwalController::class, 'update'])->name('data-master.jadwal.update');
-    Route::delete('/{id}', [JadwalController::class, 'destroy'])->name('data-master.jadwal.destroy');
 });
 
 // ============ PARENT ROUTES ============

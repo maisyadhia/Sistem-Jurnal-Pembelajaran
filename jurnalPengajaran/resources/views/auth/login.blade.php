@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
             inputType: 'password',
             icon: 'lock',
             showHint: false,
-            info: '<strong>Admin/Humas:</strong> Masukkan username dan password Anda.',
+            info: '<strong>Admin:</strong> Masukkan username dan password Anda.',
             minLength: null
         },
         guru: {
