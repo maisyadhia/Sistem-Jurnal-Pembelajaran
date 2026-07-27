@@ -72,7 +72,7 @@ class GuruDashboardController extends Controller
             }
         }
 
-        // 💡 1. SYSTEM AUTO-NOTIFIKASI KHUSUS UNTUK ROLE GURU SAJA 
+        // 💡 1. SYSTEM AUTO-NOTIFIKASI KHUSUS UNTUK ROLE GURU SAJA
         if (session('user_role') === 'guru') {
             Carbon::setLocale('id');
             $today = Carbon::today()->toDateString();
@@ -95,22 +95,34 @@ class GuruDashboardController extends Controller
                     ->whereDate('tanggal', $today)
                     ->exists();
 
+                // 💡 AMBIL KATA UTAMA MAPEL (Pembersihan Spasi & Tanda Kurung)
+                // Contoh: "Pendidikan Pancasila dan Kewarganegaraan " -> "Pendidikan Pancasila"
+                $cleanMapel = trim(preg_replace('/\s+/', ' ', str_replace(['(', ')'], '', $jadwal->nama_mapel)));
+                $firstMapelWord = explode(' ', $cleanMapel)[0] ?? $jadwal->nama_mapel;
+
                 if ($jurnalAda) {
-                    // 🟢 JIKA SUDAH DIISI: Otomatis bersihkan / hilangkan notifikasi pengingat kelas ini!
+                    // 🟢 JIKA SUDAH DIISI: Bersihkan HANYA notifikasi kelas & mapel spesifik ini (Admin + Sistem Otomatis)!
                     DB::table('notifications')
                         ->where('user_id', $guruId)
                         ->whereDate('created_at', $today)
+                        ->where('is_read', 0)
                         ->where('message', 'like', "%{$jadwal->nama_kelas}%")
-                        ->where('message', 'like', "%{$jadwal->nama_mapel}%")
+                        ->where(function($query) use ($jadwal, $firstMapelWord) {
+                            $query->where('message', 'like', "%{$jadwal->nama_mapel}%")
+                                  ->orWhere('message', 'like', "%{$firstMapelWord}%");
+                        })
                         ->update(['is_read' => 1]);
                 } else {
                     // 🔴 JIKA BELUM DIISI: Pastikan notifikasi pengingat ada & menyala!
                     $notifPernahDibuat = DB::table('notifications')
                         ->where('user_id', $guruId)
                         ->whereDate('created_at', $today)
-                        ->where('message', 'like', "%{$jadwal->nama_kelas}%")
-                        ->where('message', 'like', "%{$jadwal->nama_mapel}%")
                         ->where('is_read', 0)
+                        ->where('message', 'like', "%{$jadwal->nama_kelas}%")
+                        ->where(function($query) use ($jadwal, $firstMapelWord) {
+                            $query->where('message', 'like', "%{$jadwal->nama_mapel}%")
+                                  ->orWhere('message', 'like', "%{$firstMapelWord}%");
+                        })
                         ->exists();
 
                     if (!$notifPernahDibuat) {
@@ -151,7 +163,7 @@ class GuruDashboardController extends Controller
             ->whereDate('tanggal', today())
             ->count();
 
-        // 🛡️ 4. QUERY UTAMA
+        // 4. QUERY UTAMA
         $queryJurnal = DB::table('jurnals')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
@@ -210,7 +222,7 @@ class GuruDashboardController extends Controller
     }
 
     /**
-     * 💡 EXPORT RIWAYAT JURNAL KE EXCEL/CSV 
+     * EXPORT RIWAYAT JURNAL KE EXCEL/CSV 
      */
     public function exportExcel(Request $request)
     {

@@ -1,18 +1,25 @@
-<header class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop h-16 bg-surface border-b border-outline-variant sticky top-0 z-30">
-    <div class="flex items-center gap-4">
-        <button class="md:hidden p-2 hover:bg-surface-container-low rounded-full" onclick="toggleSidebar()">
-            <span class="material-symbols-outlined">menu</span>
+<header class="flex justify-between items-center w-full px-3 md:px-margin-desktop h-16 bg-surface border-b border-outline-variant sticky top-0 z-30">
+    <!-- KIRI: Hamburger Menu & Tanggal -->
+    <div class="flex items-center gap-2 md:gap-4 min-w-0">
+        <button class="md:hidden p-2 hover:bg-surface-container-low rounded-full shrink-0" onclick="toggleSidebar()">
+            <span class="material-symbols-outlined block">menu</span>
         </button>
-        <a href="{{ route('dashboard') }}" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <span class="material-symbols-outlined text-primary">calendar_today</span>
-            <span class="font-data-tabular text-data-tabular text-on-surface-variant">
-                {{ now()->locale('id')->isoFormat('dddd, D MMM YYYY') }}
+        
+        <!-- Tanggal: Ringkas di HP, Lengkap di Laptop -->
+        <a href="{{ route('dashboard') }}" class="flex items-center gap-1.5 hover:opacity-80 transition-opacity bg-surface-container-low/60 md:bg-transparent px-2.5 py-1 md:p-0 rounded-lg shrink-0">
+            <span class="material-symbols-outlined text-primary text-lg md:text-xl">calendar_today</span>
+            <span class="font-data-tabular text-xs md:text-data-tabular text-on-surface-variant font-medium">
+                <!-- TAMPILAN LAPTOP (Lengkap) -->
+                <span class="hidden sm:inline">{{ now()->locale('id')->isoFormat('dddd, D MMM YYYY') }}</span>
+                <!-- TAMPILAN HP (Ringkas) -->
+                <span class="inline sm:hidden">{{ now()->locale('id')->isoFormat('D MMM YYYY') }}</span>
             </span>
         </a>
     </div>
     
-    <div class="flex items-center gap-6">
-        <div class="flex items-center gap-3">
+    <!-- KANAN: Notifikasi & Profil Avatar -->
+    <div class="flex items-center gap-2 sm:gap-6 shrink-0">
+        <div class="flex items-center gap-2 sm:gap-3">
             @php
                 // Ambil Notifikasi Belum Dibaca KHUSUS untuk GURU yang Sedang Login
                 $userId = session('guru_id') ?? session('admin_id') ?? session('user_id');
@@ -27,23 +34,30 @@
                 }
             @endphp
 
-            <!-- NOTIFICATION DROPDOWN - HANYA UNTUK GURU -->
+            <!-- NOTIFICATION DROPDOWN MENU (UNTUK GURU) -->
             @if(session('user_role') === 'guru' && !request()->routeIs('dashboard.timeline'))
                 <div class="relative" id="notifDropdownContainer">
                     <button type="button" onclick="toggleNotificationDropdown()" 
-                            class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full relative focus:outline-none">
-                        <span class="material-symbols-outlined">notifications</span>
+                            class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full relative focus:outline-none flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl block">notifications</span>
                         
-                        <!-- Red Badge Alert jika ada notifikasi belum dibaca -->
+                        <!-- 🟢 BADGE DENGAN ANGKA CENTER PRESISI DI LAPTOP & HP -->
                         @if($unreadNotifications->count() > 0)
-                            <span id="notifBadgeDot" class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-error rounded-full animate-ping"></span>
-                            <span id="notifBadgeDotStatic" class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-error rounded-full"></span>
+                            <span class="absolute top-1 right-1 flex h-4 w-4 shrink-0 pointer-events-none">
+                                <!-- Efek Ping Berkedip di Belakang -->
+                                <span class="animate-ping absolute inset-0 rounded-full bg-red-400 opacity-75"></span>
+                                
+                                <!-- Bulatan Merah + Angka Presisi di Tengah -->
+                                <span class="relative w-full h-full rounded-full bg-red-600 text-white text-[10px] font-extrabold flex items-center justify-center leading-none shadow-sm pb-[1px]">
+                                    {{ $unreadNotifications->count() > 9 ? '9+' : $unreadNotifications->count() }}
+                                </span>
+                            </span>
                         @endif
                     </button>
 
                     <!-- Dropdown Pop-up Notifikasi -->
-                    <div id="notifDropdownMenu" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-fade-in">
-                        <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div id="notifDropdownMenu" class="hidden absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-fade-in">
+                        <div class="p-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <div class="flex items-center gap-2">
                                 <span class="material-symbols-outlined text-amber-500 text-lg">notifications_active</span>
                                 <h4 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Notifikasi Peringatan</h4>
@@ -56,7 +70,7 @@
                         <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto custom-scrollbar" id="notifListContainer">
                             @forelse($unreadNotifications as $notif)
                                 <a href="{{ route('guru.pilih.sesi') }}" class="p-3 hover:bg-amber-50/60 transition-colors flex items-start gap-3 relative group block">
-                                    <span class="material-symbols-outlined text-amber-500 text-base mt-0.5">warning</span>
+                                    <span class="material-symbols-outlined text-amber-500 text-base mt-0.5 shrink-0">warning</span>
                                     <div class="flex-1 text-xs">
                                         <p class="text-slate-800 font-medium leading-snug">{{ $notif->message }}</p>
                                         <div class="flex items-center justify-between mt-1.5">
@@ -64,7 +78,7 @@
                                                 {{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}
                                             </span>
                                             <span class="text-[10px] font-bold text-teal-600 group-hover:underline flex items-center gap-0.5">
-                                                Isi Jurnal Sekarang
+                                                Isi Jurnal
                                                 <span class="material-symbols-outlined text-[10px]">arrow_forward</span>
                                             </span>
                                         </div>
@@ -82,13 +96,14 @@
 
             <!-- Garis Pemisah (Hanya tampil jika role = guru) -->
             @if(session('user_role') === 'guru' && !request()->routeIs('dashboard.timeline'))
-                <div class="h-8 w-px bg-outline-variant"></div>
+                <div class="h-6 w-px bg-outline-variant/60"></div>
             @endif
             
-            <div class="flex items-center gap-3 pl-2">
+            <!-- User Profile Avatar -->
+            <div class="flex items-center gap-2.5 pl-1">
                 <div class="text-right hidden sm:block">
-                    <p class="font-label-caps text-label-caps text-primary leading-none mb-1">{{ session('user_name', 'Pengguna') }}</p>
-                    <p class="text-[10px] text-on-surface-variant/70 leading-none">
+                    <p class="font-label-caps text-label-caps text-primary leading-none mb-1 font-bold">{{ session('user_name', 'Pengguna') }}</p>
+                    <p class="text-[10px] text-on-surface-variant/70 leading-none font-medium">
                         @if(session('user_role') == 'parent')
                             Wali Murid
                         @elseif(session('user_role') == 'admin')
@@ -100,7 +115,7 @@
                         @endif
                     </p>
                 </div>
-                <img class="w-10 h-10 rounded-full border-2 border-primary-fixed object-cover" 
+                <img class="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-primary-fixed object-cover shrink-0 shadow-sm" 
                      src="https://ui-avatars.com/api/?name={{ urlencode(session('user_name', 'User')) }}&background=00236f&color=ffffff&size=40" 
                      alt="{{ session('user_name', 'User') }}"/>
             </div>
