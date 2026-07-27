@@ -271,7 +271,7 @@
                                         class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
                                             <span class="material-symbols-outlined text-lg">edit</span>
                                         </a>
-                                        <button onclick="confirmDelete('{{ $item->id }}', '{{ $item->name }}', '{{ $item->category }}')" 
+                                        <button onclick="openDeleteModal('{{ $item->id }}', '{{ $item->name }}', '{{ $item->category }}')" 
                                                 class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
                                             <span class="material-symbols-outlined text-lg">delete</span>
                                         </button>
@@ -292,6 +292,41 @@
             <div class="p-4 bg-surface-container-low border-t border-outline-variant flex justify-between items-center mt-auto">
                 <p class="font-body-sm text-[12px] text-on-surface-variant">Menampilkan {{ $dataMaster->count() }} dari {{ $totalDataMaster }} entitas</p>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ MODAL POPUP DELETE ============ -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl modal-content">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-red-600 text-2xl">delete_forever</span>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-800">Hapus Data?</h3>
+                <p class="text-sm text-slate-500">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+        </div>
+        
+        <div class="bg-red-50 rounded-xl p-4 mb-6">
+            <p class="text-sm text-red-700">
+                <span class="font-semibold">Data yang akan dihapus:</span><br>
+                <span id="deleteItemName" class="font-medium">-</span>
+                <span id="deleteItemCategory" class="text-xs text-red-500 ml-2">-</span>
+            </p>
+        </div>
+        
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeDeleteModal()" 
+                    class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all text-sm font-medium">
+                Batal
+            </button>
+            <button id="confirmDeleteBtn" 
+                    class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all text-sm font-medium flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">delete</span>
+                Hapus
+            </button>
         </div>
     </div>
 </div>
@@ -352,6 +387,7 @@
 <script>
     // ============ VARIABLES ============
     let currentRemindData = null;
+    let deleteData = null;
     let notificationTimeout = null;
 
     // ============ DROPDOWN TOGGLE ============
@@ -379,6 +415,66 @@
                 if (icon) icon.textContent = 'expand_more';
             }
         }
+    });
+
+    // ============ DELETE MODAL ============
+    function openDeleteModal(id, name, category) {
+        deleteData = {
+            id: id,
+            name: name,
+            category: category
+        };
+        
+        document.getElementById('deleteItemName').textContent = name;
+        document.getElementById('deleteItemCategory').textContent = '(' + category + ')';
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').classList.add('hidden');
+        deleteData = null;
+    }
+
+    // Confirm delete button
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        if (!deleteData) return;
+        
+        const { id, name, category } = deleteData;
+        
+        // Disable button
+        this.disabled = true;
+        this.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Menghapus...';
+        
+        let route = '';
+        const categoryUpper = category.toUpperCase();
+        if (categoryUpper.includes('GURU')) {
+            route = '/admin/data-master/guru/' + id;
+        } else if (categoryUpper.includes('KELAS') || categoryUpper.includes('INFRASTRUKTUR')) {
+            route = '/admin/data-master/kelas/' + id;
+        } else if (categoryUpper.includes('MATA PELAJARAN') || categoryUpper.includes('MAPEL')) {
+            route = '/admin/data-master/mapel/' + id;
+        } else {
+            route = '/admin/data-master/guru/' + id;
+        }
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = route;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = '{{ csrf_token() }}';
+        form.appendChild(csrfInput);
+        
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+        
+        document.body.appendChild(form);
+        form.submit();
     });
 
     // ============ NOTIFICATION ============
@@ -430,7 +526,6 @@
     }
 
     function closeNotification(element) {
-        // Jika element adalah button, cari parent notif
         if (element.tagName === 'BUTTON') {
             element = element.closest('.notification-item');
         }
@@ -477,7 +572,6 @@
         const { teacher, class: classCode, subject, btn } = currentRemindData;
         const card = btn ? btn.closest('.unreported-item') : null;
         
-        // Disable button
         this.disabled = true;
         this.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Mengirim...';
         
@@ -499,7 +593,6 @@
             closeRemindModal();
             
             if (data.success) {
-                // HAPUS CARD dengan animasi
                 if (card) {
                     card.style.transition = 'all 0.5s ease';
                     card.style.opacity = '0';
@@ -555,43 +648,6 @@
         }
     }
 
-    // ============ CONFIRM DELETE ============
-    function confirmDelete(id, name, category) {
-        if (confirm(`Apakah Anda yakin ingin menghapus data "${name}" (${category})?`)) {
-            let route = '';
-            
-            const categoryUpper = category.toUpperCase();
-            if (categoryUpper.includes('GURU')) {
-                route = '/admin/data-master/guru/' + id;
-            } else if (categoryUpper.includes('KELAS') || categoryUpper.includes('INFRASTRUKTUR')) {
-                route = '/admin/data-master/kelas/' + id;
-            } else if (categoryUpper.includes('MATA PELAJARAN') || categoryUpper.includes('MAPEL')) {
-                route = '/admin/data-master/mapel/' + id;
-            } else {
-                route = '/admin/data-master/guru/' + id;
-            }
-            
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = route;
-            
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = '_token';
-            csrfInput.value = '{{ csrf_token() }}';
-            form.appendChild(csrfInput);
-            
-            const methodInput = document.createElement('input');
-            methodInput.type = 'hidden';
-            methodInput.name = '_method';
-            methodInput.value = 'DELETE';
-            form.appendChild(methodInput);
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-    }
-
     // ============ SYNC INDICATOR ============
     setInterval(() => {
         const syncIcon = document.querySelector('.sync-pulse');
@@ -604,14 +660,20 @@
     // ============ CLOSE MODAL ON ESC ============
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
+            closeDeleteModal();
             closeRemindModal();
-            // Tutup notifikasi juga
             const notif = document.querySelector('.notification-item');
             if (notif) closeNotification(notif);
         }
     });
 
     // ============ CLOSE MODAL ON OVERLAY CLICK ============
+    document.getElementById('deleteModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            closeDeleteModal();
+        }
+    });
+
     document.getElementById('remindModal').addEventListener('click', function(event) {
         if (event.target === this) {
             closeRemindModal();

@@ -3,14 +3,14 @@
 @section('title', 'Data Mata Pelajaran - E-Jurnal')
 
 @section('content')
-<!-- Tombol Kembali ke Data Master -->
-    <div class="mb-4">
-        <a href="{{ route('data-master') }}" 
-           class="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
-            <span class="material-symbols-outlined text-sm">arrow_back</span>
-            Kembali ke Data Master
-        </a>
-    </div>
+<div class="mb-4">
+    <a href="{{ route('data-master') }}" 
+       class="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
+        <span class="material-symbols-outlined text-sm">arrow_back</span>
+        Kembali ke Data Master
+    </a>
+</div>
+
 <div class="bg-surface-container-lowest border border-outline-variant rounded-xl">
     <div class="p-6 border-b border-outline-variant flex justify-between items-center">
         <div>
@@ -53,15 +53,10 @@
                                        class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined text-lg">edit</span>
                                     </a>
-                                    <form method="POST" action="{{ route('data-master.mapel.destroy', $item->id) }}" 
-                                          class="inline-block" 
-                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
-                                            <span class="material-symbols-outlined text-lg">delete</span>
-                                        </button>
-                                    </form>
+                                    <button onclick="openDeleteModal('{{ $item->id }}', '{{ $item->nama_mapel }}', 'MATA PELAJARAN')" 
+                                            class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
+                                        <span class="material-symbols-outlined text-lg">delete</span>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -78,4 +73,94 @@
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL POPUP DELETE ============ -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl modal-content">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-red-600 text-2xl">delete_forever</span>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-800">Hapus Data?</h3>
+                <p class="text-sm text-slate-500">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+        </div>
+        
+        <div class="bg-red-50 rounded-xl p-4 mb-6">
+            <p class="text-sm text-red-700">
+                <span class="font-semibold">Data yang akan dihapus:</span><br>
+                <span id="deleteItemName" class="font-medium">-</span>
+                <span id="deleteItemCategory" class="text-xs text-red-500 ml-2">-</span>
+            </p>
+        </div>
+        
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeDeleteModal()" 
+                    class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all text-sm font-medium">
+                Batal
+            </button>
+            <button id="confirmDeleteBtn" 
+                    class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all text-sm font-medium flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">delete</span>
+                Hapus
+            </button>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+let deleteData = null;
+
+function openDeleteModal(id, name, category) {
+    deleteData = { id: id, name: name, category: category };
+    document.getElementById('deleteItemName').textContent = name;
+    document.getElementById('deleteItemCategory').textContent = '(' + category + ')';
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    deleteData = null;
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (!deleteData) return;
+    const { id, name, category } = deleteData;
+    
+    this.disabled = true;
+    this.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Menghapus...';
+    
+    let route = '/admin/data-master/mapel/' + id;
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = route;
+    
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = '_token';
+    csrfInput.value = '{{ csrf_token() }}';
+    form.appendChild(csrfInput);
+    
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'DELETE';
+    form.appendChild(methodInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+});
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') closeDeleteModal();
+});
+
+document.getElementById('deleteModal').addEventListener('click', function(event) {
+    if (event.target === this) closeDeleteModal();
+});
+</script>
+@endpush
