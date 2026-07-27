@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Traits\LogsAdminActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 use App\Models\Admin;
 use App\Models\Guru;
 use App\Models\Student;
@@ -27,10 +29,10 @@ class LoginController extends Controller
             'role' => 'required|in:admin,guru,parent',
         ]);
 
+        // ============ 1. LOGIN ADMIN ============
         if ($request->role === 'admin') {
-            // LOGIN ADMIN - HANYA CEK role 'admin' (humas dihapus)
             $admin = Admin::where('username', $request->nik)
-                         ->where('role', 'admin') // HANYA admin
+                         ->where('role', 'admin')
                          ->first();
 
             if ($admin && password_verify($request->password, $admin->password)) {
@@ -59,11 +61,71 @@ class LoginController extends Controller
                 'nik' => 'Username atau Password Admin salah.',
             ]);
         }
+
+        // ============ 2. LOGIN GURU ============
+        if ($request->role === 'guru') {
+            $guru = Guru::where('nik', $request->nik)->first();
+
+            if ($guru && (Hash::check($request->password, $guru->password) || password_verify($request->password, $guru->password))) {
+                Session::flush();
+                Session::put('guru_id', $guru->id);
+                Session::put('guru_name', $guru->name ?? $guru->nama_guru);
+                Session::put('user_role', 'guru');
+                Session::put('user_name', $guru->name ?? $guru->nama_guru);
+                Session::put('is_logged_in', true);
+                Session::put('login_type', 'guru');
+
+                return redirect()->route('guru.dashboard');
+            }
+
+            return back()->withErrors([
+                'nik' => 'NIK atau Password Guru salah.',
+            ]);
+        }
+
+        // ============ 3. LOGIN WALI MURID (PARENT) ============
+        if ($request->role === 'parent') {
+            // Cari siswa berdasarkan NISN
+            $student = Student::where('nisn', $request->nik)->first();
+
+            if ($student) {
+                // Ambil tanggal lahir dari kolom database yang tersedia
+                $dob = $student->dob ?? $student->birth_date ?? $student->tanggal_lahir ?? null;
+
+                if ($dob) {
+                    try {
+                        $formattedInputDob = Carbon::parse($request->password)->format('Y-m-d');
+                        $formattedDbDob = Carbon::parse($dob)->format('Y-m-d');
+
+                        if ($formattedInputDob === $formattedDbDob) {
+                            Session::flush();
+                            Session::put('student_id', $student->id);
+                            Session::put('student_name', $student->name ?? $student->nama);
+                            Session::put('user_role', 'parent');
+                            Session::put('user_name', $student->parent_name ?? $student->nama_ortu ?? $student->name);
+                            Session::put('is_logged_in', true);
+                            Session::put('login_type', 'parent');
+
+                            return redirect()->route('dashboard.timeline');
+                        }
+                    } catch (\Exception $e) {
+                        // Jika parsing tanggal bermasalah
+                    }
+                }
+            }
+
+            return back()->withErrors([
+                'nik' => 'NISN atau Tanggal Lahir Siswa salah.',
+            ]);
+        }
+
+        return back()->withErrors([
+            'nik' => 'Peran pengguna tidak valid.',
+        ]);
     }
 
     public function logout(Request $request)
     {
-        // Log aktivitas logout
         if (Session::get('admin_id')) {
             $this->logActivity(
                 'logout',
