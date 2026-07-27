@@ -27,7 +27,7 @@
                 }
             @endphp
 
-            <!--NOTIFICATION DROPDOWN MENU (HANYA UNTUK GURU DAN BUKAN DI HALAMAN TIMELINE/PARENT) -->
+            <!-- NOTIFICATION DROPDOWN - HANYA UNTUK GURU -->
             @if(session('user_role') === 'guru' && !request()->routeIs('dashboard.timeline'))
                 <div class="relative" id="notifDropdownContainer">
                     <button type="button" onclick="toggleNotificationDropdown()" 
@@ -78,15 +78,10 @@
                         </div>
                     </div>
                 </div>
-            @elseif(session('user_role') !== 'parent' && !request()->routeIs('dashboard.timeline'))
-                <!-- Lonceng biasa/pasif untuk role non-guru (Admin/Humas), dan disembunyikan total untuk Parent / Wali Murid -->
-                <button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full">
-                    <span class="material-symbols-outlined">notifications</span>
-                </button>
             @endif
 
-            <!-- Garis Pemisah (Hanya tampil jika ada elemen di sebelah kirinya) -->
-            @if(session('user_role') !== 'parent' && !request()->routeIs('dashboard.timeline'))
+            <!-- Garis Pemisah (Hanya tampil jika role = guru) -->
+            @if(session('user_role') === 'guru' && !request()->routeIs('dashboard.timeline'))
                 <div class="h-8 w-px bg-outline-variant"></div>
             @endif
             
@@ -115,9 +110,14 @@
     </div>
 </header>
 
+<!-- OVERLAY - TUTUP SIDEBAR SAAT KLIK DI LUAR -->
+<div id="sidebarOverlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" onclick="closeSidebar()"></div>
+
 <script>
 function toggleSidebar() {
-    const sidebar = document.querySelector('aside');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
     if (sidebar) {
         sidebar.classList.toggle('hidden');
         sidebar.classList.toggle('fixed');
@@ -126,6 +126,25 @@ function toggleSidebar() {
         sidebar.classList.toggle('h-full');
         sidebar.classList.toggle('z-50');
         sidebar.classList.toggle('w-64');
+        sidebar.classList.toggle('shadow-2xl');
+    }
+    
+    if (overlay) {
+        overlay.classList.toggle('hidden');
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    if (sidebar) {
+        sidebar.classList.add('hidden');
+        sidebar.classList.remove('fixed', 'left-0', 'top-0', 'h-full', 'z-50', 'w-64', 'shadow-2xl');
+    }
+    
+    if (overlay) {
+        overlay.classList.add('hidden');
     }
 }
 
@@ -143,6 +162,21 @@ document.addEventListener('click', function(e) {
     const menu = document.getElementById('notifDropdownMenu');
     if (container && menu && !container.contains(e.target)) {
         menu.classList.add('hidden');
+    }
+});
+
+// Tutup sidebar saat resize ke desktop
+window.addEventListener('resize', function() {
+    if (window.innerWidth >= 768) {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar) {
+            sidebar.classList.remove('fixed', 'left-0', 'top-0', 'h-full', 'z-50', 'w-64', 'shadow-2xl');
+            sidebar.classList.add('md:flex');
+        }
+        if (overlay) {
+            overlay.classList.add('hidden');
+        }
     }
 });
 </script>

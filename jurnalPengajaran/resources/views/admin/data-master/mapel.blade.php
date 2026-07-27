@@ -3,6 +3,14 @@
 @section('title', 'Data Mata Pelajaran - E-Jurnal')
 
 @section('content')
+<!-- Tombol Kembali ke Data Master -->
+    <div class="mb-4">
+        <a href="{{ route('data-master') }}" 
+           class="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
+            <span class="material-symbols-outlined text-sm">arrow_back</span>
+            Kembali ke Data Master
+        </a>
+    </div>
 <div class="bg-surface-container-lowest border border-outline-variant rounded-xl">
     <div class="p-6 border-b border-outline-variant flex justify-between items-center">
         <div>

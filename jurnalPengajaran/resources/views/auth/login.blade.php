@@ -84,7 +84,7 @@
                     <div class="grid grid-cols-3 gap-2">
                         <button type="button" class="role-btn px-2 py-2.5 rounded-xl border border-outline-variant/60 text-center hover:bg-surface-container-low transition-all duration-200 active flex flex-col items-center justify-center gap-1" data-role="admin">
                             <span class="material-symbols-outlined text-xl">admin_panel_settings</span>
-                            <span class="text-[11px] font-bold leading-none">Admin/Humas</span>
+                            <span class="text-[11px] font-bold leading-none">Admin</span>
                         </button>
                         <button type="button" class="role-btn px-2 py-2.5 rounded-xl border border-outline-variant/60 text-center hover:bg-surface-container-low transition-all duration-200 flex flex-col items-center justify-center gap-1" data-role="guru">
                             <span class="material-symbols-outlined text-xl">school</span>
@@ -143,7 +143,7 @@
                 <div class="bg-primary-container/20 p-3.5 rounded-xl flex items-start gap-3 border border-primary/10" id="infoAlert">
                     <span class="material-symbols-outlined text-primary text-lg mt-0.5">info</span>
                     <p class="text-xs text-on-surface-variant leading-relaxed" id="infoText">
-                        <strong>Admin/Humas:</strong> Masukkan username dan password Anda.
+                        <strong>Admin:</strong> Masukkan username dan password Anda.
                     </p>
                 </div>
                 
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
         admin: {
             nikLabel: 'USERNAME',
             nikPlaceholder: 'Masukkan username admin',
-            nikHelp: 'Username adalah ID login untuk admin/humas',
+            nikHelp: 'Username adalah ID login untuk admin',
             passwordLabel: 'PASSWORD',
             passwordPlaceholder: 'Masukkan password',
             inputType: 'password',

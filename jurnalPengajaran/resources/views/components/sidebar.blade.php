@@ -1,4 +1,11 @@
-<aside class="hidden md:flex flex-col h-full py-6 px-4 w-64 bg-surface-container-low border-r border-outline-variant">
+<aside class="hidden md:flex flex-col h-full py-6 px-4 w-64 bg-surface-container-low border-r border-outline-variant" id="sidebar">
+    <!-- TOMBOL CLOSE - HANYA TAMPIL DI MOBILE -->
+    <div class="flex justify-end md:hidden mb-4">
+        <button onclick="toggleSidebar()" class="p-2 hover:bg-surface-container-high rounded-full transition-colors">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </div>
+
     <!-- BRAND & LOGO HEADER -->
     <div class="mb-10 px-2 flex items-center gap-3">
         <div class="w-10 h-10 flex items-center justify-center filter drop-shadow-sm">
@@ -32,7 +39,7 @@
                     ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'params' => []],
                     ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'params' => []],
                     ['route' => 'admin.logs', 'icon' => 'history', 'label' => 'Log Aktivitas', 'params' => []],
-                    ['route' => 'report.export', 'icon' => 'description', 'label' => 'Laporan', 'params' => ['format' => 'pdf']],
+                    ['route' => 'laporan.index', 'icon' => 'description', 'label' => 'Laporan', 'params' => []],
                 ];
             } elseif ($role === 'guru') {
                 $menuItems = [

@@ -96,8 +96,17 @@
         <h1>{{ $title }}</h1>
         <p>Periode: {{ ucfirst($period) }} - {{ $date }}</p>
         <p>Generated: {{ now()->locale('id')->isoFormat('dddd, D MMM YYYY HH:mm') }}</p>
+        
+        <!-- TOMBOL BACK (untuk PDF ini tidak akan muncul di PDF, hanya di browser) -->
+        <div style="margin-top: 10px;">
+            <a href="{{ route('monitoring') }}" 
+               style="display: inline-block; padding: 8px 20px; background: #00236f; color: white; text-decoration: none; border-radius: 8px; font-size: 14px;">
+                ← Kembali ke Monitoring
+            </a>
+        </div>
     </div>
 
+    <!-- Stats Grid -->
     <div class="stats-grid">
         <div class="stat-card">
             <div class="number">{{ $complianceRate }}%</div>
@@ -113,6 +122,7 @@
         </div>
     </div>
 
+    <!-- Daftar Guru -->
     <h3 style="margin-top: 30px;">Daftar Guru</h3>
     <table>
         <thead>
@@ -127,21 +137,11 @@
             @php $no = 1; @endphp
             @foreach($teachers as $teacher)
                 @php
-                    $status = 'Belum Mengisi';
-                    $statusClass = 'warning';
-                    
-                    // Cek apakah guru sudah mengisi jurnal
-                    foreach($jurnals as $jurnal) {
-                        if (isset($jurnal->guru_id) && $jurnal->guru_id == $teacher->id) {
-                            $status = 'Sudah Mengisi';
-                            $statusClass = 'success';
-                            break;
-                        }
-                    }
-                    
-                    // Ambil nama dari kolom yang benar
-                    $teacherName = $teacher->nama_guru ?? $teacher->name ?? $teacher->nama ?? '-';
-                    $teacherNik = $teacher->nik ?? $teacher->nip ?? '-';
+                    $isReported = isset($teacherStatus[$teacher->id]) ? $teacherStatus[$teacher->id] : false;
+                    $status = $isReported ? 'Sudah Mengisi' : 'Belum Mengisi';
+                    $statusClass = $isReported ? 'success' : 'warning';
+                    $teacherName = isset($teacher->nama_guru) ? $teacher->nama_guru : (isset($teacher->name) ? $teacher->name : '-');
+                    $teacherNik = isset($teacher->nik) ? $teacher->nik : '-';
                 @endphp
                 <tr>
                     <td>{{ $no++ }}</td>
@@ -157,6 +157,7 @@
         </tbody>
     </table>
 
+    <!-- Unreported Classes -->
     @if(isset($unreported) && $unreported->count() > 0)
         <h3 style="margin-top: 30px;">Kelas Tanpa Catatan</h3>
         <table>
@@ -173,18 +174,25 @@
                 @foreach($unreported as $class)
                     <tr>
                         <td>{{ $no++ }}</td>
-                        <td>{{ $class->code ?? $class->nama_kelas ?? '-' }}</td>
-                        <td>{{ $class->subject ?? $class->nama_mapel ?? '-' }}</td>
-                        <td>{{ $class->teacher ?? $class->nama_guru ?? '-' }}</td>
+                        <td>{{ isset($class->code) ? $class->code : (isset($class->nama_kelas) ? $class->nama_kelas : '-') }}</td>
+                        <td>{{ isset($class->subject) ? $class->subject : (isset($class->nama_mapel) ? $class->nama_mapel : '-') }}</td>
+                        <td>{{ isset($class->teacher) ? $class->teacher : (isset($class->nama_guru) ? $class->nama_guru : '-') }}</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
     @endif
 
+    <!-- Tombol Back di Footer -->
     <div class="footer">
         <p>Laporan ini dihasilkan secara otomatis oleh Sistem E-Jurnal</p>
         <p>MIN 2 Kota Malang</p>
+        <p style="margin-top: 15px;">
+            <a href="{{ route('monitoring') }}" 
+               style="display: inline-block; padding: 8px 20px; background: #00236f; color: white; text-decoration: none; border-radius: 8px; font-size: 14px;">
+                ← Kembali ke Monitoring
+            </a>
+        </p>
     </div>
 </body>
 </html>

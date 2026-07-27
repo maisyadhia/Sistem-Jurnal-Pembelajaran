@@ -77,7 +77,8 @@ Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-m
         Route::delete('/{id}', [MapelController::class, 'destroy'])->name('data-master.mapel.destroy');
     });
     
-    // Generate Report
+    // ====== LAPORAN ======
+    Route::get('/laporan', [HumasMonitoringController::class, 'laporanIndex'])->name('laporan.index');
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
 });
 

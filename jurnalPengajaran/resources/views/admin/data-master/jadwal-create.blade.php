@@ -4,13 +4,13 @@
 
 @section('content')
 <div class="max-w-2xl mx-auto">
-    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
+    <div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">   
         <div class="mb-6">
             <h2 class="font-headline-md text-headline-md text-on-background">Tambah Jadwal</h2>
             <p class="font-body-sm text-body-sm text-on-surface-variant">Tambahkan jadwal pelajaran baru.</p>
         </div>
         
-        <form method="POST" action="{{ route('data-master.jadwal.store') }}" class="space-y-5">
+        <form method="POST" action="{{ route('data-master.jadwal.store') }}" class="space-y-5" id="jadwalForm">
             @csrf
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -81,40 +81,52 @@
                 </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="space-y-1.5">
-                    <label class="block font-label-caps text-label-caps text-on-surface-variant" for="jam_ke">Jam Ke</label>
-                    <select class="w-full h-[40px] bg-surface border border-outline-variant rounded-lg px-4 text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('jam_ke') border-error @enderror" 
-                            id="jam_ke" name="jam_ke" required>
-                        <option value="">Pilih</option>
-                        @foreach($jamKe as $j)
-                            <option value="{{ $j }}" {{ old('jam_ke') == $j ? 'selected' : '' }}>
-                                {{ $j }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('jam_ke')
-                        <p class="text-error text-sm">{{ $message }}</p>
-                    @enderror
+            <!-- JAM KE DENGAN WAKTU MASING-MASING -->
+            <div class="space-y-3">
+                <label class="block font-label-caps text-label-caps text-on-surface-variant">Detail Jadwal Per Jam</label>
+                <p class="text-xs text-slate-400 mb-2">💡 Centang jam dan isi waktu untuk setiap jam yang digunakan</p>
+                
+                <div class="space-y-3">
+                    @for($i = 1; $i <= 10; $i++)
+                        @php
+                            $isChecked = in_array($i, old('jam_ke', []));
+                            $jamMulai = old('jam_mulai.' . $i);
+                            $jamSelesai = old('jam_selesai.' . $i);
+                        @endphp
+                        <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-outline-variant hover:bg-slate-100 transition-colors">
+                            <label class="flex items-center gap-2 text-sm cursor-pointer min-w-[80px]">
+                                <input type="checkbox" name="jam_ke[]" value="{{ $i }}" 
+                                       class="jam-checkbox w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
+                                       {{ $isChecked ? 'checked' : '' }}
+                                       onchange="toggleWaktu(this, {{ $i }})">
+                                <span class="font-medium">Jam {{ $i }}</span>
+                            </label>
+                            
+                            <div class="flex-1 grid grid-cols-2 gap-3">
+                                <div class="waktu-group" id="waktu-{{ $i }}" style="{{ $isChecked ? '' : 'display: none;' }}">
+                                    <input type="time" name="jam_mulai[{{ $i }}]" 
+                                           class="w-full h-[36px] bg-white border border-outline-variant rounded-lg px-3 text-sm focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('jam_mulai.' . $i) border-error @enderror"
+                                           value="{{ $jamMulai }}">
+                                    @error('jam_mulai.' . $i)
+                                        <p class="text-error text-xs mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div class="waktu-group" id="waktu-selesai-{{ $i }}" style="{{ $isChecked ? '' : 'display: none;' }}">
+                                    <input type="time" name="jam_selesai[{{ $i }}]" 
+                                           class="w-full h-[36px] bg-white border border-outline-variant rounded-lg px-3 text-sm focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('jam_selesai.' . $i) border-error @enderror"
+                                           value="{{ $jamSelesai }}">
+                                    @error('jam_selesai.' . $i)
+                                        <p class="text-error text-xs mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                    @endfor
                 </div>
                 
-                <div class="space-y-1.5">
-                    <label class="block font-label-caps text-label-caps text-on-surface-variant" for="jam_mulai">Jam Mulai</label>
-                    <input class="w-full h-[40px] bg-surface border border-outline-variant rounded-lg px-4 text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('jam_mulai') border-error @enderror" 
-                           id="jam_mulai" name="jam_mulai" type="time" required value="{{ old('jam_mulai') }}"/>
-                    @error('jam_mulai')
-                        <p class="text-error text-sm">{{ $message }}</p>
-                    @enderror
-                </div>
-                
-                <div class="space-y-1.5">
-                    <label class="block font-label-caps text-label-caps text-on-surface-variant" for="jam_selesai">Jam Selesai</label>
-                    <input class="w-full h-[40px] bg-surface border border-outline-variant rounded-lg px-4 text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('jam_selesai') border-error @enderror" 
-                           id="jam_selesai" name="jam_selesai" type="time" required value="{{ old('jam_selesai') }}"/>
-                    @error('jam_selesai')
-                        <p class="text-error text-sm">{{ $message }}</p>
-                    @enderror
-                </div>
+                @error('jam_ke')
+                    <p class="text-error text-sm">{{ $message }}</p>
+                @enderror
             </div>
             
             <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant">
@@ -130,4 +142,64 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+function toggleWaktu(checkbox, jam) {
+    const waktuMulai = document.getElementById('waktu-' + jam);
+    const waktuSelesai = document.getElementById('waktu-selesai-' + jam);
+    
+    if (checkbox.checked) {
+        waktuMulai.style.display = 'block';
+        waktuSelesai.style.display = 'block';
+    } else {
+        waktuMulai.style.display = 'none';
+        waktuSelesai.style.display = 'none';
+        const inputMulai = waktuMulai.querySelector('input');
+        const inputSelesai = waktuSelesai.querySelector('input');
+        if (inputMulai) inputMulai.value = '';
+        if (inputSelesai) inputSelesai.value = '';
+    }
+}
+
+// Validasi Client-Side
+document.getElementById('jadwalForm').addEventListener('submit', function(e) {
+    const checkboxes = document.querySelectorAll('.jam-checkbox:checked');
+    let hasError = false;
+    let errorMessage = '';
+    
+    if (checkboxes.length === 0) {
+        e.preventDefault();
+        alert('⚠️ Pilih minimal 1 jam!');
+        return false;
+    }
+    
+    checkboxes.forEach(function(cb) {
+        const jam = cb.value;
+        const waktuMulai = document.getElementById('waktu-' + jam);
+        const waktuSelesai = document.getElementById('waktu-selesai-' + jam);
+        
+        if (waktuMulai) {
+            const inputMulai = waktuMulai.querySelector('input');
+            const inputSelesai = waktuSelesai ? waktuSelesai.querySelector('input') : null;
+            
+            if (!inputMulai || !inputMulai.value) {
+                errorMessage += '• Jam mulai untuk Jam ' + jam + ' wajib diisi!\n';
+                hasError = true;
+            }
+            if (!inputSelesai || !inputSelesai.value) {
+                errorMessage += '• Jam selesai untuk Jam ' + jam + ' wajib diisi!\n';
+                hasError = true;
+            }
+        }
+    });
+    
+    if (hasError) {
+        e.preventDefault();
+        alert('⚠️ Mohon lengkapi data berikut:\n\n' + errorMessage);
+        return false;
+    }
+});
+</script>
+@endpush
 @endsection

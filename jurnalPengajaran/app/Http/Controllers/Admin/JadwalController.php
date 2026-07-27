@@ -21,14 +21,18 @@ class JadwalController extends Controller
                 'jadwals.*',
                 'guru.nama_guru',
                 'kelas_master.nama_kelas',
-                'mapel_master.nama_mapel',
-                'mapel_master.kode_mapel'
+                'mapel_master.nama_mapel'
             )
             ->orderBy('jadwals.hari')
             ->orderBy('jadwals.jam_ke')
             ->get();
 
-        return view('admin.data-master.jadwal', compact('jadwal'));
+        // Grouping berdasarkan kombinasi guru-kelas-mapel-hari
+        $groupedJadwal = $jadwal->groupBy(function($item) {
+            return $item->hari . '|' . $item->guru_id . '|' . $item->kelas_id . '|' . $item->mapel_id;
+        });
+
+        return view('admin.data-master.jadwal', compact('groupedJadwal'));
     }
 
     public function create()
@@ -50,71 +54,116 @@ class JadwalController extends Controller
             'kelas_id' => 'required|exists:kelas_master,id',
             'mapel_id' => 'required|exists:mapel_master,id',
             'hari' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
-            'jam_ke' => 'required|integer|min:1|max:8',
-            'jam_mulai' => 'required',
-            'jam_selesai' => 'required',
+            'jam_ke' => 'required|array|min:1',
+            'jam_ke.*' => 'integer|min:1|max:10',
         ]);
 
-        // Cek duplikasi jadwal
-        $exists = DB::table('jadwals')
-            ->where('guru_id', $request->guru_id)
-            ->where('hari', $request->hari)
-            ->where('jam_ke', $request->jam_ke)
-            ->exists();
-
-        if ($exists) {
-            return back()->withErrors([
-                'jam_ke' => 'Guru sudah memiliki jadwal di hari dan jam yang sama!'
-            ])->withInput();
+        // Validasi manual untuk jam yang dicentang saja
+        $errors = [];
+        foreach ($request->jam_ke as $jam) {
+            if (!isset($request->jam_mulai[$jam]) || empty($request->jam_mulai[$jam])) {
+                $errors["jam_mulai.{$jam}"] = "Jam mulai untuk Jam {$jam} wajib diisi!";
+            }
+            if (!isset($request->jam_selesai[$jam]) || empty($request->jam_selesai[$jam])) {
+                $errors["jam_selesai.{$jam}"] = "Jam selesai untuk Jam {$jam} wajib diisi!";
+            }
         }
 
-        $data = [
-            'guru_id' => $request->guru_id,
-            'kelas_id' => $request->kelas_id,
-            'mapel_id' => $request->mapel_id,
-            'hari' => $request->hari,
-            'jam_ke' => $request->jam_ke,
-            'jam_mulai' => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
+        if (!empty($errors)) {
+            return back()->withErrors($errors)->withInput();
+        }
 
-        DB::table('jadwals')->insert($data);
+        $inserted = 0;
+        $duplicateErrors = [];
 
-        // Ambil nama untuk log
-        $guru = DB::table('guru')->where('id', $request->guru_id)->first();
-        $kelas = DB::table('kelas_master')->where('id', $request->kelas_id)->first();
-        $mapel = DB::table('mapel_master')->where('id', $request->mapel_id)->first();
+        foreach ($request->jam_ke as $jam) {
+            // Cek duplikasi
+            $exists = DB::table('jadwals')
+                ->where('guru_id', $request->guru_id)
+                ->where('hari', $request->hari)
+                ->where('jam_ke', $jam)
+                ->exists();
+
+            if ($exists) {
+                $duplicateErrors[] = "Jam ke-{$jam} sudah terisi untuk guru ini di hari {$request->hari}";
+                continue;
+            }
+
+            DB::table('jadwals')->insert([
+                'guru_id' => $request->guru_id,
+                'kelas_id' => $request->kelas_id,
+                'mapel_id' => $request->mapel_id,
+                'hari' => $request->hari,
+                'jam_ke' => $jam,
+                'jam_mulai' => $request->jam_mulai[$jam],
+                'jam_selesai' => $request->jam_selesai[$jam],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $inserted++;
+        }
+
+        if ($inserted === 0) {
+            return back()->withErrors(['jam_ke' => implode(', ', $duplicateErrors)])->withInput();
+        }
 
         $this->logActivity(
             'create',
             'jadwal',
-            "Menambahkan jadwal: {$mapel->nama_mapel} - {$kelas->nama_kelas} ({$request->hari} Jam ke-{$request->jam_ke}) untuk {$guru->nama_guru}",
+            "Menambahkan {$inserted} jadwal baru",
             null,
-            $data
+            $request->all()
         );
 
+        $message = "{$inserted} jadwal berhasil ditambahkan!";
+        if (!empty($duplicateErrors)) {
+            $message .= " (" . implode(', ', $duplicateErrors) . ")";
+        }
+
         return redirect()->route('data-master.jadwal')
-            ->with('success', 'Jadwal berhasil ditambahkan!');
+            ->with('success', $message);
     }
 
     public function edit($id)
     {
-        $jadwal = DB::table('jadwals')->where('id', $id)->first();
+        // Cari data jadwal berdasarkan ID
+        $jadwal = DB::table('jadwals')
+            ->join('guru', 'jadwals.guru_id', '=', 'guru.id')
+            ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
+            ->select(
+                'jadwals.*',
+                'guru.nama_guru',
+                'kelas_master.nama_kelas',
+                'mapel_master.nama_mapel'
+            )
+            ->where('jadwals.id', $id)
+            ->first();
+
         if (!$jadwal) {
             return redirect()->route('data-master.jadwal')
                 ->with('error', 'Jadwal tidak ditemukan!');
         }
 
+        // Ambil SEMUA jadwal dengan kombinasi yang sama
+        $jadwalGroup = DB::table('jadwals')
+            ->where('guru_id', $jadwal->guru_id)
+            ->where('kelas_id', $jadwal->kelas_id)
+            ->where('mapel_id', $jadwal->mapel_id)
+            ->where('hari', $jadwal->hari)
+            ->get();
+
+        // Ambil daftar jam_ke dari group
+        $jamKeList = $jadwalGroup->pluck('jam_ke')->toArray();
+
+        // Ambil data untuk dropdown
         $guru = DB::table('guru')->orderBy('nama_guru')->get();
         $kelas = DB::table('kelas_master')->orderBy('nama_kelas')->get();
         $mapel = DB::table('mapel_master')->orderBy('nama_mapel')->get();
         
         $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        $jamKe = range(1, 8);
         
-        return view('admin.data-master.jadwal-edit', compact('jadwal', 'guru', 'kelas', 'mapel', 'hari', 'jamKe'));
+        return view('admin.data-master.jadwal-edit', compact('jadwal', 'jadwalGroup', 'jamKeList', 'guru', 'kelas', 'mapel', 'hari'));
     }
 
     public function update(Request $request, $id)
@@ -124,50 +173,69 @@ class JadwalController extends Controller
             'kelas_id' => 'required|exists:kelas_master,id',
             'mapel_id' => 'required|exists:mapel_master,id',
             'hari' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
-            'jam_ke' => 'required|integer|min:1|max:8',
-            'jam_mulai' => 'required',
-            'jam_selesai' => 'required',
+            'jam_ke' => 'required|array|min:1',
+            'jam_ke.*' => 'integer|min:1|max:10',
         ]);
 
-        // Cek duplikasi jadwal (kecuali dirinya sendiri)
-        $exists = DB::table('jadwals')
-            ->where('guru_id', $request->guru_id)
-            ->where('hari', $request->hari)
-            ->where('jam_ke', $request->jam_ke)
-            ->where('id', '!=', $id)
-            ->exists();
-
-        if ($exists) {
-            return back()->withErrors([
-                'jam_ke' => 'Guru sudah memiliki jadwal di hari dan jam yang sama!'
-            ])->withInput();
+        // Validasi manual untuk jam yang dicentang saja
+        $errors = [];
+        foreach ($request->jam_ke as $jam) {
+            if (!isset($request->jam_mulai[$jam]) || empty($request->jam_mulai[$jam])) {
+                $errors["jam_mulai.{$jam}"] = "Jam mulai untuk Jam {$jam} wajib diisi!";
+            }
+            if (!isset($request->jam_selesai[$jam]) || empty($request->jam_selesai[$jam])) {
+                $errors["jam_selesai.{$jam}"] = "Jam selesai untuk Jam {$jam} wajib diisi!";
+            }
         }
 
-        $oldData = DB::table('jadwals')->where('id', $id)->first();
+        if (!empty($errors)) {
+            return back()->withErrors($errors)->withInput();
+        }
 
-        $data = [
-            'guru_id' => $request->guru_id,
-            'kelas_id' => $request->kelas_id,
-            'mapel_id' => $request->mapel_id,
-            'hari' => $request->hari,
-            'jam_ke' => $request->jam_ke,
-            'jam_mulai' => $request->jam_mulai,
-            'jam_selesai' => $request->jam_selesai,
-            'updated_at' => now(),
-        ];
+        // Ambil data jadwal lama untuk log
+        $oldJadwal = DB::table('jadwals')
+            ->join('guru', 'jadwals.guru_id', '=', 'guru.id')
+            ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
+            ->select('jadwals.*', 'guru.nama_guru', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
+            ->where('jadwals.id', $id)
+            ->first();
+        
+        // HAPUS SEMUA jadwal dengan kombinasi yang sama (guru, kelas, mapel, hari)
+        DB::table('jadwals')
+            ->where('guru_id', $request->guru_id)
+            ->where('kelas_id', $request->kelas_id)
+            ->where('mapel_id', $request->mapel_id)
+            ->where('hari', $request->hari)
+            ->delete();
 
-        DB::table('jadwals')->where('id', $id)->update($data);
+        // INSERT jadwal baru untuk setiap jam yang dipilih
+        $inserted = 0;
+        foreach ($request->jam_ke as $jam) {
+            DB::table('jadwals')->insert([
+                'guru_id' => $request->guru_id,
+                'kelas_id' => $request->kelas_id,
+                'mapel_id' => $request->mapel_id,
+                'hari' => $request->hari,
+                'jam_ke' => $jam,
+                'jam_mulai' => $request->jam_mulai[$jam],
+                'jam_selesai' => $request->jam_selesai[$jam],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $inserted++;
+        }
 
         $this->logActivity(
             'update',
             'jadwal',
-            "Mengupdate jadwal ID: {$id}",
-            $oldData,
-            $data
+            "Mengupdate {$inserted} jadwal untuk {$oldJadwal->nama_guru} - {$oldJadwal->nama_mapel}",
+            $oldJadwal,
+            $request->all()
         );
 
         return redirect()->route('data-master.jadwal')
-            ->with('success', 'Jadwal berhasil diupdate!');
+            ->with('success', "{$inserted} jadwal berhasil diupdate!");
     }
 
     public function destroy($id)
