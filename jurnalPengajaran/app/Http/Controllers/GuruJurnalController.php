@@ -33,7 +33,7 @@ class GuruJurnalController extends Controller
             ->select('jadwals.*', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
             ->first();
 
-        // 💡 JIKA TIDAK ADA JADWAL HARI INI, KITA TENDANG BALIK KE DASHBOARD DENGAN WARNING !
+        // JIKA TIDAK ADA JADWAL HARI INI, DIKEMBALIKAN LAGI KE DASHBOARD DENGAN WARNING !
         if (!$jadwal) {
             return redirect()->route('guru.dashboard')
                 ->with('warning', 'Akses ditolak! Anda tidak memiliki jadwal mengajar aktif untuk kelas dan mata pelajaran ini pada hari ' . $hari . ' !');
@@ -60,14 +60,12 @@ class GuruJurnalController extends Controller
     {
         // 1. Validasi Input Form
         $request->validate([
-            'kelas_id' => 'required',
-            'mapel_id' => 'required',
-            'topic' => 'required|string|min:10',
-            'next_target' => 'required|string|min:10',
+            'kelas_id'    => 'required',
+            'mapel_id'    => 'required',
+            'topic'       => 'required|string',
+            'next_target' => 'nullable|string',
         ], [
             'topic.required' => 'Bahasan hari ini wajib diisi!',
-            'topic.min' => 'Bahasan hari ini minimal 10 karakter!',
-            'next_target.required' => 'Target pertemuan berikutnya wajib diisi!',
         ]);
 
         $guruId = session('guru_id') ?? session('admin_id');

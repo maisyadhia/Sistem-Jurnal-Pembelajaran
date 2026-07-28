@@ -29,8 +29,8 @@
     <!-- Header Page -->
     <section class="flex flex-col md:flex-row md:items-end justify-between gap-3">
         <div>
-            <h2 class="font-display-lg text-xl md:text-display-lg text-on-background mb-1">Input Jurnal Harian</h2>
-            <p class="font-body-base text-xs md:text-body-base text-on-surface-variant">Dokumentasikan progress belajar mengajar anda hari ini.</p>
+            <h2 class="text-xl md:text-2xl font-bold text-slate-800 mb-1">Input Jurnal Harian</h2>
+            <p class="text-xs md:text-sm text-slate-500">Dokumentasikan progress belajar mengajar anda hari ini.</p>
         </div>
         <div class="flex items-center gap-2 px-3 py-1.5 bg-secondary-container/30 border border-secondary text-secondary rounded-full w-fit">
             <span class="material-symbols-outlined text-sm animate-pulse" style="font-variation-settings: 'FILL' 1;">cloud_done</span>
@@ -87,7 +87,7 @@
             <div class="p-4 md:p-6 border-b border-outline-variant bg-surface-container-low/50">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-primary">history_edu</span>
-                    <h3 class="font-headline-md text-sm md:text-headline-md">Rangkuman Pengajaran</h3>
+                    <h3 class="font-bold text-slate-800 text-sm md:text-base">Rangkuman Pengajaran</h3>
                 </div>
             </div>
             
@@ -96,17 +96,17 @@
                 <div class="space-y-2 md:space-y-3">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
                         <label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider" for="bahasan">
-                            Bahasan Hari Ini
+                            Bahasan Hari Ini <span class="text-error">*</span>
                         </label>
-                        <span class="text-body-sm text-outline italic text-xs">Terakhir diubah: {{ $lastUpdated ?? '2 menit yang lalu' }}</span>
+                        <span class="text-body-sm text-outline italic text-xs">Terakhir diubah: {{ $lastUpdated ?? 'Baru saja' }}</span>
                     </div>
                     <textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-3 md:p-4 font-body-base text-xs md:text-body-base input-focus transition-all resize-none @error('topic') border-error @enderror" 
                               id="bahasan" 
                               name="topic" 
                               placeholder="Tuliskan pokok bahasan, materi yang disampaikan, dan dinamika kelas..." 
-                              rows="4">{{ old('topic', $jurnal->topic ?? 'Pengenalan Logaritma: Sifat-sifat dasar logaritma dan hubungannya dengan eksponen. Siswa mengerjakan latihan mandiri hal 42.') }}</textarea>
+                              rows="4">{{ old('topic', $jurnal->topic ?? '') }}</textarea>
                     @error('topic')
-                        <p class="text-error text-xs md:text-sm">{{ $message }}</p>
+                        <p class="text-error text-xs md:text-sm font-medium mt-1">Bahasan hari ini wajib diisi.</p>
                     @enderror
                 </div>
                 
@@ -119,9 +119,9 @@
                               id="target" 
                               name="next_target" 
                               placeholder="Apa yang ingin dicapai pada sesi selanjutnya?" 
-                              rows="3">{{ old('next_target', $jurnal->next_target ?? 'Penerapan logaritma dalam perhitungan bunga majemuk dan kuis kecil materi eksponen.') }}</textarea>
+                              rows="3">{{ old('next_target', $jurnal->next_target ?? '') }}</textarea>
                     @error('next_target')
-                        <p class="text-error text-xs md:text-sm">{{ $message }}</p>
+                        <p class="text-error text-xs md:text-sm font-medium mt-1">Format target pertemuan berikutnya tidak valid.</p>
                     @enderror
                 </div>
 

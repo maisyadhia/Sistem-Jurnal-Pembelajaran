@@ -96,12 +96,11 @@ class GuruDashboardController extends Controller
                     ->exists();
 
                 // 💡 AMBIL KATA UTAMA MAPEL (Pembersihan Spasi & Tanda Kurung)
-                // Contoh: "Pendidikan Pancasila dan Kewarganegaraan " -> "Pendidikan Pancasila"
                 $cleanMapel = trim(preg_replace('/\s+/', ' ', str_replace(['(', ')'], '', $jadwal->nama_mapel)));
                 $firstMapelWord = explode(' ', $cleanMapel)[0] ?? $jadwal->nama_mapel;
 
                 if ($jurnalAda) {
-                    // 🟢 JIKA SUDAH DIISI: Bersihkan HANYA notifikasi kelas & mapel spesifik ini (Admin + Sistem Otomatis)!
+                    // 🟢 JIKA SUDAH DIISI: Bersihkan HANYA notifikasi kelas & mapel spesifik ini!
                     DB::table('notifications')
                         ->where('user_id', $guruId)
                         ->whereDate('created_at', $today)
@@ -222,7 +221,7 @@ class GuruDashboardController extends Controller
     }
 
     /**
-     * EXPORT RIWAYAT JURNAL KE EXCEL/CSV 
+     * EXPORT RIWAYAT JURNAL KE EXCEL/CSV (Terstruktur & Rapi)
      */
     public function exportExcel(Request $request)
     {
@@ -231,6 +230,8 @@ class GuruDashboardController extends Controller
         if (!$guruId) {
             return redirect()->route('login');
         }
+
+        $guruName = session('user_name') ?? 'Guru';
 
         $queryJurnal = DB::table('jurnals')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
@@ -254,16 +255,22 @@ class GuruDashboardController extends Controller
                 'jadwals.jam_selesai'
             );
 
-        // Filter Tanggal Sesuai Filter Aktif
+        // Filter Tanggal Sesuai Filter Aktif & Label Periode
         $currentFilter = $request->query('filter');
+        $periodeLabel = 'Semua Periode';
+
         if ($request->filled('tanggal')) {
             $queryJurnal->whereDate('jurnals.tanggal', $request->tanggal);
+            $periodeLabel = Carbon::parse($request->tanggal)->format('d/m/Y');
         } elseif ($currentFilter === 'hari_ini') {
-            $queryJurnal->whereDate('jurnals.tanggal', \Carbon\Carbon::today());
+            $queryJurnal->whereDate('jurnals.tanggal', Carbon::today());
+            $periodeLabel = 'Hari Ini (' . Carbon::today()->format('d/m/Y') . ')';
         } elseif ($currentFilter === '1_minggu') {
-            $queryJurnal->whereDate('jurnals.tanggal', '>=', \Carbon\Carbon::now()->subWeek());
+            $queryJurnal->whereDate('jurnals.tanggal', '>=', Carbon::now()->subWeek());
+            $periodeLabel = '1 Minggu Terakhir';
         } elseif ($currentFilter === '1_bulan') {
-            $queryJurnal->whereDate('jurnals.tanggal', '>=', \Carbon\Carbon::now()->subMonth());
+            $queryJurnal->whereDate('jurnals.tanggal', '>=', Carbon::now()->subMonth());
+            $periodeLabel = '1 Bulan Terakhir';
         }
 
         $jurnals = $queryJurnal->orderBy('jurnals.tanggal', 'desc')->get();
@@ -278,10 +285,20 @@ class GuruDashboardController extends Controller
             "Expires"             => "0"
         ];
 
-        $callback = function() use ($jurnals) {
+        $callback = function() use ($jurnals, $guruName, $periodeLabel) {
             $file = fopen('php://output', 'w');
-            fputs($file, "\xEF\xBB\xBF"); // BOM UTF-8
+            
+            // BOM UTF-8 (Supaya karakter rapi saat dibuka di Microsoft Excel)
+            fputs($file, "\xEF\xBB\xBF");
 
+            // 1. HEADER INFORMASI LAPORAN
+            fputcsv($file, ['LAPORAN REKAPITULASI JURNAL MENGAJAR GURU']);
+            fputcsv($file, ['Nama Guru', $guruName]);
+            fputcsv($file, ['Tanggal Export', Carbon::now()->translatedFormat('d F Y H:i')]);
+            fputcsv($file, ['Periode Laporan', $periodeLabel]);
+            fputcsv($file, []); // Baris kosong pembatas
+
+            // 2. HEADER TABEL UTAMA
             fputcsv($file, [
                 'No', 
                 'Tanggal Input', 
@@ -291,47 +308,52 @@ class GuruDashboardController extends Controller
                 'Waktu Sesi', 
                 'Bahasan Materi', 
                 'Target Berikutnya',
-                'Siswa Tidak Hadir', 
+                'Ringkasan Kehadiran', 
                 'Catatan Khusus Siswa'
             ]);
 
             $no = 1;
             foreach ($jurnals as $jurnal) {
                 $waktuSesi = (!empty($jurnal->jam_mulai) && !empty($jurnal->jam_selesai)) 
-                    ? \Carbon\Carbon::parse($jurnal->jam_mulai)->format('H:i') . ' - ' . \Carbon\Carbon::parse($jurnal->jam_selesai)->format('H:i')
-                    : 'Jam ke-' . $jurnal->jam_ke;
+                    ? Carbon::parse($jurnal->jam_mulai)->format('H:i') . ' - ' . Carbon::parse($jurnal->jam_selesai)->format('H:i')
+                    : 'Jam ke-' . ($jurnal->jam_ke ?? '-');
 
                 $students = json_decode($jurnal->student_ids, true);
-                $absenArr = [];
+                $hadirCount = 0;
+                $sakitCount = 0;
+                $izinCount = 0;
+                $alphaCount = 0;
                 $catatanArr = [];
 
                 if (is_array($students)) {
                     foreach ($students as $s) {
-                        $siswaDb = DB::table('students')->where('id', $s['student_id'])->first();
-                        $nama = $siswaDb ? $siswaDb->name : 'ID:' . $s['student_id'];
+                        $status = strtolower($s['status'] ?? 'hadir');
+                        if ($status === 'hadir') $hadirCount++;
+                        elseif ($status === 'sakit') $sakitCount++;
+                        elseif ($status === 'izin') $izinCount++;
+                        elseif ($status === 'alpha') $alphaCount++;
 
-                        if (isset($s['status']) && strtolower($s['status']) !== 'hadir') {
-                            $absenArr[] = $nama . ' (' . $s['status'] . ')';
-                        }
                         if (!empty($s['catatan'])) {
-                            $catatanArr[] = $nama . ': "' . $s['catatan'] . '"';
+                            $siswaDb = DB::table('students')->where('id', $s['student_id'] ?? 0)->first();
+                            $nama = $siswaDb ? $siswaDb->name : ('ID:' . ($s['student_id'] ?? '-'));
+                            $catatanArr[] = $nama . ' (' . ucfirst($status) . '): "' . $s['catatan'] . '"';
                         }
                     }
                 }
 
-                $txtAbsen = count($absenArr) > 0 ? implode('; ', $absenArr) : 'Hadir Semua';
-                $txtCatatan = count($catatanArr) > 0 ? implode('; ', $catatanArr) : '-';
+                $summaryAbsen = "Hadir: {$hadirCount}, Sakit: {$sakitCount}, Izin: {$izinCount}, Alpha: {$alphaCount}";
+                $txtCatatan = count($catatanArr) > 0 ? implode(' | ', $catatanArr) : '-';
 
                 fputcsv($file, [
                     $no++,
-                    \Carbon\Carbon::parse($jurnal->created_at)->format('d/m/Y H:i'),
-                    \Carbon\Carbon::parse($jurnal->tanggal)->format('d/m/Y'),
+                    Carbon::parse($jurnal->created_at)->format('d/m/Y H:i'),
+                    Carbon::parse($jurnal->tanggal)->format('d/m/Y'),
                     $jurnal->nama_kelas,
                     $jurnal->nama_mapel,
                     $waktuSesi,
-                    $jurnal->materi,
+                    $jurnal->materi ?? '-',
                     $jurnal->target_next ?? '-',
-                    $txtAbsen,
+                    $summaryAbsen,
                     $txtCatatan
                 ]);
             }
