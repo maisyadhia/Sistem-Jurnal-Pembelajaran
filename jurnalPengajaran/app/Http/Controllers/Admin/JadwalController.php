@@ -41,7 +41,7 @@ class JadwalController extends Controller
         $kelas = DB::table('kelas_master')->orderBy('nama_kelas')->get();
         $mapel = DB::table('mapel_master')->orderBy('nama_mapel')->get();
         
-        $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
         $jamKe = range(1, 8);
         
         return view('admin.data-master.jadwal-create', compact('guru', 'kelas', 'mapel', 'hari', 'jamKe'));
@@ -53,7 +53,7 @@ class JadwalController extends Controller
             'guru_id' => 'required|exists:guru,id',
             'kelas_id' => 'required|exists:kelas_master,id',
             'mapel_id' => 'required|exists:mapel_master,id',
-            'hari' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
+            'hari' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat',
             'jam_ke' => 'required|array|min:1',
             'jam_ke.*' => 'integer|min:1|max:10',
         ]);
@@ -161,7 +161,7 @@ class JadwalController extends Controller
         $kelas = DB::table('kelas_master')->orderBy('nama_kelas')->get();
         $mapel = DB::table('mapel_master')->orderBy('nama_mapel')->get();
         
-        $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
         
         return view('admin.data-master.jadwal-edit', compact('jadwal', 'jadwalGroup', 'jamKeList', 'guru', 'kelas', 'mapel', 'hari'));
     }
@@ -172,7 +172,7 @@ class JadwalController extends Controller
             'guru_id' => 'required|exists:guru,id',
             'kelas_id' => 'required|exists:kelas_master,id',
             'mapel_id' => 'required|exists:mapel_master,id',
-            'hari' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu',
+            'hari' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat',
             'jam_ke' => 'required|array|min:1',
             'jam_ke.*' => 'integer|min:1|max:10',
         ]);

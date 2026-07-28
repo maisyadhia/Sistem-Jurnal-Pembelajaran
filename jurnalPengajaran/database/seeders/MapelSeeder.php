@@ -91,7 +91,7 @@ class MapelSeeder extends Seeder
 
 [
 'kode_mapel'=>'UMI',
-'nama_mapel'=>'SMetode Ummi (Al-Qur\'an)'
+'nama_mapel'=>'Metode Ummi (Al-Qur\'an)'
 ],
 ]);
     }
