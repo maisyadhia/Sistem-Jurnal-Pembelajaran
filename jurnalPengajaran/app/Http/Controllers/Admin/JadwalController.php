@@ -145,7 +145,7 @@ class JadwalController extends Controller
                 ->with('error', 'Jadwal tidak ditemukan!');
         }
 
-        // Ambil SEMUA jadwal dengan kombinasi yang sama
+        // Ambil SEMUA jadwal dengan kombinasi yang sama (guru, kelas, mapel, hari)
         $jadwalGroup = DB::table('jadwals')
             ->where('guru_id', $jadwal->guru_id)
             ->where('kelas_id', $jadwal->kelas_id)
@@ -192,7 +192,7 @@ class JadwalController extends Controller
             return back()->withErrors($errors)->withInput();
         }
 
-        // Ambil data jadwal lama untuk log
+        // Ambil data jadwal LAMA berdasarkan ID
         $oldJadwal = DB::table('jadwals')
             ->join('guru', 'jadwals.guru_id', '=', 'guru.id')
             ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
@@ -200,16 +200,21 @@ class JadwalController extends Controller
             ->select('jadwals.*', 'guru.nama_guru', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
             ->where('jadwals.id', $id)
             ->first();
-        
-        // HAPUS SEMUA jadwal dengan kombinasi yang sama (guru, kelas, mapel, hari)
+
+        if (!$oldJadwal) {
+            return redirect()->route('data-master.jadwal')
+                ->with('error', 'Jadwal tidak ditemukan!');
+        }
+
+        // 🔥 HAPUS SEMUA jadwal dengan kombinasi LAMA (guru, kelas, mapel, hari dari data lama)
         DB::table('jadwals')
-            ->where('guru_id', $request->guru_id)
-            ->where('kelas_id', $request->kelas_id)
-            ->where('mapel_id', $request->mapel_id)
-            ->where('hari', $request->hari)
+            ->where('guru_id', $oldJadwal->guru_id)
+            ->where('kelas_id', $oldJadwal->kelas_id)
+            ->where('mapel_id', $oldJadwal->mapel_id)
+            ->where('hari', $oldJadwal->hari)
             ->delete();
 
-        // INSERT jadwal baru untuk setiap jam yang dipilih
+        // 🔥 INSERT jadwal baru dengan kombinasi BARU
         $inserted = 0;
         foreach ($request->jam_ke as $jam) {
             DB::table('jadwals')->insert([
@@ -229,7 +234,7 @@ class JadwalController extends Controller
         $this->logActivity(
             'update',
             'jadwal',
-            "Mengupdate {$inserted} jadwal untuk {$oldJadwal->nama_guru} - {$oldJadwal->nama_mapel}",
+            "Mengupdate {$inserted} jadwal dari {$oldJadwal->nama_guru} - {$oldJadwal->nama_mapel} menjadi {$request->nama_guru} - {$request->mapel_id}",
             $oldJadwal,
             $request->all()
         );
@@ -240,14 +245,26 @@ class JadwalController extends Controller
 
     public function destroy($id)
     {
+        // Ambil data jadwal berdasarkan ID
         $jadwal = DB::table('jadwals')->where('id', $id)->first();
         
-        DB::table('jadwals')->where('id', $id)->delete();
+        if (!$jadwal) {
+            return redirect()->route('data-master.jadwal')
+                ->with('error', 'Jadwal tidak ditemukan!');
+        }
+
+        // 🔥 HAPUS SEMUA jadwal dengan kombinasi yang sama
+        DB::table('jadwals')
+            ->where('guru_id', $jadwal->guru_id)
+            ->where('kelas_id', $jadwal->kelas_id)
+            ->where('mapel_id', $jadwal->mapel_id)
+            ->where('hari', $jadwal->hari)
+            ->delete();
 
         $this->logActivity(
             'delete',
             'jadwal',
-            "Menghapus jadwal ID: {$id}",
+            "Menghapus jadwal untuk {$jadwal->guru_id} - {$jadwal->mapel_id}",
             $jadwal,
             null
         );
