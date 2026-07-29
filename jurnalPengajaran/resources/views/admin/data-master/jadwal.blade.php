@@ -4,12 +4,13 @@
 
 @section('content')
 <div class="mb-4">
-        <a href="{{ route('data-master') }}" 
-           class="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
-            <span class="material-symbols-outlined text-sm">arrow_back</span>
-            Kembali ke Data Master
-        </a>
-    </div>
+    <a href="{{ route('data-master') }}" 
+       class="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-primary transition-colors">
+        <span class="material-symbols-outlined text-sm">arrow_back</span>
+        Kembali ke Data Master
+    </a>
+</div>
+
 <div class="bg-surface-container-lowest border border-outline-variant rounded-xl">
     <div class="p-6 border-b border-outline-variant flex justify-between items-center">
         <div>
@@ -43,10 +44,11 @@
                         @php
                             $first = $group->first();
                             $jamList = $group->pluck('jam_ke')->sort()->values();
-                            $jamDisplay = $jamList->implode(' & ');
                             $waktuDisplay = '';
+                            $waktuDetail = '';
                             foreach($group as $g) {
                                 $waktuDisplay .= 'Jam ' . $g->jam_ke . ': ' . \Carbon\Carbon::parse($g->jam_mulai)->format('H:i') . ' - ' . \Carbon\Carbon::parse($g->jam_selesai)->format('H:i') . '<br>';
+                                $waktuDetail .= 'Jam ' . $g->jam_ke . ': ' . \Carbon\Carbon::parse($g->jam_mulai)->format('H:i') . ' - ' . \Carbon\Carbon::parse($g->jam_selesai)->format('H:i') . "\n";
                             }
                             $groupId = $first->id;
                         @endphp
@@ -69,15 +71,18 @@
                                        class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined text-lg">edit</span>
                                     </a>
-                                    <form method="POST" action="{{ route('data-master.jadwal.destroy', $groupId) }}" 
-                                          class="inline-block" 
-                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
-                                            <span class="material-symbols-outlined text-lg">delete</span>
-                                        </button>
-                                    </form>
+                                    <button onclick="openDeleteModal(
+                                        '{{ $groupId }}',
+                                        '{{ addslashes($first->hari) }}',
+                                        '{{ addslashes($jamList->implode(', ')) }}',
+                                        '{{ addslashes($first->nama_guru) }}',
+                                        '{{ addslashes($first->nama_kelas) }}',
+                                        '{{ addslashes($first->nama_mapel) }}',
+                                        '{{ addslashes(trim($waktuDetail)) }}'
+                                    )" 
+                                            class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
+                                        <span class="material-symbols-outlined text-lg">delete</span>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -94,4 +99,103 @@
         </div>
     </div>
 </div>
+
+<!-- ============ MODAL POPUP DELETE ============ -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl modal-content">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-red-600 text-2xl">delete_forever</span>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-800">Hapus Jadwal?</h3>
+                <p class="text-sm text-slate-500">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+        </div>
+        
+        <div class="bg-red-50 rounded-xl p-4 mb-6 space-y-2">
+            <p class="text-sm text-red-700 font-semibold mb-2">📋 Detail Jadwal yang akan dihapus:</p>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <div><span class="text-slate-600">Hari:</span> <span id="deleteHari" class="font-medium text-slate-800">-</span></div>
+                <div><span class="text-slate-600">Jam Ke:</span> <span id="deleteJamKe" class="font-medium text-slate-800">-</span></div>
+                <div><span class="text-slate-600">Guru:</span> <span id="deleteGuru" class="font-medium text-slate-800">-</span></div>
+                <div><span class="text-slate-600">Kelas:</span> <span id="deleteKelas" class="font-medium text-slate-800">-</span></div>
+                <div class="col-span-2"><span class="text-slate-600">Mata Pelajaran:</span> <span id="deleteMapel" class="font-medium text-slate-800">-</span></div>
+                <div class="col-span-2"><span class="text-slate-600">Waktu:</span> <span id="deleteWaktu" class="font-medium text-slate-800">-</span></div>
+            </div>
+        </div>
+        
+        <div class="flex gap-3 justify-end">
+            <button onclick="closeDeleteModal()" 
+                    class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all text-sm font-medium">
+                Batal
+            </button>
+            <button id="confirmDeleteBtn" 
+                    class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all text-sm font-medium flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm">delete</span>
+                Hapus
+            </button>
+        </div>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+let deleteId = null;
+
+function openDeleteModal(id, hari, jamKe, guru, kelas, mapel, waktu) {
+    deleteId = id;
+    
+    document.getElementById('deleteHari').textContent = hari || '-';
+    document.getElementById('deleteJamKe').textContent = jamKe || '-';
+    document.getElementById('deleteGuru').textContent = guru || '-';
+    document.getElementById('deleteKelas').textContent = kelas || '-';
+    document.getElementById('deleteMapel').textContent = mapel || '-';
+    document.getElementById('deleteWaktu').textContent = waktu || '-';
+    
+    document.getElementById('deleteModal').classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+    deleteId = null;
+}
+
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (!deleteId) return;
+    
+    this.disabled = true;
+    this.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Menghapus...';
+    
+    let route = '/admin/data-master/jadwal/' + deleteId;
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = route;
+    
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = '_token';
+    csrfInput.value = '{{ csrf_token() }}';
+    form.appendChild(csrfInput);
+    
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = '_method';
+    methodInput.value = 'DELETE';
+    form.appendChild(methodInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+});
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') closeDeleteModal();
+});
+
+document.getElementById('deleteModal').addEventListener('click', function(event) {
+    if (event.target === this) closeDeleteModal();
+});
+</script>
+@endpush
