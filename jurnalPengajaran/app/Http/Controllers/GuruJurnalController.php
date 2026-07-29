@@ -19,27 +19,72 @@ class GuruJurnalController extends Controller
 
         // Kunci hari aktif saat ini dalam format bahasa Indonesia 
         Carbon::setLocale('id');
-        $hari = Carbon::now()->translatedFormat('l'); // Menghasilkan: 'Senin', 'Selasa', dll.
+        $hari = Carbon::now()->translatedFormat('l'); 
         $tanggal = Carbon::today();
 
-        // 2. Cari jadwal yang COCOK antara Kelas, Mapel, DAN HARI INI
-        $jadwal = DB::table('jadwals')
+        // 2. Cari SEMUA jadwal yang cocok untuk kelas, mapel, & hari ini
+        $listJadwal = DB::table('jadwals')
             ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
             ->where('jadwals.guru_id', $guruId)
             ->where('jadwals.kelas_id', $kelas_id)
             ->where('jadwals.mapel_id', $mapel_id) 
-            ->where('jadwals.hari', $hari) // 🛡️ Penjaga kedisiplinan murni lewat backend laravel !
+            ->where('jadwals.hari', $hari)
             ->select('jadwals.*', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
-            ->first();
+            ->orderBy('jadwals.jam_ke', 'asc')
+            ->get();
 
-        // JIKA TIDAK ADA JADWAL HARI INI, DIKEMBALIKAN LAGI KE DASHBOARD DENGAN WARNING !
-        if (!$jadwal) {
+        // Jika tidak ada jadwal hari ini, kembalikan ke dashboard dengan warning
+        if ($listJadwal->isEmpty()) {
             return redirect()->route('guru.dashboard')
                 ->with('warning', 'Akses ditolak! Anda tidak memiliki jadwal mengajar aktif untuk kelas dan mata pelajaran ini pada hari ' . $hari . ' !');
         }
 
-        // 3. Ambil daftar siswa yang berada di kelas ini
+        // 💡 3. OLAH JAM SESI AGAR PRESISI TERHADAP JADWAL TERPISAH (MISAL JAM 4 & 7)
+        $jadwalPertama = $listJadwal->first();
+        
+        $jadwal = new \stdClass();
+        $jadwal->nama_kelas = $jadwalPertama->nama_kelas;
+        $jadwal->nama_mapel = $jadwalPertama->nama_mapel;
+
+        // Ambil daftar nomor jam ke- (Contoh: "Jam ke-4 & 7")
+        $listJamKe = $listJadwal->pluck('jam_ke')->unique()->toArray();
+        $jadwal->jam_ke_text = 'Jam ke ' . implode(' & ', $listJamKe);
+
+        // Cek apakah jam mengajar berurutan (misal 7, 8) atau terputus (misal 4, 7)
+        $isSequential = true;
+        $prevJam = null;
+        
+        foreach ($listJadwal as $j) {
+            if ($prevJam !== null && $j->jam_ke != $prevJam + 1) {
+                $isSequential = false; // Ada jeda/terputus
+            }
+            $prevJam = $j->jam_ke;
+        }
+
+        $waktuSesiArr = [];
+        if ($isSequential && count($listJadwal) > 1) {
+            // JIKA BERURUTAN (misal Jam 7 & 8) -> Tampilkan rentang gabung: "10.45 - 12.10"
+            $jamMulai = Carbon::parse($jadwalPertama->jam_mulai)->format('H.i');
+            $jamSelesai = Carbon::parse($listJadwal->last()->jam_selesai)->format('H.i');
+            $jadwal->waktu_text = "{$jamMulai} - {$jamSelesai}";
+            $jadwal->waktu_list = [$jadwal->waktu_text];
+        } else {
+            // JIKA TERPUTUS (misal Jam 4 & 7) ATAU CUMA 1 JAM -> Tuliskan jam masing-masing!
+            foreach ($listJadwal as $j) {
+                if (!empty($j->jam_mulai) && !empty($j->jam_selesai)) {
+                    $m = Carbon::parse($j->jam_mulai)->format('H.i');
+                    $s = Carbon::parse($j->jam_selesai)->format('H.i');
+                    $waktuSesiArr[] = "{$m} - {$s}";
+                }
+            }
+            $jadwal->waktu_text = implode(' & ', $waktuSesiArr);
+            $jadwal->waktu_list = $waktuSesiArr;
+        }
+
+        $jadwal->is_sequential = $isSequential;
+
+        // 4. Ambil daftar siswa yang berada di kelas ini
         $daftar_siswa = DB::table('students')
             ->where('class', $jadwal->nama_kelas)
             ->orderBy('name')
@@ -58,7 +103,7 @@ class GuruJurnalController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validasi Input Form
+        // 1. Validasi Input Form (tanpa min:10 & next_target opsional)
         $request->validate([
             'kelas_id'    => 'required',
             'mapel_id'    => 'required',
