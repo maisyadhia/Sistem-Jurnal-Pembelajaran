@@ -58,7 +58,7 @@
     
     <!-- Login Form Column -->
     <section class="p-6 md:p-margin-desktop bg-surface-container-lowest flex flex-col justify-center">
-        <!-- 💡 HEADER ESTETIK KHUSUS HP (MOBILE ONLY) -->
+        <!-- HEADER ESTETIK KHUSUS HP (MOBILE ONLY) -->
         <div class="md:hidden flex flex-col items-center mb-6 pt-2">
             <div class="w-16 h-16 flex items-center justify-center mb-3 filter drop-shadow-md">
                 <img class="w-full h-full object-contain" src="{{ asset('images/logoJurnal.png') }}" alt="Logo SIMJAR"/>
@@ -119,7 +119,7 @@
                     </p>
                 </div>
                 
-                <!-- Password Input -->
+                <!-- Password / Tanggal Lahir Input -->
                 <div class="space-y-1.5" id="passwordContainer">
                     <label class="block font-label-caps text-[11px] font-bold tracking-wider text-on-surface-variant uppercase" for="password" id="passwordLabel">PASSWORD</label>
                     <div class="relative group">
@@ -132,7 +132,7 @@
                                required/>
                     </div>
                     <p class="font-body-sm text-[11px] text-on-surface-variant/80 mt-1" id="passwordHint" style="display:none;">
-                        Format: YYYY-MM-DD (Tahun-Bulan-Tanggal), contoh: 2015-08-17
+                        Format DD-MM-YYYY (Tanggal-Bulan-Tahun) <br> Contoh: 25-08-2010
                     </p>
                     @error('password')
                         <p class="text-error text-xs mt-1 font-medium">{{ $message }}</p>
@@ -191,11 +191,11 @@ document.addEventListener('DOMContentLoaded', function() {
             nikPlaceholder: 'Masukkan NISN siswa',
             nikHelp: 'NISN adalah nomor induk siswa nasional',
             passwordLabel: 'TANGGAL LAHIR SISWA',
-            passwordPlaceholder: '',
-            inputType: 'date',
+            passwordPlaceholder: 'Contoh: 25-08-2010',
+            inputType: 'text',
             icon: 'calendar_month',
             showHint: true,
-            info: '<strong>Wali Murid:</strong> Masukkan NISN dan Tanggal Lahir siswa. Tidak perlu registrasi.',
+            info: '<strong>Wali Murid:</strong> Masukkan NISN dan Tanggal Lahir siswa. Ketik angka saja tanpa strip.',
             minLength: null
         }
     };
@@ -229,11 +229,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         passwordLabel.textContent = config.passwordLabel;
         passwordInput.type = config.inputType;
-        if (config.inputType === 'date') {
-            passwordInput.removeAttribute('placeholder');
-        } else {
-            passwordInput.placeholder = config.passwordPlaceholder;
-        }
+        passwordInput.placeholder = config.passwordPlaceholder;
+        passwordInput.value = ''; // Reset value saat ganti role
 
         passwordIcon.textContent = config.icon;
         passwordHint.style.display = config.showHint ? 'block' : 'none';
@@ -245,6 +242,26 @@ document.addEventListener('DOMContentLoaded', function() {
             nikInput.removeAttribute('minlength');
         }
     }
+
+    // 💡 AUTO MASKING TANGGAL LAHIR (25082010 -> 25-08-2010)
+    passwordInput.addEventListener('input', function(e) {
+        if (selectedRole.value === 'parent') {
+            let value = this.value.replace(/\D/g, ''); // Ambil angka saja
+            
+            if (value.length > 8) {
+                value = value.substring(0, 8); // Maksimal 8 digit angka
+            }
+
+            // Format otomatis bertahap: DD-MM-YYYY
+            if (value.length > 4) {
+                this.value = value.substring(0, 2) + '-' + value.substring(2, 4) + '-' + value.substring(4);
+            } else if (value.length > 2) {
+                this.value = value.substring(0, 2) + '-' + value.substring(2);
+            } else {
+                this.value = value;
+            }
+        }
+    });
 
     roleButtons.forEach(btn => {
         btn.addEventListener('click', function() {
@@ -380,11 +397,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     .role-btn.active .material-symbols-outlined {
         color: #00236f;
-    }
-
-    input[type="date"]::-webkit-calendar-picker-indicator {
-        cursor: pointer;
-        filter: invert(38%) sepia(15%) saturate(1224%) hue-rotate(202deg) brightness(94%) contrast(88%);
     }
     
     .border-error {

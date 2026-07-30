@@ -45,7 +45,6 @@ class LoginController extends Controller
                 Session::put('is_logged_in', true);
                 Session::put('login_type', 'admin');
 
-                // Log aktivitas login
                 $this->logActivity(
                     'login',
                     'auth',
@@ -85,16 +84,24 @@ class LoginController extends Controller
 
         // ============ 3. LOGIN WALI MURID (PARENT) ============
         if ($request->role === 'parent') {
-            // Cari siswa berdasarkan NISN
             $student = Student::where('nisn', $request->nik)->first();
 
             if ($student) {
-                // Ambil tanggal lahir dari kolom database yang tersedia
                 $dob = $student->dob ?? $student->birth_date ?? $student->tanggal_lahir ?? null;
 
                 if ($dob) {
                     try {
-                        $formattedInputDob = Carbon::parse($request->password)->format('Y-m-d');
+                        // Bersihkan spasi & strip/slash
+                        $cleanInput = preg_replace('/\D/', '', $request->password); // Ambil angka saja
+
+                        // Jika input 8 digit angka (misal 25082010), ubah ke format Y-m-d
+                        if (strlen($cleanInput) === 8) {
+                            $formattedInputDob = Carbon::createFromFormat('dmY', $cleanInput)->format('Y-m-d');
+                        } else {
+                            $inputDobString = str_replace('/', '-', trim($request->password));
+                            $formattedInputDob = Carbon::parse($inputDobString)->format('Y-m-d');
+                        }
+
                         $formattedDbDob = Carbon::parse($dob)->format('Y-m-d');
 
                         if ($formattedInputDob === $formattedDbDob) {
@@ -109,13 +116,13 @@ class LoginController extends Controller
                             return redirect()->route('dashboard.timeline');
                         }
                     } catch (\Exception $e) {
-                        // Jika parsing tanggal bermasalah
+                        // Jika parsing bermasalah
                     }
                 }
             }
 
             return back()->withErrors([
-                'nik' => 'NISN atau Tanggal Lahir Siswa salah.',
+                'nik' => 'NISN atau Tanggal Lahir Siswa salah. (Contoh ketik: 25082010)',
             ]);
         }
 
