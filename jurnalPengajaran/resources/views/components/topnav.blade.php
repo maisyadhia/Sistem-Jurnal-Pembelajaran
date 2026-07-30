@@ -9,9 +9,7 @@
         <a href="{{ route('dashboard') }}" class="flex items-center gap-1.5 hover:opacity-80 transition-opacity bg-surface-container-low/60 md:bg-transparent px-2.5 py-1 md:p-0 rounded-lg shrink-0">
             <span class="material-symbols-outlined text-primary text-lg md:text-xl">calendar_today</span>
             <span class="font-data-tabular text-xs md:text-data-tabular text-on-surface-variant font-medium">
-                <!-- TAMPILAN LAPTOP (Lengkap) -->
                 <span class="hidden sm:inline">{{ now()->locale('id')->isoFormat('dddd, D MMM YYYY') }}</span>
-                <!-- TAMPILAN HP (Ringkas) -->
                 <span class="inline sm:hidden">{{ now()->locale('id')->isoFormat('D MMM YYYY') }}</span>
             </span>
         </a>
@@ -21,7 +19,6 @@
     <div class="flex items-center gap-2 sm:gap-6 shrink-0">
         <div class="flex items-center gap-2 sm:gap-3">
             @php
-                // Ambil Notifikasi Belum Dibaca KHUSUS untuk GURU yang Sedang Login
                 $userId = session('guru_id') ?? session('admin_id') ?? session('user_id');
                 $unreadNotifications = collect();
 
@@ -41,13 +38,9 @@
                             class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full relative focus:outline-none flex items-center justify-center">
                         <span class="material-symbols-outlined text-2xl block">notifications</span>
                         
-                        <!-- 🟢 BADGE DENGAN ANGKA CENTER PRESISI DI LAPTOP & HP -->
                         @if($unreadNotifications->count() > 0)
                             <span class="absolute top-1 right-1 flex h-4 w-4 shrink-0 pointer-events-none">
-                                <!-- Efek Ping Berkedip di Belakang -->
                                 <span class="animate-ping absolute inset-0 rounded-full bg-red-400 opacity-75"></span>
-                                
-                                <!-- Bulatan Merah + Angka Presisi di Tengah -->
                                 <span class="relative w-full h-full rounded-full bg-red-600 text-white text-[10px] font-extrabold flex items-center justify-center leading-none shadow-sm pb-[1px]">
                                     {{ $unreadNotifications->count() > 9 ? '9+' : $unreadNotifications->count() }}
                                 </span>
@@ -69,7 +62,52 @@
 
                         <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto custom-scrollbar" id="notifListContainer">
                             @forelse($unreadNotifications as $notif)
-                                <a href="{{ route('guru.pilih.sesi') }}" class="p-3 hover:bg-amber-50/60 transition-colors flex items-start gap-3 relative group block">
+                                @php
+                                    // 💡 LOGIKA DUA PILAR DENGAN EKSTRAKSI NAMA MAPEL DI DALAM KURUNG ()
+                                    $targetKelasId = $notif->kelas_id ?? null;
+                                    $targetMapelId = $notif->mapel_id ?? null;
+
+                                    if (!$targetKelasId || !$targetMapelId) {
+                                        \Carbon\Carbon::setLocale('id');
+                                        $hariIndo = \Carbon\Carbon::now()->translatedFormat('l');
+
+                                        // Ekstraksi nama mapel di dalam tanda kurung "kelas 5E (Bahasa Indonesia)"
+                                        preg_match('/\((.*?)\)/', $notif->message, $matches);
+                                        $mapelInNotif = isset($matches[1]) ? trim($matches[1]) : '';
+
+                                        $allJadwalHariIni = DB::table('jadwals')
+                                            ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
+                                            ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
+                                            ->where('jadwals.guru_id', $userId)
+                                            ->where('jadwals.hari', $hariIndo)
+                                            ->select('jadwals.kelas_id', 'jadwals.mapel_id', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
+                                            ->get();
+
+                                        foreach ($allJadwalHariIni as $j) {
+                                            $kelasMatch = str_contains($notif->message, $j->nama_kelas);
+                                            
+                                            // 🎯 PENCOCOKAN PERSIS DENGAN NAMA MAPEL DALAM KURUNG
+                                            $mapelMatch = false;
+                                            if (!empty($mapelInNotif)) {
+                                                $mapelMatch = (strcasecmp($j->nama_mapel, $mapelInNotif) === 0) || str_contains($mapelInNotif, $j->nama_mapel) || str_contains($j->nama_mapel, $mapelInNotif);
+                                            } else {
+                                                $mapelMatch = str_contains($notif->message, $j->nama_mapel);
+                                            }
+
+                                            if ($kelasMatch && $mapelMatch) {
+                                                $targetKelasId = $j->kelas_id;
+                                                $targetMapelId = $j->mapel_id;
+                                                break;
+                                            }
+                                        }
+                                    }
+
+                                    $urlTujuan = ($targetKelasId && $targetMapelId) 
+                                        ? route('guru.jurnal.form', ['kelas_id' => $targetKelasId, 'mapel_id' => $targetMapelId])
+                                        : route('guru.pilih.sesi');
+                                @endphp
+
+                                <a href="{{ $urlTujuan }}" class="p-3 hover:bg-amber-50/60 transition-colors flex items-start gap-3 relative group block">
                                     <span class="material-symbols-outlined text-amber-500 text-base mt-0.5 shrink-0">warning</span>
                                     <div class="flex-1 text-xs">
                                         <p class="text-slate-800 font-medium leading-snug">{{ $notif->message }}</p>
@@ -94,7 +132,7 @@
                 </div>
             @endif
 
-            <!-- Garis Pemisah (Hanya tampil jika role = guru) -->
+            <!-- Garis Pemisah -->
             @if(session('user_role') === 'guru' && !request()->routeIs('dashboard.timeline'))
                 <div class="h-6 w-px bg-outline-variant/60"></div>
             @endif
@@ -161,7 +199,6 @@ function closeSidebar() {
     }
 }
 
-// Toggle Dropdown Notifikasi
 function toggleNotificationDropdown() {
     const menu = document.getElementById('notifDropdownMenu');
     if (menu) {
@@ -169,7 +206,6 @@ function toggleNotificationDropdown() {
     }
 }
 
-// Tutup dropdown jika klik di luar area
 document.addEventListener('click', function(e) {
     const container = document.getElementById('notifDropdownContainer');
     const menu = document.getElementById('notifDropdownMenu');
@@ -178,7 +214,6 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Tutup sidebar saat resize ke desktop
 window.addEventListener('resize', function() {
     if (window.innerWidth >= 768) {
         const sidebar = document.getElementById('sidebar');

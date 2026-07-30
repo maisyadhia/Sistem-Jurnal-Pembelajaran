@@ -60,7 +60,7 @@
             </div>
         </div>
 
-        <!-- Card Waktu Sesi (Otomatis menyesuaikan jadwal berurutan / terputus) -->
+        <!-- Card Waktu Sesi (Dengan Teks "Jam ke X & Y" di Bawahnya) -->
         <div class="glass-card p-4 md:p-6 rounded-xl flex items-center gap-4">
             <div class="w-10 h-10 md:w-12 md:h-12 bg-surface-container-high rounded-lg flex items-center justify-center shrink-0">
                 <span class="material-symbols-outlined text-on-surface-variant" style="font-variation-settings: 'FILL' 1;">schedule</span>
@@ -68,22 +68,20 @@
             <div class="min-w-0 flex-1">
                 <p class="text-label-caps font-label-caps text-on-surface-variant/70 uppercase">Waktu Sesi</p>
                 
-                @if(isset($jadwal->waktu_list) && count($jadwal->waktu_list) > 1 && !($jadwal->is_sequential ?? true))
-                    <div class="flex flex-col gap-0.5 mt-0.5">
-                        @foreach($jadwal->waktu_list as $waktuItem)
-                            <p class="text-xs md:text-sm font-bold text-slate-800 leading-tight">
-                                {{ $waktuItem }}
-                            </p>
-                        @endforeach
-                    </div>
-                @else
-                    <p class="text-xs md:text-base font-bold text-slate-800 truncate">
-                        {{ $jadwal->waktu_text ?? 'Sesi Aktif' }}
-                    </p>
-                @endif
+                <!-- Loop Uraian Waktu Jam -->
+                <div class="flex flex-col gap-0.5 mt-0.5">
+                    @forelse($jadwal->waktu_list as $waktuItem)
+                        <p class="text-xs md:text-sm font-bold text-slate-800 leading-tight">
+                            {{ $waktuItem }}
+                        </p>
+                    @empty
+                        <p class="text-xs md:text-sm font-bold text-slate-800 truncate">Sesi Aktif</p>
+                    @endforelse
+                </div>
 
+                <!-- 💡 TEKS KETERANGAN "Jam ke 3 & 4" DI BAWAHNYS -->
                 @if(!empty($jadwal->jam_ke_text))
-                    <span class="text-[10px] text-slate-400 font-semibold block mt-0.5">{{ $jadwal->jam_ke_text }}</span>
+                    <span class="text-[10px] text-slate-400 font-semibold block mt-1">{{ $jadwal->jam_ke_text }}</span>
                 @endif
             </div>
         </div>

@@ -18,7 +18,6 @@
         from { opacity: 0; transform: translateY(-4px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    /* Hide scrollbar for clean filter buttons on mobile */
     .no-scrollbar::-webkit-scrollbar {
         display: none;
     }
@@ -58,7 +57,7 @@
         </div>
     @endif
 
-    <!-- Stats Grid (1 kolom di HP, 3 kolom di Laptop) -->
+    <!-- Stats Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         <div class="stat-card bg-white p-3.5 md:p-4 rounded-2xl shadow-sm border border-slate-200/80">
             <div class="flex items-center gap-3">
@@ -97,7 +96,7 @@
         </div>
     </div>
 
-    <!-- Quick Action Card (Bikin responsif pas untuk HP) -->
+    <!-- Quick Action Card -->
     <div class="w-full">
         <a href="{{ route('guru.pilih.sesi') }}" 
            class="block bg-white p-4 md:px-6 md:py-4 rounded-2xl shadow-sm border border-slate-200/80 hover:border-teal-300 transition-all group">
@@ -116,23 +115,19 @@
 
     <!-- TABEL RIWAYAT JURNAL -->
     <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col gap-3">
-        <!-- Header Tabel & Action Controls -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
                 <h3 class="text-base font-bold text-slate-800">Riwayat Jurnal Mengajar</h3>
                 <p class="text-[11px] text-slate-400">Daftar rekaman administrasi kelas yang telah diinput.</p>
             </div>
             
-            <!-- Quick Filters & Excel (Scrollable di Mobile) -->
             <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
-                <!-- Tombol Excel -->
                 <a href="{{ route('guru.jurnal.export', request()->all()) }}" 
                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-sm transition-all shrink-0">
                     <span class="material-symbols-outlined text-sm">download</span>
                     Excel
                 </a>
 
-                <!-- Quick Filter Pills -->
                 <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
                     <a href="{{ route('guru.dashboard', ['filter' => 'hari_ini']) }}" 
                        class="px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-all text-center whitespace-nowrap {{ $currentFilter === 'hari_ini' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200' }}">
@@ -148,7 +143,6 @@
                     </a>
                 </div>
 
-                <!-- Custom Date Picker Form -->
                 <form method="GET" action="{{ route('guru.dashboard') }}" id="form-custom-date" class="flex items-center gap-1 relative shrink-0">
                     <input type="date" id="custom-date-picker" name="tanggal" value="{{ request('tanggal') }}" 
                            class="absolute inset-0 opacity-0 w-8 cursor-pointer z-20" onchange="document.getElementById('form-custom-date').submit();">
@@ -166,7 +160,6 @@
             </div>
         </div>
 
-        <!-- Tabel Container (Dikasih scroll mendatar rapi kalau di HP) -->
         <div class="overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
             <table class="w-full text-left border-collapse min-w-[600px] md:min-w-full">
                 <thead>
@@ -175,7 +168,7 @@
                         <th class="py-2.5 px-3">Kelas</th>
                         <th class="py-2.5 px-3">Mata Pelajaran</th>
                         <th class="py-2.5 px-3">Sesi</th>
-                        <th class="py-2.5 px-3">Bahasan Materi</th>
+                        <th class="py-2.5 px-3">Bahasan Materi & Target</th>
                         <th class="py-2.5 px-3">Absensi & Catatan</th>
                     </tr>
                 </thead>
@@ -191,15 +184,35 @@
                             <td class="py-2.5 px-3 text-teal-700 font-medium whitespace-nowrap">
                                 {{ $jurnal->nama_mapel }}
                             </td>
-                            <td class="py-2.5 px-3 whitespace-nowrap text-[11px] text-slate-600 font-medium">
-                                @if(!empty($jurnal->jam_mulai) && !empty($jurnal->jam_selesai))
-                                    {{ \Carbon\Carbon::parse($jurnal->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($jurnal->jam_selesai)->format('H:i') }}
+                            
+                            <td class="py-2.5 px-3 whitespace-nowrap text-[11px] text-slate-700 font-semibold">
+                                @if(!empty($jurnal->waktu_sesi_list) && count($jurnal->waktu_sesi_list) > 0)
+                                    <div class="flex flex-col gap-0.5">
+                                        @foreach($jurnal->waktu_sesi_list as $wSesi)
+                                            <span>{{ $wSesi }}</span>
+                                        @endforeach
+                                    </div>
                                 @else
-                                    Jam ke-{{ $jurnal->jam_ke }}
+                                    <span>Jam ke-{{ $jurnal->jam_ke }}</span>
+                                @endif
+                                
+                                @if(!empty($jurnal->jam_ke_label))
+                                    <span class="text-[10px] text-slate-400 font-medium block mt-0.5">{{ $jurnal->jam_ke_label }}</span>
                                 @endif
                             </td>
-                            <td class="py-2.5 px-3 max-w-[180px] md:max-w-xs break-words text-xs text-slate-600 leading-relaxed">
-                                {{ $jurnal->materi }}
+
+                            <td class="py-2.5 px-3 max-w-[200px] md:max-w-xs break-words text-xs leading-relaxed">
+                                <div>
+                                    <span class="font-bold text-slate-800">Materi:</span>
+                                    <p class="text-slate-600 whitespace-pre-line">{{ $jurnal->materi ?? '-' }}</p>
+                                </div>
+
+                                @if(!empty($jurnal->target_next))
+                                    <div class="mt-1.5 pt-1.5 border-t border-slate-100">
+                                        <span class="font-bold text-teal-700 text-[10px] uppercase tracking-wider">Target Berikutnya:</span>
+                                        <p class="text-slate-500 italic text-[11px] whitespace-pre-line">{{ $jurnal->target_next }}</p>
+                                    </div>
+                                @endif
                             </td>
                             
                             <td class="py-2.5 px-3 text-xs">
@@ -296,13 +309,58 @@
         </h3>
         <div class="divide-y divide-slate-100">
             @foreach($notifications as $notif)
+            @php
+                // 💡 LOGIKA DUA PILAR UNTUK DASHBOARD BAWAH DENGAN EKSTRAKSI KURUNG ()
+                $targetKelasId = $notif->kelas_id ?? null;
+                $targetMapelId = $notif->mapel_id ?? null;
+
+                if (!$targetKelasId || !$targetMapelId) {
+                    $guruIdSession = session('guru_id') ?? session('admin_id');
+                    Carbon\Carbon::setLocale('id');
+                    $hariIndo = Carbon\Carbon::now()->translatedFormat('l');
+
+                    preg_match('/\((.*?)\)/', $notif->message, $matches);
+                    $mapelInNotif = isset($matches[1]) ? trim($matches[1]) : '';
+
+                    $allJadwalHariIni = DB::table('jadwals')
+                        ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
+                        ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
+                        ->where('jadwals.guru_id', $guruIdSession)
+                        ->where('jadwals.hari', $hariIndo)
+                        ->select('jadwals.kelas_id', 'jadwals.mapel_id', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
+                        ->get();
+
+                    foreach ($allJadwalHariIni as $j) {
+                        $kelasMatch = str_contains($notif->message, $j->nama_kelas);
+                        
+                        $mapelMatch = false;
+                        if (!empty($mapelInNotif)) {
+                            $mapelMatch = (strcasecmp($j->nama_mapel, $mapelInNotif) === 0) || str_contains($mapelInNotif, $j->nama_mapel) || str_contains($j->nama_mapel, $mapelInNotif);
+                        } else {
+                            $mapelMatch = str_contains($notif->message, $j->nama_mapel);
+                        }
+
+                        if ($kelasMatch && $mapelMatch) {
+                            $targetKelasId = $j->kelas_id;
+                            $targetMapelId = $j->mapel_id;
+                            break;
+                        }
+                    }
+                }
+
+                $urlTujuan = ($targetKelasId && $targetMapelId) 
+                    ? route('guru.jurnal.form', ['kelas_id' => $targetKelasId, 'mapel_id' => $targetMapelId])
+                    : route('guru.pilih.sesi');
+            @endphp
+
             <div class="py-3 flex items-start gap-2.5 md:gap-3">
                 <span class="material-symbols-outlined text-amber-500 text-base mt-0.5 shrink-0">info</span>
                 <div class="flex-1 min-w-0">
                     <p class="text-xs md:text-sm text-slate-700 leading-snug">{{ $notif->message }}</p>
                     <p class="text-[10px] md:text-xs text-slate-400 mt-0.5">{{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}</p>
                 </div>
-                <a href="{{ route('guru.pilih.sesi') }}" class="text-xs font-bold text-teal-600 hover:text-teal-800 hover:underline shrink-0 flex items-center gap-0.5">
+
+                <a href="{{ $urlTujuan }}" class="text-xs font-bold text-teal-600 hover:text-teal-800 hover:underline shrink-0 flex items-center gap-0.5">
                     Isi Jurnal
                     <span class="material-symbols-outlined text-xs">arrow_forward</span>
                 </a>
