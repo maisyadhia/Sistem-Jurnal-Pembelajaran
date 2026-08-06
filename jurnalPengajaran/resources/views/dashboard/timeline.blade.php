@@ -212,7 +212,7 @@
                                                 <span class="text-[11px] text-slate-500">{{ $activity->guru }}</span>
                                             </div>
                                             <span class="text-[11px] text-slate-400 font-medium">
-                                                {{ \Carbon\Carbon::parse($activity->tanggal)->translatedFormat('d M Y') }} · Jam ke-{{ $activity->jam_ke }}
+                                                {{ \Carbon\Carbon::parse($activity->tanggal)->translatedFormat('d M Y') }} · {{ $activity->jam_ke_label }}
                                             </span>
                                         </div>
 

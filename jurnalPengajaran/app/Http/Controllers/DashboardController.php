@@ -47,6 +47,9 @@ class DashboardController extends Controller
                 'jurnals.materi',
                 'jurnals.target_next', // ✅ ditambahkan: target/rencana pertemuan berikutnya
                 'jurnals.student_ids',
+                'jurnals.guru_id',   // ✅ dipakai untuk mencocokkan jadwal (jam ke spesifik)
+                'jurnals.kelas_id',  // ✅ dipakai untuk mencocokkan jadwal
+                'jurnals.mapel_id',  // ✅ dipakai untuk mencocokkan jadwal
                 'mapel_master.nama_mapel',
                 'guru.nama_guru'
             )
@@ -75,11 +78,33 @@ class DashboardController extends Controller
             foreach ($studentsData as $data) {
                 if (($data['student_id'] ?? null) == $studentId) {
                     $rawStatus = isset($data['status']) ? strtolower(trim($data['status'])) : 'hadir';
+
+                    // 🔍 Cari jam ke spesifik dari tabel jadwals (guru + kelas + mapel + hari yang sama),
+                    //    sama persis seperti logika di dashboard guru, biar labelnya konsisten
+                    //    di kedua sisi (mis. "Jam ke 2 & 3 & 10", bukan cuma angka jam_ke tunggal).
+                    Carbon::setLocale('id');
+                    $hariJurnal = Carbon::parse($jurnal->tanggal)->translatedFormat('l');
+
+                    $jamKeMatching = DB::table('jadwals')
+                        ->where('guru_id', $jurnal->guru_id)
+                        ->where('kelas_id', $jurnal->kelas_id)
+                        ->where('mapel_id', $jurnal->mapel_id)
+                        ->where('hari', $hariJurnal)
+                        ->orderBy('jam_ke', 'asc')
+                        ->pluck('jam_ke')
+                        ->unique()
+                        ->values();
+
+                    $jamKeLabel = $jamKeMatching->isNotEmpty()
+                        ? 'Jam ke ' . $jamKeMatching->implode(' & ')
+                        : 'Jam ke-' . $jurnal->jam_ke;
+
                     $item = (object) [
                         'mapel'       => $jurnal->nama_mapel,
                         'guru'        => $jurnal->nama_guru,
                         'tanggal'     => $jurnal->tanggal,
                         'jam_ke'      => $jurnal->jam_ke,
+                        'jam_ke_label'=> $jamKeLabel, // ✅ label spesifik untuk ditampilkan di view
                         'materi'      => $jurnal->materi,
                         'target_next' => $jurnal->target_next ?? null, // ✅ dikirim ke view
                         'status'      => $rawStatus,
