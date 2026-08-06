@@ -45,6 +45,7 @@ class DashboardController extends Controller
                 'jurnals.tanggal',
                 'jurnals.jam_ke',
                 'jurnals.materi',
+                'jurnals.target_next', // ✅ ditambahkan: target/rencana pertemuan berikutnya
                 'jurnals.student_ids',
                 'mapel_master.nama_mapel',
                 'guru.nama_guru'
@@ -73,15 +74,16 @@ class DashboardController extends Controller
 
             foreach ($studentsData as $data) {
                 if (($data['student_id'] ?? null) == $studentId) {
-                  $rawStatus = isset($data['status']) ? strtolower(trim($data['status'])) : 'hadir';  
+                    $rawStatus = isset($data['status']) ? strtolower(trim($data['status'])) : 'hadir';
                     $item = (object) [
-                        'mapel'   => $jurnal->nama_mapel,
-                        'guru'    => $jurnal->nama_guru,
-                        'tanggal' => $jurnal->tanggal,
-                        'jam_ke'  => $jurnal->jam_ke,
-                        'materi'  => $jurnal->materi,
-                        'status'  => $rawStatus,
-                        'catatan' => $data['catatan'] ?? null,
+                        'mapel'       => $jurnal->nama_mapel,
+                        'guru'        => $jurnal->nama_guru,
+                        'tanggal'     => $jurnal->tanggal,
+                        'jam_ke'      => $jurnal->jam_ke,
+                        'materi'      => $jurnal->materi,
+                        'target_next' => $jurnal->target_next ?? null, // ✅ dikirim ke view
+                        'status'      => $rawStatus,
+                        'catatan'     => $data['catatan'] ?? null,
                     ];
 
                     $activities->push($item);
@@ -96,15 +98,33 @@ class DashboardController extends Controller
                         ]);
                     }
 
-                    break; 
+                    break;
                 }
             }
         }
+
+        // 5. Hitung persentase kehadiran dari data activities pada periode filter yang sama
+        //    (dihitung sebelum di-take(10) supaya statistiknya utuh, bukan cuma dari 10 item yang tampil)
+        $totalRecords = $activities->count();
+        $hadirCount   = $activities->where('status', 'hadir')->count();
+        $sakitCount   = $activities->where('status', 'sakit')->count();
+        $izinCount    = $activities->where('status', 'izin')->count();
+        $alphaCount   = $activities->where('status', 'alpha')->count();
+
+        $attendance = (object) [
+            'percentage' => $totalRecords > 0 ? round(($hadirCount / $totalRecords) * 100) : null,
+            'total'      => $totalRecords,
+            'hadir'      => $hadirCount,
+            'sakit'      => $sakitCount,
+            'izin'       => $izinCount,
+            'alpha'      => $alphaCount,
+        ];
 
         return view('dashboard.timeline', [
             'student'    => $student,
             'activities' => $activities->take(10),
             'notes'      => $notes, // Kirim semua list catatan
+            'attendance' => $attendance, // ✅ statistik kehadiran real, bukan dummy lagi
             'currentFilter' => $filter // Untuk menandai tombol mana yang aktif di Blade
         ]);
     }
