@@ -149,8 +149,14 @@
                                 class="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline group-focus-within:text-primary transition-colors text-lg sm:text-xl"
                                 id="passwordIcon">lock</span>
                             <input
-                                class="w-full h-9 sm:h-11 pl-9 sm:pl-11 pr-3 sm:pr-4 bg-surface border border-outline-variant/70 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all duration-200 @error('password') border-error @enderror"
+                                class="w-full h-9 sm:h-11 pl-9 sm:pl-11 pr-10 bg-surface border border-outline-variant/70 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all duration-200 @error('password') border-error @enderror"
                                 id="password" name="password" type="password" placeholder="Masukkan password" required />
+                            
+                            <!--  Tombol Toggle Show/Hide Password -->
+                            <button type="button" id="togglePasswordBtn"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors flex items-center justify-center p-1 rounded-md focus:outline-none">
+                                <span class="material-symbols-outlined text-lg sm:text-xl" id="togglePasswordIcon">visibility</span>
+                            </button>
                         </div>
                         <p class="font-body-sm text-[10px] text-on-surface-variant/80 mt-0.5" id="passwordHint"
                             style="display:none;">
@@ -197,7 +203,8 @@
                     icon: 'lock',
                     showHint: false,
                     info: '<strong>Admin:</strong> Masukkan username dan password Anda.',
-                    minLength: null
+                    minLength: null,
+                    allowTogglePassword: true // 💡 MODIFIKASI 2: Izinkan toggle password
                 },
                 guru: {
                     nikLabel: 'NIK (NOMOR INDUK KEPENDUDUKAN)',
@@ -209,7 +216,8 @@
                     icon: 'lock',
                     showHint: false,
                     info: '<strong>Guru:</strong> Masukkan NIK 16 digit dan password Anda.',
-                    minLength: 16
+                    minLength: 16,
+                    allowTogglePassword: true // 💡 MODIFIKASI 2: Izinkan toggle password
                 },
                 parent: {
                     nikLabel: 'NISN (NOMOR INDUK SISWA NASIONAL)',
@@ -221,7 +229,8 @@
                     icon: 'calendar_month',
                     showHint: true,
                     info: '<strong>Wali Murid:</strong> Masukkan NISN dan Tanggal Lahir siswa. Ketik angka saja tanpa strip.',
-                    minLength: null
+                    minLength: null,
+                    allowTogglePassword: false // Sembunyikan tombol jika input berupa tanggal lahir
                 }
             };
 
@@ -237,6 +246,10 @@
             const passwordHint = document.getElementById('passwordHint');
             const infoText = document.getElementById('infoText');
             const loginForm = document.getElementById('loginForm');
+            
+            // Element tombol & icon toggle
+            const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+            const togglePasswordIcon = document.getElementById('togglePasswordIcon');
 
             function updateUIBasedOnRole(role) {
                 const config = roleConfig[role];
@@ -261,12 +274,33 @@
                 passwordHint.style.display = config.showHint ? 'block' : 'none';
                 infoText.innerHTML = config.info;
 
+                // Reset icon toggle ke ikon 'visibility'
+                togglePasswordIcon.textContent = 'visibility';
+
+                // Sembunyikan/Tampilkan tombol mata berdasarkan peran
+                if (config.allowTogglePassword) {
+                    togglePasswordBtn.style.display = 'flex';
+                } else {
+                    togglePasswordBtn.style.display = 'none';
+                }
+
                 if (config.minLength) {
                     nikInput.setAttribute('minlength', config.minLength);
                 } else {
                     nikInput.removeAttribute('minlength');
                 }
             }
+
+            // Event Click Toggle Show/Hide Password
+            togglePasswordBtn.addEventListener('click', function () {
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    togglePasswordIcon.textContent = 'visibility_off';
+                } else {
+                    passwordInput.type = 'password';
+                    togglePasswordIcon.textContent = 'visibility';
+                }
+            });
 
             passwordInput.addEventListener('input', function (e) {
                 if (selectedRole.value === 'parent') {

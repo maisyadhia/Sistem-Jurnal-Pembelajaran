@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use App\Models\Admin;
 use App\Models\Guru;
 use App\Models\Student;
+use App\Models\AdminLog; 
 
 class LoginController extends Controller
 {
@@ -45,13 +46,18 @@ class LoginController extends Controller
                 Session::put('is_logged_in', true);
                 Session::put('login_type', 'admin');
 
-                $this->logActivity(
-                    'login',
-                    'auth',
-                    "Admin {$admin->name} login ke sistem",
-                    null,
-                    ['username' => $admin->username, 'role' => 'admin']
-                );
+                // 💡 TAMBAHAN: Dibungkus try-catch agar jika log ada masalah, admin tetap berhasil login
+                try {
+                    $this->logActivity(
+                        'login',
+                        'auth',
+                        "Admin {$admin->name} login ke sistem",
+                        null,
+                        ['username' => $admin->username, 'role' => 'admin']
+                    );
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Gagal mencatat log login admin: ' . $e->getMessage());
+                }
 
                 return redirect()->route('monitoring');
             }
@@ -134,11 +140,16 @@ class LoginController extends Controller
     public function logout(Request $request)
     {
         if (Session::get('admin_id')) {
-            $this->logActivity(
-                'logout',
-                'auth',
-                "Admin " . Session::get('admin_name') . " logout dari sistem"
-            );
+            // 
+            try {
+                $this->logActivity(
+                    'logout',
+                    'auth',
+                    "Admin " . Session::get('admin_name') . " logout dari sistem"
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Gagal mencatat log logout admin: ' . $e->getMessage());
+            }
         }
 
         Session::flush();
