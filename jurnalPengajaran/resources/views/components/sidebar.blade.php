@@ -13,7 +13,7 @@
             <img class="w-full h-full object-contain" src="{{ asset('images/logoJurnal.png') }}" alt="Logo SIMJAR"/>
         </div>
         <div>
-            <h1 class="font-headline-md text-headline-md text-primary font-bold leading-tight tracking-tight">SIMJAR</h1>
+            <h1 class="font-headline-md text-headline-md text-primary font-bold leading-tight tracking-tight">SIJAMPANG</h1>
             <p class="text-[10px] font-label-caps uppercase tracking-widest text-on-surface-variant opacity-70">
                 @if(session('user_role') === 'admin')
                     {{ session('admin_role') ?? 'Administrator' }}

@@ -17,9 +17,9 @@
                             src="{{ asset('images/logoJurnal.png') }}" alt="Logo SIMJAR" />
                     </div>
                     <div>
-                        <h1 class="font-headline-md text-headline-md font-bold tracking-tight leading-tight">SIMJAR</h1>
+                        <h1 class="font-headline-md text-headline-md font-bold tracking-tight leading-tight">SIJAMPANG</h1>
                         <p class="font-label-caps text-[11px] opacity-80 uppercase tracking-wider">Sistem Informasi Jurnal
-                            Ajar</p>
+                            Pengajaran</p>
                     </div>
                 </div>
 
@@ -72,10 +72,10 @@
                     <img class="w-full h-full object-contain filter drop-shadow-md"
                         src="{{ asset('images/logoJurnal.png') }}" alt="Logo SIMJAR" />
                 </div>
-                <h1 class="text-xl font-black text-primary tracking-tight text-center leading-none">SIMJAR</h1>
+                <h1 class="text-xl font-black text-primary tracking-tight text-center leading-none">SIJAMPANG</h1>
                 <p
                     class="text-[10px] font-semibold text-on-surface-variant/80 uppercase tracking-widest text-center mt-0.5">
-                    Sistem Informasi Jurnal Ajar</p>
+                    Sistem Informasi Jurnal Pengajaran</p>
             </div>
 
             <div class="max-w-sm mx-auto w-full">
