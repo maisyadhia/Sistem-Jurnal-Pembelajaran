@@ -25,7 +25,7 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
-    /* Garis kecil penghubung antara badge "Hari Ini" -> "Target Berikutnya" */
+    /* Garis kecil penghubung antara badge "Hari Ini" -> "Target Materi Hari Ini" */
     .progress-connector {
         position: relative;
     }
@@ -229,7 +229,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Hari Ini & Target Berikutnya -->
+                                    <!-- Hari Ini & Target Materi Hari Ini -->
                                     <div class="progress-connector space-y-2.5 bg-white border border-slate-100 rounded-xl p-3">
                                         <div class="flex gap-2.5 items-start">
                                             <span class="relative z-10 w-[18px] h-[18px] rounded-full bg-primary flex items-center justify-center shrink-0 mt-0.5">
@@ -247,7 +247,7 @@
                                                     <span class="material-symbols-outlined text-slate-400 text-[12px]">arrow_forward</span>
                                                 </span>
                                                 <div class="min-w-0">
-                                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Target Berikutnya</span>
+                                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Target Materi Hari Ini</span>
                                                     <p class="text-xs md:text-sm text-slate-600 leading-relaxed">{{ $activity->target_next }}</p>
                                                 </div>
                                             </div>
