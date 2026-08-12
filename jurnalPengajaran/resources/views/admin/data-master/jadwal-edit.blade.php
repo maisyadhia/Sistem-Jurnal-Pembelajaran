@@ -82,52 +82,42 @@
                 </div>
             </div>
             
-            <!-- JAM KE DENGAN WAKTU MASING-MASING -->
+            <!-- JAM KE DENGAN WAKTU OTOMATIS TAPI BISA DIEDIT -->
             <div class="space-y-3">
-                <label class="block font-label-caps text-label-caps text-on-surface-variant">Detail Jadwal Per Jam</label>
-                <p class="text-xs text-slate-400 mb-2">💡 Centang jam dan isi waktu untuk setiap jam yang digunakan</p>
+                <label class="block font-label-caps text-label-caps text-on-surface-variant">Pilih Jam Mengajar</label>
+                <p class="text-xs text-slate-400 mb-2">💡 Centang jam yang akan digunakan (waktu otomatis terisi, bisa diubah)</p>
                 
-                <div class="space-y-3">
-                    @for($i = 1; $i <= 10; $i++)
+                <div class="space-y-2">
+                    @for($i = 0; $i <= 10; $i++)
                         @php
                             $isChecked = in_array($i, $jamKeList);
-                            $jamMulai = '';
-                            $jamSelesai = '';
-                            foreach($jadwalGroup as $j) {
-                                if ($j->jam_ke == $i) {
-                                    $jamMulai = $j->jam_mulai;
-                                    $jamSelesai = $j->jam_selesai;
-                                    break;
-                                }
-                            }
+                            $waktu = $jamMapping[$i] ?? ['mulai' => '00:00', 'selesai' => '00:00'];
+                            $label = $jamLabel[$i] ?? 'Jam ' . $i;
                         @endphp
                         <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-outline-variant hover:bg-slate-100 transition-colors">
-                            <label class="flex items-center gap-2 text-sm cursor-pointer min-w-[80px]">
+                            <label class="flex items-center gap-2 text-sm cursor-pointer min-w-[140px]">
                                 <input type="checkbox" name="jam_ke[]" value="{{ $i }}" 
                                        class="jam-checkbox w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
                                        {{ $isChecked ? 'checked' : '' }}
                                        onchange="toggleWaktu(this, {{ $i }})">
-                                <span class="font-medium">Jam {{ $i }}</span>
+                                <span class="font-medium">{{ $label }}</span>
                             </label>
                             
                             <div class="flex-1 grid grid-cols-2 gap-3">
                                 <div class="waktu-group" id="waktu-{{ $i }}" style="{{ $isChecked ? '' : 'display: none;' }}">
                                     <input type="time" name="jam_mulai[{{ $i }}]" 
-                                           class="w-full h-[36px] bg-white border border-outline-variant rounded-lg px-3 text-sm focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('jam_mulai.' . $i) border-error @enderror"
-                                           value="{{ old('jam_mulai.' . $i, $jamMulai) }}">
-                                    @error('jam_mulai.' . $i)
-                                        <p class="text-error text-xs mt-1">{{ $message }}</p>
-                                    @enderror
+                                           class="w-full h-[36px] bg-white border border-outline-variant rounded-lg px-3 text-sm focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all"
+                                           value="{{ old('jam_mulai.' . $i, $waktu['mulai']) }}">
                                 </div>
                                 <div class="waktu-group" id="waktu-selesai-{{ $i }}" style="{{ $isChecked ? '' : 'display: none;' }}">
                                     <input type="time" name="jam_selesai[{{ $i }}]" 
-                                           class="w-full h-[36px] bg-white border border-outline-variant rounded-lg px-3 text-sm focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('jam_selesai.' . $i) border-error @enderror"
-                                           value="{{ old('jam_selesai.' . $i, $jamSelesai) }}">
-                                    @error('jam_selesai.' . $i)
-                                        <p class="text-error text-xs mt-1">{{ $message }}</p>
-                                    @enderror
+                                           class="w-full h-[36px] bg-white border border-outline-variant rounded-lg px-3 text-sm focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all"
+                                           value="{{ old('jam_selesai.' . $i, $waktu['selesai']) }}">
                                 </div>
                             </div>
+                            <span class="text-xs text-slate-400 w-32 hidden md:block">
+                                {{ $waktu['mulai'] }} - {{ $waktu['selesai'] }}
+                            </span>
                         </div>
                     @endfor
                 </div>
@@ -160,51 +150,38 @@ function toggleWaktu(checkbox, jam) {
     if (checkbox.checked) {
         waktuMulai.style.display = 'block';
         waktuSelesai.style.display = 'block';
+        // Set default waktu jika kosong
+        const mapping = {
+            0: ['06:30', '07:00'],
+            1: ['07:00', '07:35'],
+            2: ['07:35', '08:10'],
+            3: ['08:10', '08:45'],
+            4: ['08:45', '09:20'],
+            5: ['09:35', '10:10'],
+            6: ['10:10', '10:45'],
+            7: ['10:45', '11:20'],
+            8: ['11:35', '12:10'],
+            9: ['12:45', '13:20'],
+            10: ['13:20', '13:55']
+        };
+        if (mapping[jam]) {
+            const inputMulai = waktuMulai.querySelector('input');
+            const inputSelesai = waktuSelesai.querySelector('input');
+            if (!inputMulai.value) inputMulai.value = mapping[jam][0];
+            if (!inputSelesai.value) inputSelesai.value = mapping[jam][1];
+        }
     } else {
         waktuMulai.style.display = 'none';
         waktuSelesai.style.display = 'none';
-        const inputMulai = waktuMulai.querySelector('input');
-        const inputSelesai = waktuSelesai.querySelector('input');
-        if (inputMulai) inputMulai.value = '';
-        if (inputSelesai) inputSelesai.value = '';
     }
 }
 
-// Validasi Client-Side
 document.getElementById('jadwalForm').addEventListener('submit', function(e) {
     const checkboxes = document.querySelectorAll('.jam-checkbox:checked');
-    let hasError = false;
-    let errorMessage = '';
     
     if (checkboxes.length === 0) {
         e.preventDefault();
         alert('⚠️ Pilih minimal 1 jam!');
-        return false;
-    }
-    
-    checkboxes.forEach(function(cb) {
-        const jam = cb.value;
-        const waktuMulai = document.getElementById('waktu-' + jam);
-        const waktuSelesai = document.getElementById('waktu-selesai-' + jam);
-        
-        if (waktuMulai) {
-            const inputMulai = waktuMulai.querySelector('input');
-            const inputSelesai = waktuSelesai ? waktuSelesai.querySelector('input') : null;
-            
-            if (!inputMulai || !inputMulai.value) {
-                errorMessage += '• Jam mulai untuk Jam ' + jam + ' wajib diisi!\n';
-                hasError = true;
-            }
-            if (!inputSelesai || !inputSelesai.value) {
-                errorMessage += '• Jam selesai untuk Jam ' + jam + ' wajib diisi!\n';
-                hasError = true;
-            }
-        }
-    });
-    
-    if (hasError) {
-        e.preventDefault();
-        alert('⚠️ Mohon lengkapi data berikut:\n\n' + errorMessage);
         return false;
     }
 });

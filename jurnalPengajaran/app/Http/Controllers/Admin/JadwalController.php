@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AdminLog; 
 use App\Traits\LogsAdminActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +10,39 @@ use Illuminate\Support\Facades\DB;
 class JadwalController extends Controller
 {
     use LogsAdminActivity;
+
+    // Mapping jam ke waktu (HANYA JAM YANG DIISI)
+    private $jamMapping = [
+        0 => ['mulai' => '06:30', 'selesai' => '07:00'],
+        1 => ['mulai' => '07:00', 'selesai' => '07:35'],
+        2 => ['mulai' => '07:35', 'selesai' => '08:10'],
+        3 => ['mulai' => '08:10', 'selesai' => '08:45'],
+        4 => ['mulai' => '08:45', 'selesai' => '09:20'],
+        // 09:20 - 09:35 ISHOMA (tidak masuk jam pelajaran)
+        5 => ['mulai' => '09:35', 'selesai' => '10:10'],
+        6 => ['mulai' => '10:10', 'selesai' => '10:45'],
+        7 => ['mulai' => '10:45', 'selesai' => '11:20'],
+        // 11:20 - 11:35 ISHOMA (tidak masuk jam pelajaran)
+        8 => ['mulai' => '11:35', 'selesai' => '12:10'],
+        // 12:10 - 12:45 Sholat Dhuhur Berjamaah (tidak masuk jam pelajaran)
+        9 => ['mulai' => '12:45', 'selesai' => '13:20'],
+        10 => ['mulai' => '13:20', 'selesai' => '13:55'],
+    ];
+
+    // Label jam untuk ditampilkan
+    private $jamLabel = [
+        0 => 'Jam 0 ',
+        1 => 'Jam 1 ',
+        2 => 'Jam 2 ',
+        3 => 'Jam 3 ',
+        4 => 'Jam 4 ',
+        5 => 'Jam 5 ',
+        6 => 'Jam 6 ',
+        7 => 'Jam 7 ',
+        8 => 'Jam 8 ',
+        9 => 'Jam 9 ',
+        10 => 'Jam 10 ',
+    ];
 
     public function index()
     {
@@ -28,7 +60,6 @@ class JadwalController extends Controller
             ->orderBy('jadwals.jam_ke')
             ->get();
 
-        // Grouping berdasarkan kombinasi guru-kelas-mapel-hari
         $groupedJadwal = $jadwal->groupBy(function($item) {
             return $item->hari . '|' . $item->guru_id . '|' . $item->kelas_id . '|' . $item->mapel_id;
         });
@@ -43,9 +74,11 @@ class JadwalController extends Controller
         $mapel = DB::table('mapel_master')->orderBy('nama_mapel')->get();
         
         $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-        $jamKe = range(1, 8);
+        $jamKe = range(0, 10);
+        $jamMapping = $this->jamMapping;
+        $jamLabel = $this->jamLabel;
         
-        return view('admin.data-master.jadwal-create', compact('guru', 'kelas', 'mapel', 'hari', 'jamKe'));
+        return view('admin.data-master.jadwal-create', compact('guru', 'kelas', 'mapel', 'hari', 'jamKe', 'jamMapping', 'jamLabel'));
     }
 
     public function store(Request $request)
@@ -56,23 +89,8 @@ class JadwalController extends Controller
             'mapel_id' => 'required|exists:mapel_master,id',
             'hari' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat',
             'jam_ke' => 'required|array|min:1',
-            'jam_ke.*' => 'integer|min:1|max:10',
+            'jam_ke.*' => 'integer|min:0|max:10',
         ]);
-
-        // Validasi manual untuk jam yang dicentang saja
-        $errors = [];
-        foreach ($request->jam_ke as $jam) {
-            if (!isset($request->jam_mulai[$jam]) || empty($request->jam_mulai[$jam])) {
-                $errors["jam_mulai.{$jam}"] = "Jam mulai untuk Jam {$jam} wajib diisi!";
-            }
-            if (!isset($request->jam_selesai[$jam]) || empty($request->jam_selesai[$jam])) {
-                $errors["jam_selesai.{$jam}"] = "Jam selesai untuk Jam {$jam} wajib diisi!";
-            }
-        }
-
-        if (!empty($errors)) {
-            return back()->withErrors($errors)->withInput();
-        }
 
         $inserted = 0;
         $duplicateErrors = [];
@@ -90,14 +108,17 @@ class JadwalController extends Controller
                 continue;
             }
 
+            // Ambil waktu dari mapping
+            $waktu = $this->jamMapping[$jam] ?? ['mulai' => '00:00', 'selesai' => '00:00'];
+
             DB::table('jadwals')->insert([
                 'guru_id' => $request->guru_id,
                 'kelas_id' => $request->kelas_id,
                 'mapel_id' => $request->mapel_id,
                 'hari' => $request->hari,
                 'jam_ke' => $jam,
-                'jam_mulai' => $request->jam_mulai[$jam],
-                'jam_selesai' => $request->jam_selesai[$jam],
+                'jam_mulai' => $waktu['mulai'],
+                'jam_selesai' => $waktu['selesai'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -127,7 +148,6 @@ class JadwalController extends Controller
 
     public function edit($id)
     {
-        // Cari data jadwal berdasarkan ID
         $jadwal = DB::table('jadwals')
             ->join('guru', 'jadwals.guru_id', '=', 'guru.id')
             ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
@@ -146,7 +166,6 @@ class JadwalController extends Controller
                 ->with('error', 'Jadwal tidak ditemukan!');
         }
 
-        // Ambil SEMUA jadwal dengan kombinasi yang sama (guru, kelas, mapel, hari)
         $jadwalGroup = DB::table('jadwals')
             ->where('guru_id', $jadwal->guru_id)
             ->where('kelas_id', $jadwal->kelas_id)
@@ -154,17 +173,18 @@ class JadwalController extends Controller
             ->where('hari', $jadwal->hari)
             ->get();
 
-        // Ambil daftar jam_ke dari group
         $jamKeList = $jadwalGroup->pluck('jam_ke')->toArray();
 
-        // Ambil data untuk dropdown
         $guru = DB::table('guru')->orderBy('nama_guru')->get();
         $kelas = DB::table('kelas_master')->orderBy('nama_kelas')->get();
         $mapel = DB::table('mapel_master')->orderBy('nama_mapel')->get();
         
         $hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+        $jamKe = range(0, 10);
+        $jamMapping = $this->jamMapping;
+        $jamLabel = $this->jamLabel;
         
-        return view('admin.data-master.jadwal-edit', compact('jadwal', 'jadwalGroup', 'jamKeList', 'guru', 'kelas', 'mapel', 'hari'));
+        return view('admin.data-master.jadwal-edit', compact('jadwal', 'jadwalGroup', 'jamKeList', 'guru', 'kelas', 'mapel', 'hari', 'jamKe', 'jamMapping', 'jamLabel'));
     }
 
     public function update(Request $request, $id)
@@ -175,25 +195,9 @@ class JadwalController extends Controller
             'mapel_id' => 'required|exists:mapel_master,id',
             'hari' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat',
             'jam_ke' => 'required|array|min:1',
-            'jam_ke.*' => 'integer|min:1|max:10',
+            'jam_ke.*' => 'integer|min:0|max:10',
         ]);
 
-        // Validasi manual untuk jam yang dicentang saja
-        $errors = [];
-        foreach ($request->jam_ke as $jam) {
-            if (!isset($request->jam_mulai[$jam]) || empty($request->jam_mulai[$jam])) {
-                $errors["jam_mulai.{$jam}"] = "Jam mulai untuk Jam {$jam} wajib diisi!";
-            }
-            if (!isset($request->jam_selesai[$jam]) || empty($request->jam_selesai[$jam])) {
-                $errors["jam_selesai.{$jam}"] = "Jam selesai untuk Jam {$jam} wajib diisi!";
-            }
-        }
-
-        if (!empty($errors)) {
-            return back()->withErrors($errors)->withInput();
-        }
-
-        // Ambil data jadwal LAMA berdasarkan ID
         $oldJadwal = DB::table('jadwals')
             ->join('guru', 'jadwals.guru_id', '=', 'guru.id')
             ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
@@ -207,7 +211,6 @@ class JadwalController extends Controller
                 ->with('error', 'Jadwal tidak ditemukan!');
         }
 
-        // 🔥 HAPUS SEMUA jadwal dengan kombinasi LAMA
         DB::table('jadwals')
             ->where('guru_id', $oldJadwal->guru_id)
             ->where('kelas_id', $oldJadwal->kelas_id)
@@ -215,17 +218,18 @@ class JadwalController extends Controller
             ->where('hari', $oldJadwal->hari)
             ->delete();
 
-        // 🔥 INSERT jadwal baru dengan kombinasi BARU
         $inserted = 0;
         foreach ($request->jam_ke as $jam) {
+            $waktu = $this->jamMapping[$jam] ?? ['mulai' => '00:00', 'selesai' => '00:00'];
+
             DB::table('jadwals')->insert([
                 'guru_id' => $request->guru_id,
                 'kelas_id' => $request->kelas_id,
                 'mapel_id' => $request->mapel_id,
                 'hari' => $request->hari,
                 'jam_ke' => $jam,
-                'jam_mulai' => $request->jam_mulai[$jam],
-                'jam_selesai' => $request->jam_selesai[$jam],
+                'jam_mulai' => $waktu['mulai'],
+                'jam_selesai' => $waktu['selesai'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -246,7 +250,6 @@ class JadwalController extends Controller
 
     public function destroy($id)
     {
-        // Ambil data jadwal berdasarkan ID
         $jadwal = DB::table('jadwals')->where('id', $id)->first();
         
         if (!$jadwal) {
@@ -254,8 +257,6 @@ class JadwalController extends Controller
                 ->with('error', 'Jadwal tidak ditemukan!');
         }
 
-        // 🔥 HAPUS SEMUA jadwal dengan kombinasi yang SAMA
-        // Ini akan menghapus semua jam (1, 2, 3, dst) yang terkait
         $deleted = DB::table('jadwals')
             ->where('guru_id', $jadwal->guru_id)
             ->where('kelas_id', $jadwal->kelas_id)

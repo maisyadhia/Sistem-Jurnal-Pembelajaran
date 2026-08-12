@@ -54,7 +54,6 @@
                             $jamDisplay = $jamList->implode(', ');
                             $groupId = $first->id;
                             
-                            // Buat data JSON yang aman
                             $jsonData = json_encode([
                                 'id' => $groupId,
                                 'hari' => $first->hari,
