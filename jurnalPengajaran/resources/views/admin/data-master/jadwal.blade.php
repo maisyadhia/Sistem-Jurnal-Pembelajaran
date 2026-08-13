@@ -11,6 +11,24 @@
     </a>
 </div>
 
+<div class="flex flex-wrap gap-2 mb-4">
+    <!-- Tombol Export -->
+    <a href="{{ route('data-master.export.jadwal') }}" 
+       class="bg-green-600 text-white px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity">
+        <span class="material-symbols-outlined text-sm">download</span> EXPORT EXCEL
+    </a>
+    
+    <!-- Form Import -->
+    <form method="POST" action="{{ route('data-master.import.jadwal') }}" 
+          enctype="multipart/form-data" class="inline-flex items-center gap-2">
+        @csrf
+        <label class="bg-blue-600 text-white px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer">
+            <span class="material-symbols-outlined text-sm">upload</span> IMPORT EXCEL
+            <input type="file" name="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="this.form.submit()">
+        </label>
+    </form>
+</div>
+
 <div class="bg-surface-container-lowest border border-outline-variant rounded-xl">
     <div class="p-6 border-b border-outline-variant flex justify-between items-center">
         <div>

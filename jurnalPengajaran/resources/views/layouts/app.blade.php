@@ -51,16 +51,52 @@
             <div class="p-margin-mobile md:p-margin-desktop max-w-container-max mx-auto w-full flex-1">
                 <!-- Flash Messages -->
                 @if(session('success'))
-                    <div class="bg-secondary-container text-on-secondary-container px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined">check_circle</span>
-                        <span>{{ session('success') }}</span>
+                    <div class="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 px-4 py-3 rounded-lg mb-4 flex items-center gap-3 shadow-sm">
+                        <span class="material-symbols-outlined text-emerald-500">check_circle</span>
+                        <span class="flex-1 font-medium">{{ session('success') }}</span>
+                        <button onclick="this.parentElement.remove()" class="text-emerald-400 hover:text-emerald-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
+                    </div>
+                @endif
+                
+                @if(session('error'))
+                    <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-4 py-3 rounded-lg mb-4 flex items-center gap-3 shadow-sm">
+                        <span class="material-symbols-outlined text-red-500">error</span>
+                        <span class="flex-1 font-medium">{{ session('error') }}</span>
+                        <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
+                    </div>
+                @endif
+                
+                @if(session('warning'))
+                    <div class="bg-amber-50 border-l-4 border-amber-500 text-amber-800 px-4 py-3 rounded-lg mb-4 flex items-center gap-3 shadow-sm">
+                        <span class="material-symbols-outlined text-amber-500">warning</span>
+                        <span class="flex-1 font-medium">{{ session('warning') }}</span>
+                        <button onclick="this.parentElement.remove()" class="text-amber-400 hover:text-amber-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
+                    </div>
+                @endif
+                
+                @if(session('info'))
+                    <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-800 px-4 py-3 rounded-lg mb-4 flex items-center gap-3 shadow-sm">
+                        <span class="material-symbols-outlined text-blue-500">info</span>
+                        <span class="flex-1 font-medium">{{ session('info') }}</span>
+                        <button onclick="this.parentElement.remove()" class="text-blue-400 hover:text-blue-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
                     </div>
                 @endif
                 
                 @if($errors->any())
-                    <div class="bg-error-container text-on-error-container px-4 py-3 rounded-lg mb-4 flex items-center gap-2">
-                        <span class="material-symbols-outlined">error</span>
-                        <span>{{ $errors->first() }}</span>
+                    <div class="bg-red-50 border-l-4 border-red-500 text-red-800 px-4 py-3 rounded-lg mb-4 flex items-center gap-3 shadow-sm">
+                        <span class="material-symbols-outlined text-red-500">error</span>
+                        <span class="flex-1 font-medium">{{ $errors->first() }}</span>
+                        <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 transition-colors">
+                            <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
                     </div>
                 @endif
                 

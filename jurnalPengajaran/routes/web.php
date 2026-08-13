@@ -114,6 +114,23 @@ Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(functi
     // ====== LAPORAN ======
     Route::get('/laporan', [HumasMonitoringController::class, 'laporanIndex'])->name('laporan.index');
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
+
+    // ====== IMPORT / EXPORT ======
+    Route::prefix('data-master/import')->group(function () {
+        Route::post('/guru', [DataMasterController::class, 'importGuru'])->name('data-master.import.guru');
+        Route::post('/siswa', [DataMasterController::class, 'importSiswa'])->name('data-master.import.siswa');
+        Route::post('/kelas', [DataMasterController::class, 'importKelas'])->name('data-master.import.kelas');
+        Route::post('/mapel', [DataMasterController::class, 'importMapel'])->name('data-master.import.mapel');
+        Route::post('/jadwal', [DataMasterController::class, 'importJadwal'])->name('data-master.import.jadwal');
+    });
+
+    Route::prefix('data-master/export')->group(function () {
+        Route::get('/guru', [DataMasterController::class, 'exportGuru'])->name('data-master.export.guru');
+        Route::get('/siswa', [DataMasterController::class, 'exportSiswa'])->name('data-master.export.siswa');
+        Route::get('/kelas', [DataMasterController::class, 'exportKelas'])->name('data-master.export.kelas');
+        Route::get('/mapel', [DataMasterController::class, 'exportMapel'])->name('data-master.export.mapel');
+        Route::get('/jadwal', [DataMasterController::class, 'exportJadwal'])->name('data-master.export.jadwal');
+    });
 });
 
 // ============ REMIND TEACHER ============

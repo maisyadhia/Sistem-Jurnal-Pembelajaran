@@ -96,7 +96,6 @@ class JadwalController extends Controller
         $duplicateErrors = [];
 
         foreach ($request->jam_ke as $jam) {
-            // Cek duplikasi
             $exists = DB::table('jadwals')
                 ->where('guru_id', $request->guru_id)
                 ->where('hari', $request->hari)
@@ -108,8 +107,8 @@ class JadwalController extends Controller
                 continue;
             }
 
-            // Ambil waktu dari mapping
-            $waktu = $this->jamMapping[$jam] ?? ['mulai' => '00:00', 'selesai' => '00:00'];
+            // 🔥 AMBIL WAKTU DARI MAPPING
+            $waktu = $this->jamMapping[$jam] ?? ['mulai' => '00:00:00', 'selesai' => '00:00:00'];
 
             DB::table('jadwals')->insert([
                 'guru_id' => $request->guru_id,
@@ -220,7 +219,8 @@ class JadwalController extends Controller
 
         $inserted = 0;
         foreach ($request->jam_ke as $jam) {
-            $waktu = $this->jamMapping[$jam] ?? ['mulai' => '00:00', 'selesai' => '00:00'];
+            // 🔥 AMBIL WAKTU DARI MAPPING
+            $waktu = $this->jamMapping[$jam] ?? ['mulai' => '00:00:00', 'selesai' => '00:00:00'];
 
             DB::table('jadwals')->insert([
                 'guru_id' => $request->guru_id,
