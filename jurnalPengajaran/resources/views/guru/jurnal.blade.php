@@ -79,7 +79,7 @@
                     @endforelse
                 </div>
 
-                <!-- 💡 TEKS KETERANGAN "Jam ke 3 & 4" DI BAWAHNYS -->
+                <!-- ðŸ’¡ TEKS KETERANGAN "Jam ke 3 & 4" DI BAWAHNYS -->
                 @if(!empty($jadwal->jam_ke_text))
                     <span class="text-[10px] text-slate-400 font-semibold block mt-1">{{ $jadwal->jam_ke_text }}</span>
                 @endif
@@ -106,7 +106,7 @@
                 <div class="space-y-2 md:space-y-3">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
                         <label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider" for="bahasan">
-                            Bahasan Hari Ini <span class="text-error">*</span>
+                            Bahasan Pertemuan Hari Ini <span class="text-error">*</span>
                         </label>
                         <span class="text-body-sm text-outline italic text-xs">Terakhir diubah: {{ $lastUpdated ?? 'Baru saja' }}</span>
                     </div>
@@ -123,7 +123,7 @@
                 <!-- Target Pertemuan Berikutnya -->
                 <div class="space-y-2 md:space-y-3">
                     <label class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider" for="target">
-                        Target Pertemuan Berikutnya
+                        Target Pertemuan Hari Ini
                     </label>
                     <textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-3 md:p-4 font-body-base text-xs md:text-body-base input-focus transition-all resize-none @error('next_target') border-error @enderror" 
                               id="target" 

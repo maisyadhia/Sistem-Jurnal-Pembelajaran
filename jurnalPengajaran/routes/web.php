@@ -145,6 +145,16 @@ Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function
     Route::get('/dashboard', [GuruDashboardController::class, 'dashboard'])->name('guru.dashboard');
     Route::get('/pilih-sesi', [GuruDashboardController::class, 'index'])->name('guru.pilih.sesi');
     Route::get('/jurnal/export-excel', [GuruDashboardController::class, 'exportExcel'])->name('guru.jurnal.export');
+    
+    // ====== FITUR PDF PREVIEW & EXPORT TEMPLATE ======
+    Route::get('/jurnal/preview-pdf', [GuruDashboardController::class, 'previewPdf'])->name('guru.jurnal.preview-pdf');
+    Route::get('/jurnal/export-pdf', [GuruDashboardController::class, 'exportPdf'])->name('guru.jurnal.export-pdf');
+
+    // ====== FITUR EDIT JURNAL ======
+    Route::get('/jurnal/{id}/edit', [GuruJurnalController::class, 'edit'])->name('guru.jurnal.edit');
+    Route::put('/jurnal/{id}', [GuruJurnalController::class, 'update'])->name('guru.jurnal.update');
+
+    // ====== FITUR INPUT JURNAL ======
     Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('guru.jurnal.form');
     Route::post('/jurnal', [GuruJurnalController::class, 'store'])->name('guru.jurnal.store');
 });

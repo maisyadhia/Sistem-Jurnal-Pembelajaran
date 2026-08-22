@@ -122,10 +122,18 @@
             </div>
             
             <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+                <!-- Tombol Export Excel -->
                 <a href="{{ route('guru.jurnal.export', request()->all()) }}" 
                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold shadow-sm transition-all shrink-0">
                     <span class="material-symbols-outlined text-sm">download</span>
                     Excel
+                </a>
+
+                <!-- TOMBOL PREVIEW PDF TEMPLATE RESMI MIN 2 KOTA MALANG -->
+                <a href="{{ route('guru.jurnal.preview-pdf', request()->all()) }}" 
+                   class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[11px] font-bold shadow-sm transition-all shrink-0">
+                    <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
+                    PDF Template
                 </a>
 
                 <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
@@ -168,7 +176,7 @@
                         <th class="py-2.5 px-3">Kelas</th>
                         <th class="py-2.5 px-3">Mata Pelajaran</th>
                         <th class="py-2.5 px-3">Sesi</th>
-                        <th class="py-2.5 px-3">Bahasan Materi & Target</th>
+                        <th class="py-2.5 px-3">Bahasan Materi & Target Pembelajaran</th>
                         <th class="py-2.5 px-3">Absensi & Catatan</th>
                     </tr>
                 </thead>
@@ -201,18 +209,28 @@
                                 @endif
                             </td>
 
+                            <!-- BAHASAN MATERI DAN TARGET PEMBELAJARAN (STYLING SELARAS) -->
                             <td class="py-2.5 px-3 max-w-[200px] md:max-w-xs break-words text-xs leading-relaxed">
                                 <div>
-                                    <span class="font-bold text-slate-800">Materi:</span>
-                                    <p class="text-slate-600 whitespace-pre-line">{{ $jurnal->materi ?? '-' }}</p>
+                                    <span class="font-bold text-teal-700 text-[10px] uppercase tracking-wider">Bahasan Materi:</span>
+                                    <p class="text-slate-600 text-[11px] whitespace-pre-line">{{ $jurnal->materi ?? '-' }}</p>
                                 </div>
 
                                 @if(!empty($jurnal->target_next))
                                     <div class="mt-1.5 pt-1.5 border-t border-slate-100">
-                                        <span class="font-bold text-teal-700 text-[10px] uppercase tracking-wider">Target Berikutnya:</span>
+                                        <span class="font-bold text-teal-700 text-[10px] uppercase tracking-wider">Target Pembelajaran:</span>
                                         <p class="text-slate-500 italic text-[11px] whitespace-pre-line">{{ $jurnal->target_next }}</p>
                                     </div>
                                 @endif
+
+                                <!-- TOMBOL EDIT BAHASAN MATERI & TARGET PEMBELAJARAN -->
+                                <div class="mt-2 pt-1 border-t border-slate-100">
+                                    <a href="{{ route('guru.jurnal.edit', $jurnal->id) }}" 
+                                       class="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-800 uppercase tracking-wider transition-colors">
+                                        <span class="material-symbols-outlined text-xs">edit</span>
+                                        <span>Edit Bahasan Materi & Target Pembelajaran</span>
+                                    </a>
+                                </div>
                             </td>
                             
                             <td class="py-2.5 px-3 text-xs">
@@ -304,23 +322,20 @@
     <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-200/80">
         <h3 class="text-base md:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
             <span class="material-symbols-outlined text-amber-500">notifications_active</span>
-            Notifikasi
+            Notifikasi Pengingat Jurnal
             <span class="ml-auto text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">{{ $notifications->count() }}</span>
         </h3>
         <div class="divide-y divide-slate-100">
             @foreach($notifications as $notif)
             @php
-                // 💡 LOGIKA DUA PILAR UNTUK DASHBOARD BAWAH DENGAN EKSTRAKSI KURUNG ()
+                date_default_timezone_set('Asia/Jakarta');
                 $targetKelasId = $notif->kelas_id ?? null;
                 $targetMapelId = $notif->mapel_id ?? null;
 
                 if (!$targetKelasId || !$targetMapelId) {
                     $guruIdSession = session('guru_id') ?? session('admin_id');
                     Carbon\Carbon::setLocale('id');
-                    $hariIndo = Carbon\Carbon::now()->translatedFormat('l');
-
-                    preg_match('/\((.*?)\)/', $notif->message, $matches);
-                    $mapelInNotif = isset($matches[1]) ? trim($matches[1]) : '';
+                    $hariIndo = Carbon\Carbon::now('Asia/Jakarta')->translatedFormat('l');
 
                     $allJadwalHariIni = DB::table('jadwals')
                         ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
@@ -331,14 +346,11 @@
                         ->get();
 
                     foreach ($allJadwalHariIni as $j) {
-                        $kelasMatch = str_contains($notif->message, $j->nama_kelas);
+                        $kelasMatch = str_contains(strtolower($notif->message), strtolower($j->nama_kelas));
                         
-                        $mapelMatch = false;
-                        if (!empty($mapelInNotif)) {
-                            $mapelMatch = (strcasecmp($j->nama_mapel, $mapelInNotif) === 0) || str_contains($mapelInNotif, $j->nama_mapel) || str_contains($j->nama_mapel, $mapelInNotif);
-                        } else {
-                            $mapelMatch = str_contains($notif->message, $j->nama_mapel);
-                        }
+                        $cleanMapel = trim(preg_replace('/\s+/', ' ', str_replace(['(', ')'], '', $j->nama_mapel)));
+                        $firstWord = explode(' ', $cleanMapel)[0] ?? $j->nama_mapel;
+                        $mapelMatch = str_contains(strtolower($notif->message), strtolower($cleanMapel)) || str_contains(strtolower($notif->message), strtolower($firstWord));
 
                         if ($kelasMatch && $mapelMatch) {
                             $targetKelasId = $j->kelas_id;

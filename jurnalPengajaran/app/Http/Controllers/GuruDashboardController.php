@@ -13,6 +13,7 @@ class GuruDashboardController extends Controller
     // Halaman Pilih Sesi (route: guru.pilih.sesi)
     public function index()
     {
+        date_default_timezone_set('Asia/Jakarta');
         $guruId = session('guru_id');
 
         if (!$guruId) {
@@ -24,7 +25,8 @@ class GuruDashboardController extends Controller
         }
 
         Carbon::setLocale('id'); 
-        $namaHariIndo = Carbon::now()->translatedFormat('l'); 
+        $now = Carbon::now('Asia/Jakarta');
+        $namaHariIndo = $now->translatedFormat('l'); 
 
         $jadwalHariIni = DB::table('jadwals')
             ->where('guru_id', $guruId)
@@ -59,6 +61,7 @@ class GuruDashboardController extends Controller
     // Dashboard Ringkasan (route: guru.dashboard)
     public function dashboard(Request $request)
     {
+        date_default_timezone_set('Asia/Jakarta');
         $guruId = session('guru_id');
         
         if (!$guruId) {
@@ -69,12 +72,21 @@ class GuruDashboardController extends Controller
             }
         }
 
-        // 💡 1. SYSTEM AUTO-NOTIFIKASI KHUSUS UNTUK ROLE GURU SAJA
+        // LOGIKA NOTIFIKASI HARI INI & CLEANUP NOTIFIKASI LAMA
         if (session('user_role') === 'guru') {
             Carbon::setLocale('id');
-            $today = Carbon::today()->toDateString();
-            $namaHariIndo = Carbon::now()->translatedFormat('l');
+            $now = Carbon::now('Asia/Jakarta');
+            $today = $now->toDateString();
+            $namaHariIndo = $now->translatedFormat('l');
 
+            // 1. Matikan semua notifikasi pengingat sebelum hari ini jika guru lupa mengisi
+            DB::table('notifications')
+                ->where('user_id', $guruId)
+                ->whereDate('created_at', '<', $today)
+                ->where('is_read', 0)
+                ->update(['is_read' => 1]);
+
+            // 2. Cek jadwal mengajar HANYA untuk hari ini
             $jadwalHariIni = DB::table('jadwals')
                 ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
                 ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
@@ -84,7 +96,6 @@ class GuruDashboardController extends Controller
                 ->get();
 
             foreach ($jadwalHariIni as $jadwal) {
-                // Cek apakah jurnal sudah diisi hari ini
                 $jurnalAda = DB::table('jurnals')
                     ->where('guru_id', $guruId)
                     ->where('kelas_id', $jadwal->kelas_id)
@@ -96,7 +107,6 @@ class GuruDashboardController extends Controller
                 $firstMapelWord = explode(' ', $cleanMapel)[0] ?? $jadwal->nama_mapel;
 
                 if ($jurnalAda) {
-                    // 💡 AKURAT: Matikan notifikasi jika jurnal kelas & mapel ini sudah diisi!
                     DB::table('notifications')
                         ->where('user_id', $guruId)
                         ->whereDate('created_at', $today)
@@ -108,7 +118,6 @@ class GuruDashboardController extends Controller
                         })
                         ->update(['is_read' => 1]);
                 } else {
-                    // JIKA BELUM DIISI: Buat notifikasi pengingat
                     $notifPernahDibuat = DB::table('notifications')
                         ->where('user_id', $guruId)
                         ->whereDate('created_at', $today)
@@ -133,32 +142,28 @@ class GuruDashboardController extends Controller
             }
         }
 
-        // Ambil notifikasi aktif yang belum dibaca (is_read = 0)
         $notifications = DB::table('notifications')
             ->where('user_id', $guruId)
             ->where('is_read', 0)
+            ->whereDate('created_at', Carbon::now('Asia/Jakarta')->toDateString())
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // 1. Total Kelas
         $totalKelas = DB::table('jadwals')
             ->where('guru_id', $guruId)
             ->distinct('kelas_id')
             ->count('kelas_id');
 
-        // 2. Total Mapel
         $totalMapel = DB::table('jadwals')
             ->where('guru_id', $guruId)
             ->distinct('mapel_id')
             ->count('mapel_id');
 
-        // 3. Jurnal Hari Ini
         $jurnalHariIni = DB::table('jurnals')
             ->where('guru_id', $guruId)
-            ->whereDate('tanggal', today())
+            ->whereDate('tanggal', Carbon::now('Asia/Jakarta')->toDateString())
             ->count();
 
-        // 4. QUERY UTAMA JURNAL
         $queryJurnal = DB::table('jurnals')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
@@ -169,7 +174,6 @@ class GuruDashboardController extends Controller
                 'mapel_master.nama_mapel as nama_mapel'
             );
 
-        // Filter Logic
         $currentFilter = $request->query('filter'); 
         $startDate = null;
 
@@ -177,12 +181,13 @@ class GuruDashboardController extends Controller
             $queryJurnal->whereDate('jurnals.tanggal', $request->tanggal);
             $currentFilter = 'custom';
         } elseif ($currentFilter) {
+            $now = Carbon::now('Asia/Jakarta');
             if ($currentFilter === 'hari_ini') {
-                $startDate = \Carbon\Carbon::today()->toDateString();
+                $startDate = $now->toDateString();
             } elseif ($currentFilter === '1_minggu') {
-                $startDate = \Carbon\Carbon::now()->subWeek()->toDateString();
+                $startDate = $now->copy()->subWeek()->toDateString();
             } elseif ($currentFilter === '1_bulan') {
-                $startDate = \Carbon\Carbon::now()->subMonth()->toDateString();
+                $startDate = $now->copy()->subMonth()->toDateString();
             }
 
             if ($startDate) {
@@ -194,9 +199,7 @@ class GuruDashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // 💡 5. OLAH WAKTU SESI LENGKAP UNTUK MASING-MASING ITEM RIWAYAT JURNAL
         foreach ($jurnalTerbaru as $j) {
-            // Ambil nama hari dari tanggal jurnal
             Carbon::setLocale('id');
             $hariJurnal = Carbon::parse($j->tanggal)->translatedFormat('l');
 
@@ -236,8 +239,164 @@ class GuruDashboardController extends Controller
         ));
     }
 
+    // HALAMAN FORM PREVIEW & EDIT HEADER SEBELUM CETAK PDF
+    public function previewPdf(Request $request)
+    {
+        date_default_timezone_set('Asia/Jakarta');
+        $guruId = session('guru_id') ?? session('admin_id');
+        if (!$guruId) {
+            return redirect()->route('login');
+        }
+
+        $guruName = session('user_name') ?? 'Guru';
+
+        $queryJurnal = DB::table('jurnals')
+            ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
+            ->where('jurnals.guru_id', $guruId);
+
+        if ($request->filled('tanggal')) {
+            $queryJurnal->whereDate('jurnals.tanggal', $request->tanggal);
+        }
+
+        $jurnals = $queryJurnal->get();
+
+        $detectedMapel = $jurnals->pluck('nama_mapel')->unique()->implode(' / ');
+        $detectedKelas = $jurnals->pluck('nama_kelas')->unique()->implode(', ');
+
+        $year = (int)date('Y');
+        $month = (int)date('n');
+        if ($month >= 7) {
+            $tahunAjaran = $year . '/' . ($year + 1);
+            $semester = '1 (GANJIL)';
+        } else {
+            $tahunAjaran = ($year - 1) . '/' . $year;
+            $semester = '2 (GENAP)';
+        }
+
+        return view('guru.jurnal-preview-pdf', compact(
+            'guruName',
+            'detectedMapel',
+            'detectedKelas',
+            'tahunAjaran',
+            'semester'
+        ));
+    }
+
+    // METHOD CETAK PDF / PREVIEW TEMPLATE LAPORAN FORMAL
+    public function exportPdf(Request $request)
+    {
+        date_default_timezone_set('Asia/Jakarta');
+        $guruId = session('guru_id') ?? session('admin_id');
+        if (!$guruId) {
+            return redirect()->route('login');
+        }
+
+        $queryJurnal = DB::table('jurnals')
+            ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
+            ->where('jurnals.guru_id', $guruId)
+            ->select('jurnals.*', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel');
+
+        $currentFilter = $request->query('filter');
+        if ($request->filled('tanggal')) {
+            $queryJurnal->whereDate('jurnals.tanggal', $request->tanggal);
+        } elseif ($currentFilter === 'hari_ini') {
+            $queryJurnal->whereDate('jurnals.tanggal', Carbon::today('Asia/Jakarta'));
+        } elseif ($currentFilter === '1_minggu') {
+            $queryJurnal->whereDate('jurnals.tanggal', '>=', Carbon::now('Asia/Jakarta')->subWeek());
+        } elseif ($currentFilter === '1_bulan') {
+            $queryJurnal->whereDate('jurnals.tanggal', '>=', Carbon::now('Asia/Jakarta')->subMonth());
+        }
+
+        $jurnals = $queryJurnal->orderBy('jurnals.tanggal', 'asc')->get();
+
+        $detectedMapel = $jurnals->pluck('nama_mapel')->unique()->implode(' / ');
+
+        $namaPenyusun     = $request->input('nama_penyusun', session('user_name') ?? 'Guru');
+        $satuanPendidikan = $request->input('satuan_pendidikan', 'MIN 2 Kota Malang');
+        $mataPelajaran    = $request->filled('mata_pelajaran') ? $request->input('mata_pelajaran') : ($detectedMapel ?: 'Coding');
+        $faseKelas        = $request->input('fase_kelas', 'C / V (Lima)');
+        $tahunAjaran      = $request->input('tahun_ajaran', '2026/2027');
+        $semester         = $request->input('semester', '1 (GANJIL)');
+
+        foreach ($jurnals as $index => $j) {
+            Carbon::setLocale('id');
+            $j->hari_format = Carbon::parse($j->tanggal)->translatedFormat('l');
+            $j->tanggal_format = Carbon::parse($j->tanggal)->translatedFormat('d F Y');
+
+            $jadwalMatching = DB::table('jadwals')
+                ->where('guru_id', $guruId)
+                ->where('kelas_id', $j->kelas_id)
+                ->where('mapel_id', $j->mapel_id)
+                ->where('hari', $j->hari_format)
+                ->orderBy('jam_ke', 'asc')
+                ->pluck('jam_ke')
+                ->toArray();
+
+            if (count($jadwalMatching) > 1) {
+                $j->jam_sesi_display = min($jadwalMatching) . ' - ' . max($jadwalMatching);
+            } elseif (count($jadwalMatching) == 1) {
+                $j->jam_sesi_display = (string)$jadwalMatching[0];
+            } else {
+                $j->jam_sesi_display = (string)($j->jam_ke ?? '1');
+            }
+
+            $students = json_decode($j->student_ids, true) ?? [];
+            $absenList = [];
+            if (is_array($students)) {
+                foreach ($students as $s) {
+                    if (isset($s['status']) && strtolower($s['status']) !== 'hadir') {
+                        $absenList[] = $s['status'];
+                    }
+                }
+            }
+
+            $j->atp_code = "1." . ($index + 1);
+            $j->penilaian_text = "Formatif (Observasi KBM)";
+            
+            if (count($absenList) > 0) {
+                $j->refleksi_text = "KBM berjalan lancar. Terdapat " . count($absenList) . " siswa tidak hadir (" . implode(', ', array_unique($absenList)) . ").";
+            } else {
+                $j->refleksi_text = "Peserta didik antusias, konsep dasar dan target materi tersampaikan dengan baik.";
+            }
+        }
+
+        // TANGGAL DOWNLOAD UNTUK NAMA FILE PDF
+        $tglDownload = Carbon::now('Asia/Jakarta')->format('d-m-Y');
+        $fileName = 'Jurnal_Mengajar_SIJAMPANG_' . $tglDownload . '.pdf';
+
+        // EXPORT PDF DIRECT VIA DOMPDF
+        if (class_exists('\Barryvdh\DomPDF\Facade\Pdf')) {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('guru.jurnal-pdf-template', compact(
+                'jurnals',
+                'namaPenyusun',
+                'satuanPendidikan',
+                'mataPelajaran',
+                'faseKelas',
+                'tahunAjaran',
+                'semester',
+                'tglDownload'
+            ))->setPaper('a4', 'landscape');
+
+            return $pdf->stream($fileName);
+        }
+
+        return view('guru.jurnal-pdf-template', compact(
+            'jurnals',
+            'namaPenyusun',
+            'satuanPendidikan',
+            'mataPelajaran',
+            'faseKelas',
+            'tahunAjaran',
+            'semester',
+            'tglDownload'
+        ));
+    }
+
     public function exportExcel(Request $request)
     {
+        date_default_timezone_set('Asia/Jakarta');
         $guruId = session('guru_id') ?? session('admin_id');
 
         if (!$guruId) {
@@ -263,13 +422,13 @@ class GuruDashboardController extends Controller
             $queryJurnal->whereDate('jurnals.tanggal', $request->tanggal);
             $periodeLabel = Carbon::parse($request->tanggal)->format('d/m/Y');
         } elseif ($currentFilter === 'hari_ini') {
-            $queryJurnal->whereDate('jurnals.tanggal', Carbon::today());
-            $periodeLabel = 'Hari Ini (' . Carbon::today()->format('d/m/Y') . ')';
+            $queryJurnal->whereDate('jurnals.tanggal', Carbon::today('Asia/Jakarta'));
+            $periodeLabel = 'Hari Ini (' . Carbon::today('Asia/Jakarta')->format('d/m/Y') . ')';
         } elseif ($currentFilter === '1_minggu') {
-            $queryJurnal->whereDate('jurnals.tanggal', '>=', Carbon::now()->subWeek());
+            $queryJurnal->whereDate('jurnals.tanggal', '>=', Carbon::now('Asia/Jakarta')->subWeek());
             $periodeLabel = '1 Minggu Terakhir';
         } elseif ($currentFilter === '1_bulan') {
-            $queryJurnal->whereDate('jurnals.tanggal', '>=', Carbon::now()->subMonth());
+            $queryJurnal->whereDate('jurnals.tanggal', '>=', Carbon::now('Asia/Jakarta')->subMonth());
             $periodeLabel = '1 Bulan Terakhir';
         }
 
@@ -291,7 +450,7 @@ class GuruDashboardController extends Controller
 
             fputcsv($file, ['LAPORAN REKAPITULASI JURNAL MENGAJAR GURU']);
             fputcsv($file, ['Nama Guru', $guruName]);
-            fputcsv($file, ['Tanggal Export', Carbon::now()->translatedFormat('d F Y H:i')]);
+            fputcsv($file, ['Tanggal Export', Carbon::now('Asia/Jakarta')->translatedFormat('d F Y H:i')]);
             fputcsv($file, ['Periode Laporan', $periodeLabel]);
             fputcsv($file, []);
 
