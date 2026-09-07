@@ -24,9 +24,9 @@ class GuruDashboardController extends Controller
             }
         }
 
-        Carbon::setLocale('id'); 
+        Carbon::setLocale('id');
         $now = Carbon::now('Asia/Jakarta');
-        $namaHariIndo = $now->translatedFormat('l'); 
+        $namaHariIndo = $now->translatedFormat('l');
 
         $jadwalHariIni = DB::table('jadwals')
             ->where('guru_id', $guruId)
@@ -63,7 +63,7 @@ class GuruDashboardController extends Controller
     {
         date_default_timezone_set('Asia/Jakarta');
         $guruId = session('guru_id');
-        
+
         if (!$guruId) {
             if (session('admin_id')) {
                 $guruId = session('admin_id');
@@ -112,9 +112,9 @@ class GuruDashboardController extends Controller
                         ->whereDate('created_at', $today)
                         ->where('is_read', 0)
                         ->where('message', 'like', "%{$jadwal->nama_kelas}%")
-                        ->where(function($query) use ($jadwal, $firstMapelWord) {
+                        ->where(function ($query) use ($jadwal, $firstMapelWord) {
                             $query->where('message', 'like', "%{$jadwal->nama_mapel}%")
-                                  ->orWhere('message', 'like', "%{$firstMapelWord}%");
+                                ->orWhere('message', 'like', "%{$firstMapelWord}%");
                         })
                         ->update(['is_read' => 1]);
                 } else {
@@ -123,17 +123,17 @@ class GuruDashboardController extends Controller
                         ->whereDate('created_at', $today)
                         ->where('is_read', 0)
                         ->where('message', 'like', "%{$jadwal->nama_kelas}%")
-                        ->where(function($query) use ($jadwal, $firstMapelWord) {
+                        ->where(function ($query) use ($jadwal, $firstMapelWord) {
                             $query->where('message', 'like', "%{$jadwal->nama_mapel}%")
-                                  ->orWhere('message', 'like', "%{$firstMapelWord}%");
+                                ->orWhere('message', 'like', "%{$firstMapelWord}%");
                         })
                         ->exists();
 
                     if (!$notifPernahDibuat) {
                         DB::table('notifications')->insert([
-                            'user_id'    => $guruId,
-                            'message'    => "Pengingat Otomatis: Anda belum mengisi jurnal mengajar kelas {$jadwal->nama_kelas} ({$jadwal->nama_mapel}) hari ini!",
-                            'is_read'    => 0,
+                            'user_id' => $guruId,
+                            'message' => "Pengingat Otomatis: Anda belum mengisi jurnal mengajar kelas {$jadwal->nama_kelas} ({$jadwal->nama_mapel}) hari ini!",
+                            'is_read' => 0,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
@@ -169,12 +169,12 @@ class GuruDashboardController extends Controller
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
             ->where('jurnals.guru_id', $guruId)
             ->select(
-                'jurnals.*', 
-                'kelas_master.nama_kelas as nama_kelas', 
+                'jurnals.*',
+                'kelas_master.nama_kelas as nama_kelas',
                 'mapel_master.nama_mapel as nama_mapel'
             );
 
-        $currentFilter = $request->query('filter'); 
+        $currentFilter = $request->query('filter');
         $startDate = null;
 
         if ($request->filled('tanggal')) {
@@ -230,15 +230,14 @@ class GuruDashboardController extends Controller
         }
 
         return view('guru.dashboard-ringkasan', compact(
-            'totalKelas', 
-            'totalMapel', 
+            'totalKelas',
+            'totalMapel',
             'jurnalHariIni',
             'jurnalTerbaru',
             'notifications',
             'currentFilter'
         ));
     }
-
     // HALAMAN FORM PREVIEW & EDIT HEADER SEBELUM CETAK PDF
     public function previewPdf(Request $request)
     {
@@ -248,24 +247,48 @@ class GuruDashboardController extends Controller
             return redirect()->route('login');
         }
 
-        $guruName = session('user_name') ?? 'Guru';
+        // 1. Ambil data akun user login
+        $guruUser = DB::table('users')->where('id', $guruId)->first();
+        $guruName = $guruUser->name ?? (session('user_name') ?? 'Guru');
 
-        $queryJurnal = DB::table('jurnals')
-            ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
-            ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
-            ->where('jurnals.guru_id', $guruId);
+        // 2. Ambil data dari tabel guru untuk cek NIK/NIP
+        $dataGuru = DB::table('guru')
+            ->where(function ($q) use ($guruId, $guruName) {
+                $q->where('id', $guruId)
+                    ->orWhere('nama_guru', $guruName);
+            })
+            ->first();
 
-        if ($request->filled('tanggal')) {
-            $queryJurnal->whereDate('jurnals.tanggal', $request->tanggal);
+        $rawIdentitas = $dataGuru->nik ?? ($dataGuru->nip ?? ($guruUser->nip ?? ''));
+        $digitOnly = preg_replace('/[^0-9]/', '', (string) $rawIdentitas);
+        $guruNip = (strlen($digitOnly) === 18) ? $digitOnly : '-';
+
+        // 3. ID guru untuk mencocokkan ke tabel jadwals
+        $jadwalGuruIds = array_unique(array_filter([$guruId, $dataGuru->id ?? null]));
+
+        // 4. Ambil jadwal guru dari tabel jadwals
+        $jadwals = DB::table('jadwals')
+            ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
+            ->whereIn('jadwals.guru_id', $jadwalGuruIds)
+            ->select('kelas_master.nama_kelas', 'mapel_master.nama_mapel')
+            ->distinct()
+            ->get();
+
+        // Daftar nama kelas unik yang diajar guru
+        $daftarKelasGuru = $jadwals->pluck('nama_kelas')->unique()->values();
+
+        // Pemetaan: [ '5A' => 'Seni Budaya dan Prakarya', '5B' => 'Ilmu Pengetahuan Alam', ... ]
+        $mapelPerKelas = [];
+        foreach ($jadwals->groupBy('nama_kelas') as $kelas => $items) {
+            $mapelPerKelas[$kelas] = $items->pluck('nama_mapel')->unique()->implode(' / ');
         }
 
-        $jurnals = $queryJurnal->get();
+        // Default jika memilih 'Semua Kelas'
+        $allMapel = $jadwals->pluck('nama_mapel')->unique()->implode(' / ');
 
-        $detectedMapel = $jurnals->pluck('nama_mapel')->unique()->implode(' / ');
-        $detectedKelas = $jurnals->pluck('nama_kelas')->unique()->implode(', ');
-
-        $year = (int)date('Y');
-        $month = (int)date('n');
+        $year = (int) date('Y');
+        $month = (int) date('n');
         if ($month >= 7) {
             $tahunAjaran = $year . '/' . ($year + 1);
             $semester = '1 (GANJIL)';
@@ -276,8 +299,10 @@ class GuruDashboardController extends Controller
 
         return view('guru.jurnal-preview-pdf', compact(
             'guruName',
-            'detectedMapel',
-            'detectedKelas',
+            'guruNip',
+            'daftarKelasGuru',
+            'mapelPerKelas',
+            'allMapel',
             'tahunAjaran',
             'semester'
         ));
@@ -292,11 +317,31 @@ class GuruDashboardController extends Controller
             return redirect()->route('login');
         }
 
+        $guruUser = DB::table('users')->where('id', $guruId)->first();
+        $guruName = $guruUser->name ?? (session('user_name') ?? 'Guru');
+
+        // Ambil data identitas dari kolom 'nik' tabel guru
+        $dataGuru = DB::table('guru')
+            ->where(function ($q) use ($guruId, $guruName) {
+                $q->where('id', $guruId)
+                    ->orWhere('nama_guru', $guruName);
+            })
+            ->first();
+
+        $rawIdentitas = $dataGuru->nik ?? ($dataGuru->nip ?? ($guruUser->nip ?? ''));
+        $digitOnly = preg_replace('/[^0-9]/', '', (string) $rawIdentitas);
+
+        // Validasi 18 digit
+        $guruNip = (strlen($digitOnly) === 18) ? $digitOnly : '-';
         $queryJurnal = DB::table('jurnals')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
             ->where('jurnals.guru_id', $guruId)
             ->select('jurnals.*', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel');
+
+        if ($request->filled('kelas_pilihan') && $request->kelas_pilihan !== 'semua') {
+            $queryJurnal->where('kelas_master.nama_kelas', $request->kelas_pilihan);
+        }
 
         $currentFilter = $request->query('filter');
         if ($request->filled('tanggal')) {
@@ -310,15 +355,18 @@ class GuruDashboardController extends Controller
         }
 
         $jurnals = $queryJurnal->orderBy('jurnals.tanggal', 'asc')->get();
-
         $detectedMapel = $jurnals->pluck('nama_mapel')->unique()->implode(' / ');
 
-        $namaPenyusun     = $request->input('nama_penyusun', session('user_name') ?? 'Guru');
+        $namaPenyusun = $request->input('nama_penyusun', $guruName);
+        $nipPenyusun = $request->input('nip_penyusun', $guruNip) ?: '-';
         $satuanPendidikan = $request->input('satuan_pendidikan', 'MIN 2 Kota Malang');
-        $mataPelajaran    = $request->filled('mata_pelajaran') ? $request->input('mata_pelajaran') : ($detectedMapel ?: 'Coding');
-        $faseKelas        = $request->input('fase_kelas', 'C / V (Lima)');
-        $tahunAjaran      = $request->input('tahun_ajaran', '2026/2027');
-        $semester         = $request->input('semester', '1 (GANJIL)');
+        $mataPelajaran = $request->filled('mata_pelajaran') ? $request->input('mata_pelajaran') : ($detectedMapel ?: 'Coding');
+        $faseKelas = $request->input('kelas_pilihan') && $request->kelas_pilihan !== 'semua' ? $request->input('kelas_pilihan') : 'Semua Kelas';
+        $tahunAjaran = $request->input('tahun_ajaran', '2026/2027');
+        $semester = $request->input('semester', '1 (GANJIL)');
+
+        $namaKepala = 'NANANG SUKMAWAN SETYABUDI, S.Pd, M.PdI';
+        $nipKepala = '1978112720050111002';
 
         foreach ($jurnals as $index => $j) {
             Carbon::setLocale('id');
@@ -337,9 +385,9 @@ class GuruDashboardController extends Controller
             if (count($jadwalMatching) > 1) {
                 $j->jam_sesi_display = min($jadwalMatching) . ' - ' . max($jadwalMatching);
             } elseif (count($jadwalMatching) == 1) {
-                $j->jam_sesi_display = (string)$jadwalMatching[0];
+                $j->jam_sesi_display = (string) $jadwalMatching[0];
             } else {
-                $j->jam_sesi_display = (string)($j->jam_ke ?? '1');
+                $j->jam_sesi_display = (string) ($j->jam_ke ?? '1');
             }
 
             $students = json_decode($j->student_ids, true) ?? [];
@@ -354,7 +402,7 @@ class GuruDashboardController extends Controller
 
             $j->atp_code = "1." . ($index + 1);
             $j->penilaian_text = "Formatif (Observasi KBM)";
-            
+
             if (count($absenList) > 0) {
                 $j->refleksi_text = "KBM berjalan lancar. Terdapat " . count($absenList) . " siswa tidak hadir (" . implode(', ', array_unique($absenList)) . ").";
             } else {
@@ -362,15 +410,16 @@ class GuruDashboardController extends Controller
             }
         }
 
-        // TANGGAL DOWNLOAD UNTUK NAMA FILE PDF
         $tglDownload = Carbon::now('Asia/Jakarta')->format('d-m-Y');
         $fileName = 'Jurnal_Mengajar_SIJAMPANG_' . $tglDownload . '.pdf';
 
-        // EXPORT PDF DIRECT VIA DOMPDF
         if (class_exists('\Barryvdh\DomPDF\Facade\Pdf')) {
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('guru.jurnal-pdf-template', compact(
                 'jurnals',
                 'namaPenyusun',
+                'nipPenyusun',
+                'namaKepala',
+                'nipKepala',
                 'satuanPendidikan',
                 'mataPelajaran',
                 'faseKelas',
@@ -385,6 +434,9 @@ class GuruDashboardController extends Controller
         return view('guru.jurnal-pdf-template', compact(
             'jurnals',
             'namaPenyusun',
+            'nipPenyusun',
+            'namaKepala',
+            'nipKepala',
             'satuanPendidikan',
             'mataPelajaran',
             'faseKelas',
@@ -410,8 +462,8 @@ class GuruDashboardController extends Controller
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
             ->where('jurnals.guru_id', $guruId)
             ->select(
-                'jurnals.*', 
-                'kelas_master.nama_kelas', 
+                'jurnals.*',
+                'kelas_master.nama_kelas',
                 'mapel_master.nama_mapel'
             );
 
@@ -437,14 +489,14 @@ class GuruDashboardController extends Controller
         $fileName = 'Riwayat_Jurnal_Mengajar_' . date('Y-m-d_H-i') . '.csv';
 
         $headers = [
-            "Content-type"        => "text/csv; charset=UTF-8",
+            "Content-type" => "text/csv; charset=UTF-8",
             "Content-Disposition" => "attachment; filename=$fileName",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
         ];
 
-        $callback = function() use ($jurnals, $guruName, $periodeLabel, $guruId) {
+        $callback = function () use ($jurnals, $guruName, $periodeLabel, $guruId) {
             $file = fopen('php://output', 'w');
             fputs($file, "\xEF\xBB\xBF");
 
@@ -455,15 +507,15 @@ class GuruDashboardController extends Controller
             fputcsv($file, []);
 
             fputcsv($file, [
-                'No', 
-                'Tanggal Input', 
-                'Tanggal KBM', 
-                'Kelas', 
-                'Mata Pelajaran', 
-                'Waktu Sesi', 
-                'Bahasan Materi', 
+                'No',
+                'Tanggal Input',
+                'Tanggal KBM',
+                'Kelas',
+                'Mata Pelajaran',
+                'Waktu Sesi',
+                'Bahasan Materi',
                 'Target Berikutnya',
-                'Ringkasan Kehadiran', 
+                'Ringkasan Kehadiran',
                 'Catatan Khusus Siswa'
             ]);
 
@@ -496,10 +548,14 @@ class GuruDashboardController extends Controller
                 if (is_array($students)) {
                     foreach ($students as $s) {
                         $status = strtolower($s['status'] ?? 'hadir');
-                        if ($status === 'hadir') $hadirCount++;
-                        elseif ($status === 'sakit') $sakitCount++;
-                        elseif ($status === 'izin') $izinCount++;
-                        elseif ($status === 'alpha') $alphaCount++;
+                        if ($status === 'hadir')
+                            $hadirCount++;
+                        elseif ($status === 'sakit')
+                            $sakitCount++;
+                        elseif ($status === 'izin')
+                            $izinCount++;
+                        elseif ($status === 'alpha')
+                            $alphaCount++;
 
                         if (!empty($s['catatan'])) {
                             $siswaDb = DB::table('students')->where('id', $s['student_id'] ?? 0)->first();
