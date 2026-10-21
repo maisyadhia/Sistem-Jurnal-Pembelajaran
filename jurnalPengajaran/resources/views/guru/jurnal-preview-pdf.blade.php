@@ -56,7 +56,7 @@
                 <div class="space-y-1.5">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Mata Pelajaran Header</label>
                     <select id="selectMapel" name="mata_pelajaran" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none" required>
-                        <option value="semua">Semua Mata Pelajaran</option>
+                        <option value="semua">-- Semua Mata Pelajaran --</option>
                     </select>
                 </div>
 
@@ -133,8 +133,8 @@
 
 <script>
     // Data mapel per kelas dari controller
-    const mapelData = @json($mapelPerKelas);
-    const defaultAllMapel = @json($allMapel);
+    const mapelData = @json($mapelPerKelas ?? []);
+    const defaultAllMapel = @json($allMapel ?? '');
 
     const selectKelas = document.getElementById('selectKelas');
     const selectMapel = document.getElementById('selectMapel');
@@ -166,40 +166,41 @@
     radioSatuBulan.addEventListener('change', togglePeriodeBulan);
     radioRentangBulan.addEventListener('change', togglePeriodeBulan);
 
-    // Fungsi update mapel dinamis
+    // Fungsi update mapel dinamis & memecah teks gabungan dengan "/" atau ","
     function updateMapelOptions() {
         const selectedKelas = selectKelas.value;
         let mapelList = [];
 
+        let rawData = null;
         if (selectedKelas === 'semua') {
-            if (typeof defaultAllMapel === 'string' && defaultAllMapel.trim() !== '') {
-                mapelList = defaultAllMapel.split(',').map(m => m.trim());
-            } else if (Array.isArray(defaultAllMapel)) {
-                mapelList = defaultAllMapel;
-            } else {
-                Object.values(mapelData).forEach(val => {
-                    if (typeof val === 'string') {
-                        val.split(',').forEach(m => mapelList.push(m.trim()));
-                    } else if (Array.isArray(val)) {
-                        mapelList.push(...val);
-                    }
-                });
-            }
+            rawData = defaultAllMapel;
         } else if (mapelData[selectedKelas]) {
-            const val = mapelData[selectedKelas];
-            if (typeof val === 'string') {
-                mapelList = val.split(',').map(m => m.trim());
-            } else if (Array.isArray(val)) {
-                mapelList = val;
-            }
+            rawData = mapelData[selectedKelas];
         }
 
-        mapelList = [...new Set(mapelList)].filter(m => m.length > 0);
+        if (typeof rawData === 'string') {
+            let splitData = rawData.split(/[\/,]/);
+            splitData.forEach(m => {
+                let cleaned = m.trim();
+                if (cleaned.length > 0) mapelList.push(cleaned);
+            });
+        } else if (Array.isArray(rawData)) {
+            rawData.forEach(item => {
+                if (typeof item === 'string') {
+                    item.split(/[\/,]/).forEach(m => {
+                        let cleaned = m.trim();
+                        if (cleaned.length > 0) mapelList.push(cleaned);
+                    });
+                }
+            });
+        }
+
+        mapelList = [...new Set(mapelList)];
         selectMapel.innerHTML = '';
 
         const defaultOption = document.createElement('option');
         defaultOption.value = 'semua';
-        defaultOption.textContent = mapelList.length > 1 ? 'Semua Mata Pelajaran' : 'Pilih Mata Pelajaran';
+        defaultOption.textContent = '-- Semua Mata Pelajaran --';
         selectMapel.appendChild(defaultOption);
 
         mapelList.forEach(mapel => {
@@ -208,10 +209,6 @@
             opt.textContent = mapel;
             selectMapel.appendChild(opt);
         });
-
-        if (mapelList.length === 1) {
-            selectMapel.value = mapelList[0];
-        }
     }
 
     selectKelas.addEventListener('change', updateMapelOptions);
