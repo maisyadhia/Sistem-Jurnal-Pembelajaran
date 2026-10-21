@@ -53,7 +53,7 @@
             text-transform: uppercase;
         }
 
-        /* KOP SURAT & JUDUL SATU KESATUAN TENGAH */
+        /* KOP SURAT */
         .kop-container {
             position: relative;
             width: 100%;
@@ -103,15 +103,15 @@
 
         .header-title {
             font-size: 12pt;
-            margin: 8px 0 10px 0;
+            margin: 8px 0 12px 0;
             letter-spacing: 0.5px;
             text-align: center;
         }
 
-        /* METADATA HEADER KEMBALI SEPERTI SEMULA */
+        /* METADATA HEADER PRESISI DIBUAT PROPOSIONAL DI TENGAH (TIDAK TERLALU POJOK) */
         .meta-table {
-            width: 100%;
-            margin-bottom: 12px;
+            width: 82%; /* Membatasi lebar agar tidak terlalu ke pojok */
+            margin: 0 auto 14px auto; /* Posisi di tengah-tengah halaman */
             border-collapse: collapse;
         }
 
@@ -219,6 +219,10 @@
                 font-size: 7.5pt;
             }
 
+            .meta-table {
+                width: 100%;
+            }
+
             .meta-table td {
                 font-size: 8.5pt;
             }
@@ -280,20 +284,20 @@
             </div>
         </div>
 
-        <!-- JUDUL TANPA GARIS BAWAH DAN SEJAJAR DI TENGAH -->
+        <!-- JUDUL DOKUMEN -->
         <div class="header-title font-bold">
             JURNAL MENGAJAR HARIAN
         </div>
 
-        <!-- METADATA HEADER (KEMBALI KE LAYOUT AWAL) -->
+        <!-- METADATA HEADER (PROPORSIONAL DITENGAH PADA LANDSCAPE A4) -->
         <table class="meta-table font-bold">
             <tr>
-                <td width="16%">Nama Penyusun</td>
+                <td width="20%">Nama Penyusun</td>
                 <td width="2%">:</td>
-                <td width="32%">{{ $namaPenyusun }}</td>
-                <td width="16%">Kelas</td>
+                <td width="38%">{{ $namaPenyusun }}</td>
+                <td width="18%">Kelas</td>
                 <td width="2%">:</td>
-                <td width="32%">{{ $faseKelas }}</td>
+                <td width="20%">{{ $faseKelas }}</td>
             </tr>
             <tr>
                 <td>Satuan Pendidikan</td>
@@ -320,7 +324,7 @@
             <tr>
                 <td>Periode Cetak</td>
                 <td>:</td>
-                <td colspan="4">
+                <td>
                     @php
                         $daftarBulan = [
                             '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
@@ -342,6 +346,7 @@
                         Semua Bulan / Seluruh Periode
                     @endif
                 </td>
+                <td colspan="3"></td>
             </tr>
         </table>
 
@@ -441,9 +446,8 @@
             </table>
         </div>
 
-        <!-- KOLOM TANDA TANGAN DUA SISI (KEPALA SEKOLAH & GURU) -->
+        <!-- KOLOM TANDA TANGAN DUA SISI -->
         <table class="ttd-table" style="width: 100%; margin-top: 20px; border-collapse: collapse;">
-            <!-- BARIS 1: JABATAN & TANGGAL -->
             <tr>
                 <td style="width: 65%; text-align: left; vertical-align: bottom; padding: 0;">
                     Kepala {{ $satuanPendidikan }},
@@ -455,8 +459,6 @@
                     </div>
                 </td>
             </tr>
-
-            <!-- BARIS 2: KOTAK TTD / UPLOAD FILE -->
             <tr>
                 <td style="vertical-align: middle; padding: 0;">
                     <div class="ttd-box"
@@ -485,8 +487,6 @@
                     </div>
                 </td>
             </tr>
-
-            <!-- BARIS 3: NAMA & NIP (SEJAJAR HORIZONTAL) -->
             <tr>
                 <td style="vertical-align: top; padding: 0;">
                     <strong><u>{{ $namaKepala ?? 'NANANG SUKMAWAN SETYABUDI, S.Pd, M.PdI' }}</u></strong><br>
