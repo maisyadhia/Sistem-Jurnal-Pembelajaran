@@ -90,13 +90,16 @@
                 <!-- Target Pertemuan Berikutnya -->
                 <div class="space-y-2">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-600" for="target">
-                        Target Pembelajaran Hari Ini
+                        Target Pembelajaran Hari Ini <span class="text-red-500">*</span>
                     </label>
-                    <textarea class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 md:p-4 text-xs md:text-sm font-medium text-slate-800 input-focus transition-all resize-none" 
+                    <textarea class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 md:p-4 text-xs md:text-sm font-medium text-slate-800 input-focus transition-all resize-none @error('next_target') border-red-500 @enderror" 
                               id="target" 
                               name="next_target" 
                               placeholder="Apa yang ingin dicapai pada sesi selanjutnya?" 
-                              rows="3">{{ old('next_target', $jurnal->target_next) }}</textarea>
+                              rows="3" required>{{ old('next_target', $jurnal->target_next) }}</textarea>
+                    @error('next_target')
+                        <p class="text-red-500 text-xs font-medium mt-1">Target pertemuan berikutnya wajib diisi.</p>
+                    @enderror
                 </div>
             </div>
             

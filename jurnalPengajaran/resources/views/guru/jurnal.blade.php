@@ -116,7 +116,7 @@
                               placeholder="Tuliskan pokok bahasan, materi yang disampaikan, dan dinamika kelas..." 
                               rows="4">{{ old('topic', $jurnal->topic ?? '') }}</textarea>
                     @error('topic')
-                        <p class="text-error text-xs md:text-sm font-medium mt-1">Bahasan hari ini wajib diisi.</p>
+                        <p class="text-error text-xs md:text-sm font-medium mt-1">Bahasan hari ini tidak boleh kosong</p>
                     @enderror
                 </div>
                 
@@ -131,7 +131,7 @@
                               placeholder="Apa yang ingin dicapai pada sesi selanjutnya?" 
                               rows="3">{{ old('next_target', $jurnal->next_target ?? '') }}</textarea>
                     @error('next_target')
-                        <p class="text-error text-xs md:text-sm font-medium mt-1">Format target pertemuan berikutnya tidak valid.</p>
+                        <p class="text-error text-xs md:text-sm font-medium mt-1">Target pertemuan tidak boleh kosong</p>
                     @enderror
                 </div>
 

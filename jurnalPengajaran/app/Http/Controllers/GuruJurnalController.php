@@ -10,7 +10,7 @@ class GuruJurnalController extends Controller
 {
     public function index($kelas_id, $mapel_id)
     {
-        // ðŸ’¡ KUNCI ZONA WAKTU KE ASIA/JAKARTA
+        // 💡 KUNCI ZONA WAKTU KE ASIA/JAKARTA
         date_default_timezone_set('Asia/Jakarta');
 
         // 1. Dapatkan guru_id dari session (bisa Guru atau Admin)
@@ -89,16 +89,17 @@ class GuruJurnalController extends Controller
 
     public function store(Request $request)
     {
-        // ðŸ’¡ KUNCI ZONA WAKTU KE ASIA/JAKARTA
+        // 💡 KUNCI ZONA WAKTU KE ASIA/JAKARTA
         date_default_timezone_set('Asia/Jakarta');
 
         $request->validate([
             'kelas_id'    => 'required',
             'mapel_id'    => 'required',
             'topic'       => 'required|string',
-            'next_target' => 'nullable|string',
+            'next_target' => 'required|string', // Wajib diisi
         ], [
-            'topic.required' => 'Bahasan hari ini wajib diisi!',
+            'topic.required'       => 'Lengkapi Rangkuman Pengajaran !',
+            'next_target.required' => 'Target pertemuan hari ini wajib diisi!',
         ]);
 
         $guruId = session('guru_id') ?? session('admin_id');
@@ -166,7 +167,7 @@ class GuruJurnalController extends Controller
         return redirect()->route('guru.dashboard')->with('success', 'Jurnal Berhasil Dikirim & Diarsipkan!');
     }
 
-    // FITUR EDIT: HALAMAN FORM EDIT JURNAL (BISA DIEDIT KAPAN SAJA)
+    // FITUR EDIT: HALAMAN FORM EDIT JURNAL
     public function edit($id)
     {
         $guruId = session('guru_id') ?? session('admin_id');
@@ -174,14 +175,12 @@ class GuruJurnalController extends Controller
             return redirect()->route('login');
         }
 
-        // 1. Cari jurnal berdasarkan ID dan kepemilikan guru (Tanpa proteksi hari mengajar)
         $jurnal = DB::table('jurnals')->where('id', $id)->where('guru_id', $guruId)->first();
         
         if (!$jurnal) {
             return redirect()->route('guru.dashboard')->with('warning', 'Akses ditolak atau data jurnal tidak ditemukan!');
         }
 
-        // 2. Ambil nama kelas & mapel langsung dari kelas_master & mapel_master tanpa tergantung tabel jadwals hari ini
         $namaKelas = DB::table('kelas_master')->where('id', $jurnal->kelas_id)->value('nama_kelas');
         $namaMapel = DB::table('mapel_master')->where('id', $jurnal->mapel_id)->value('nama_mapel');
 
@@ -192,25 +191,25 @@ class GuruJurnalController extends Controller
         return view('guru.jurnal-edit', compact('jurnal', 'jadwal'));
     }
 
-    // FITUR EDIT: UPDATE KHUSUS MATERI & TARGET
+    // FITUR EDIT: UPDATE MATERI & TARGET
     public function update(Request $request, $id)
     {
         $request->validate([
-            'topic' => 'required|string',
+            'topic'       => 'required|string',
+            'next_target' => 'required|string', // Wajib diisi saat update
         ], [
-            'topic.required' => 'Bahasan materi wajib diisi!',
+            'topic.required'       => 'Bahasan materi wajib diisi!',
+            'next_target.required' => 'Target pertemuan berikutnya wajib diisi!',
         ]);
 
         $guruId = session('guru_id') ?? session('admin_id');
 
-        // Pastikan jurnal milik guru yang login
         $jurnal = DB::table('jurnals')->where('id', $id)->where('guru_id', $guruId)->first();
 
         if (!$jurnal) {
             return redirect()->route('guru.dashboard')->with('warning', 'Akses ditolak!');
         }
 
-        // Update HANYA materi, target_next, dan timestamp updated_at
         DB::table('jurnals')->where('id', $id)->update([
             'materi'      => $request->topic,
             'target_next' => $request->next_target,
