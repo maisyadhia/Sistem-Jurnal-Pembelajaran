@@ -53,13 +53,13 @@
             text-transform: uppercase;
         }
 
-        /* KOP SURAT PROPORSIONAL */
+        /* KOP SURAT & JUDUL SATU KESATUAN TENGAH */
         .kop-container {
             position: relative;
             width: 100%;
             border-bottom: 2.5px solid #000;
             padding-bottom: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             min-height: 75px;
             display: flex;
             align-items: center;
@@ -103,12 +103,12 @@
 
         .header-title {
             font-size: 12pt;
-            margin: 10px 0 12px 0;
+            margin: 8px 0 10px 0;
             letter-spacing: 0.5px;
             text-align: center;
         }
 
-        /* METADATA HEADER */
+        /* METADATA HEADER KEMBALI SEPERTI SEMULA */
         .meta-table {
             width: 100%;
             margin-bottom: 12px;
@@ -276,16 +276,16 @@
             </div>
             <div class="kop-text">
                 <div class="sekolah uppercase">{{ $satuanPendidikan }}</div>
-                <div class="alamat">Jl. Kemantren II No.26, Bandungrejosari, Kec. Sukun, Kota Malang, Jawa Timur 65148
-                </div>
+                <div class="alamat">Jl. Kemantren II No.26, Bandungrejosari, Kec. Sukun, Kota Malang, Jawa Timur 65148</div>
             </div>
         </div>
 
+        <!-- JUDUL TANPA GARIS BAWAH DAN SEJAJAR DI TENGAH -->
         <div class="header-title font-bold">
             JURNAL MENGAJAR HARIAN
         </div>
 
-        <!-- METADATA HEADER DINAMIS -->
+        <!-- METADATA HEADER (KEMBALI KE LAYOUT AWAL) -->
         <table class="meta-table font-bold">
             <tr>
                 <td width="16%">Nama Penyusun</td>
@@ -306,12 +306,95 @@
             <tr>
                 <td>Mata Pelajaran</td>
                 <td>:</td>
-                <td>{{ $mataPelajaran }}</td>
+                <td>
+                    @if(request('mata_pelajaran') === 'semua' || empty(request('mata_pelajaran')))
+                        Semua Mata Pelajaran
+                    @else
+                        {{ request('mata_pelajaran') }}
+                    @endif
+                </td>
                 <td>SEMESTER</td>
                 <td>:</td>
                 <td>{{ $semester }}</td>
             </tr>
+            <tr>
+                <td>Periode Cetak</td>
+                <td>:</td>
+                <td colspan="4">
+                    @php
+                        $daftarBulan = [
+                            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+                            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+                            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+                        ];
+                        $bAwal = sprintf('%02d', (int) request('bulan_awal'));
+                        $bAkhir = sprintf('%02d', (int) request('bulan_akhir'));
+                        $tipe = request('tipe_periode');
+                    @endphp
+
+                    @if($tipe === 'satu' && request('bulan_awal'))
+                        {{ $daftarBulan[$bAwal] ?? request('bulan_awal') }}
+                    @elseif($tipe === 'rentang' && request('bulan_awal') && request('bulan_akhir'))
+                        {{ $daftarBulan[$bAwal] ?? request('bulan_awal') }} s/d {{ $daftarBulan[$bAkhir] ?? request('bulan_akhir') }}
+                    @elseif(request('bulan_awal'))
+                        {{ $daftarBulan[$bAwal] ?? request('bulan_awal') }}
+                    @else
+                        Semua Bulan / Seluruh Periode
+                    @endif
+                </td>
+            </tr>
         </table>
+
+        <!-- LOGIKA FILTERING DATA JURNAL DI BLADE TEMPLATE -->
+        @php
+            $reqKelas = request('kelas_pilihan');
+            $reqMapel = request('mata_pelajaran');
+            $reqBAwal = request('bulan_awal');
+            $reqBAkhir = request('bulan_akhir');
+            $reqTipe  = request('tipe_periode');
+
+            $filteredJurnals = collect($jurnals)->filter(function($item) use ($reqKelas, $reqMapel, $reqBAwal, $reqBAkhir, $reqTipe) {
+                if (!empty($reqKelas) && $reqKelas !== 'semua') {
+                    $itemKelas = $item->nama_kelas ?? $item->kelas ?? '';
+                    if (strtoupper(trim($itemKelas)) !== strtoupper(trim($reqKelas))) {
+                        return false;
+                    }
+                }
+
+                if (!empty($reqMapel) && $reqMapel !== 'semua') {
+                    $itemMapel = $item->nama_mapel ?? $item->mapel ?? '';
+                    if (strtoupper(trim($itemMapel)) !== strtoupper(trim($reqMapel))) {
+                        return false;
+                    }
+                }
+
+                if (!empty($reqBAwal)) {
+                    $tglRaw = $item->tanggal ?? null;
+                    if (!$tglRaw) return false;
+
+                    try {
+                        $blnItem = (int) \Carbon\Carbon::parse($tglRaw)->format('m');
+                    } catch (\Exception $e) {
+                        return false;
+                    }
+
+                    $intAwal = (int) $reqBAwal;
+
+                    if ($reqTipe === 'satu' || empty($reqBAkhir)) {
+                        if ($blnItem !== $intAwal) {
+                            return false;
+                        }
+                    } else {
+                        $intAkhir = (int) $reqBAkhir;
+                        if ($blnItem < $intAwal || $blnItem > $intAkhir) {
+                            return false;
+                        }
+                    }
+                }
+
+                return true;
+            });
+        @endphp
 
         <!-- TABEL DATA JURNAL -->
         <div class="overflow-mobile">
@@ -331,26 +414,27 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($jurnals as $index => $item)
+                    @forelse($filteredJurnals->values() as $index => $item)
                         <tr>
                             <td class="text-center">{{ $index + 1 }}</td>
                             <td>
-                                <strong>{{ $item->hari_format }}</strong><br>
-                                {{ $item->tanggal_format }}
+                                <strong>{{ $item->hari_format ?? \Carbon\Carbon::parse($item->tanggal)->locale('id')->translatedFormat('l') }}</strong><br>
+                                {{ $item->tanggal_format ?? \Carbon\Carbon::parse($item->tanggal)->locale('id')->translatedFormat('d F Y') }}
                             </td>
-                            <td class="text-center font-bold">{{ $item->jam_sesi_display }}</td>
-                            <td class="text-center">{{ $item->nama_kelas }}</td>
-                            <td class="text-center">{{ $item->nama_mapel }}</td>
-                            <td class="text-center">{{ $item->atp_code }}</td>
+                            <td class="text-center font-bold">{{ $item->jam_sesi_display ?? $item->jam ?? '-' }}</td>
+                            <td class="text-center">{{ $item->nama_kelas ?? $item->kelas ?? '-' }}</td>
+                            <td class="text-center">{{ $item->nama_mapel ?? $item->mapel ?? '-' }}</td>
+                            <td class="text-center">{{ $item->atp_code ?? $item->atp ?? '-' }}</td>
                             <td>{{ $item->materi ?? '-' }}</td>
-                            <td>{{ $item->target_next ?? 'Pelaksanaan KBM dan pembahasan materi' }}</td>
-                            <td>{{ $item->penilaian_text }}</td>
-                            <td>{{ $item->refleksi_text }}</td>
+                            <td>{{ $item->target_next ?? $item->kegiatan_inti ?? 'Pelaksanaan KBM dan pembahasan materi' }}</td>
+                            <td>{{ $item->penilaian_text ?? $item->penilaian ?? '-' }}</td>
+                            <td>{{ $item->refleksi_text ?? $item->refleksi ?? '-' }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center" style="padding: 15px;">Belum ada data jurnal mengajar yang
-                                tersimpan untuk periode ini.</td>
+                            <td colspan="10" class="text-center" style="padding: 15px;">
+                                Tidak ditemukan data jurnal mengajar untuk mata pelajaran dan periode bulan yang dipilih.
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>

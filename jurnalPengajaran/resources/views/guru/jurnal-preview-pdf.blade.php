@@ -41,21 +41,22 @@
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none" required />
                 </div>
 
-                <!-- MATA PELAJARAN (OTOMATIS MENYESUAIKAN JADWAL KELAS) -->
-                <div class="space-y-1.5">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Mata Pelajaran Header</label>
-                    <input type="text" id="inputMapel" name="mata_pelajaran" value="{{ old('mata_pelajaran', $allMapel ?: 'Pilih Kelas Terlebih Dahulu') }}" 
-                           class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none" required />
-                </div>
-
                 <!-- PILIHAN KELAS DARI JADWAL -->
                 <div class="space-y-1.5">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Kelas</label>
                     <select id="selectKelas" name="kelas_pilihan" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none">
-                        <option value="semua">Pilih Kelas</option>
+                        <option value="semua">Semua Kelas</option>
                         @foreach($daftarKelasGuru as $kelas)
                             <option value="{{ $kelas }}">{{ $kelas }}</option>
                         @endforeach
+                    </select>
+                </div>
+
+                <!-- MATA PELAJARAN (SELECT DINAMIS SESUAI KELAS & JADWAL) -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Mata Pelajaran Header</label>
+                    <select id="selectMapel" name="mata_pelajaran" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none" required>
+                        <option value="semua">Semua Mata Pelajaran</option>
                     </select>
                 </div>
 
@@ -67,12 +68,53 @@
                 </div>
 
                 <!-- SEMESTER -->
-                <div class="space-y-1.5 sm:col-span-2">
+                <div class="space-y-1.5">
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Semester</label>
                     <select name="semester" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none">
                         <option value="1 (GANJIL)" {{ $semester === '1 (GANJIL)' ? 'selected' : '' }}>1 (GANJIL)</option>
                         <option value="2 (GENAP)" {{ $semester === '2 (GENAP)' ? 'selected' : '' }}>2 (GENAP)</option>
                     </select>
+                </div>
+
+                <!-- OPSI PILIHAN FILTER BULAN (1 BULAN ATAU RENTANG BULAN) -->
+                <div class="space-y-1.5 sm:col-span-2 border-t border-slate-100 pt-3 mt-2">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Periode Bulan Cetak PDF</label>
+                        <div class="flex items-center gap-4 text-xs font-medium text-slate-600">
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="tipe_periode" value="satu" id="radioSatuBulan" checked class="text-teal-600 focus:ring-teal-500">
+                                <span> 1 Bulan</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                                <input type="radio" name="tipe_periode" value="rentang" id="radioRentangBulan" class="text-teal-600 focus:ring-teal-500">
+                                <span>Rentang Bulan</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- BULAN AWAL / BULAN PILIHAN -->
+                        <div>
+                            <span id="labelBulanAwal" class="block text-[11px] font-medium text-slate-500 mb-1">Pilih Bulan:</span>
+                            <select id="selectBulanAwal" name="bulan_awal" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none">
+                                <option value="">-- Semua Bulan --</option>
+                                @foreach([1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'] as $num => $name)
+                                    <option value="{{ sprintf('%02d', $num) }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- BULAN AKHIR (OTOMATIS DISABLED JIKA HANYA 1 BULAN) -->
+                        <div id="wrapperBulanAkhir" class="opacity-50 pointer-events-none">
+                            <span class="block text-[11px] font-medium text-slate-500 mb-1">Sampai Bulan:</span>
+                            <select id="selectBulanAkhir" name="bulan_akhir" disabled class="w-full bg-slate-100 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none">
+                                <option value="">-- Sama Dengan Bulan Pilihan --</option>
+                                @foreach([1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'] as $num => $name)
+                                    <option value="{{ sprintf('%02d', $num) }}">{{ $name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -90,22 +132,93 @@
 </div>
 
 <script>
-    // Data mapel per kelas yang diambil langsung dari tabel jadwals
+    // Data mapel per kelas dari controller
     const mapelData = @json($mapelPerKelas);
     const defaultAllMapel = @json($allMapel);
 
     const selectKelas = document.getElementById('selectKelas');
-    const inputMapel = document.getElementById('inputMapel');
+    const selectMapel = document.getElementById('selectMapel');
 
-    selectKelas.addEventListener('change', function () {
-        const selected = this.value;
-        if (selected === 'semua') {
-            inputMapel.value = defaultAllMapel || '';
-        } else if (mapelData[selected]) {
-            inputMapel.value = mapelData[selected];
+    // Elemen Filter Bulan
+    const radioSatuBulan = document.getElementById('radioSatuBulan');
+    const radioRentangBulan = document.getElementById('radioRentangBulan');
+    const labelBulanAwal = document.getElementById('labelBulanAwal');
+    const selectBulanAwal = document.getElementById('selectBulanAwal');
+    const wrapperBulanAkhir = document.getElementById('wrapperBulanAkhir');
+    const selectBulanAkhir = document.getElementById('selectBulanAkhir');
+
+    // Toggle Tipe Periode (1 Bulan vs Rentang Bulan)
+    function togglePeriodeBulan() {
+        if (radioSatuBulan.checked) {
+            labelBulanAwal.textContent = "Pilih Bulan:";
+            wrapperBulanAkhir.classList.add('opacity-50', 'pointer-events-none');
+            selectBulanAkhir.disabled = true;
+            selectBulanAkhir.value = "";
+            selectBulanAkhir.classList.replace('bg-slate-50', 'bg-slate-100');
         } else {
-            inputMapel.value = '';
+            labelBulanAwal.textContent = "Dari Bulan:";
+            wrapperBulanAkhir.classList.remove('opacity-50', 'pointer-events-none');
+            selectBulanAkhir.disabled = false;
+            selectBulanAkhir.classList.replace('bg-slate-100', 'bg-slate-50');
         }
+    }
+
+    radioSatuBulan.addEventListener('change', togglePeriodeBulan);
+    radioRentangBulan.addEventListener('change', togglePeriodeBulan);
+
+    // Fungsi update mapel dinamis
+    function updateMapelOptions() {
+        const selectedKelas = selectKelas.value;
+        let mapelList = [];
+
+        if (selectedKelas === 'semua') {
+            if (typeof defaultAllMapel === 'string' && defaultAllMapel.trim() !== '') {
+                mapelList = defaultAllMapel.split(',').map(m => m.trim());
+            } else if (Array.isArray(defaultAllMapel)) {
+                mapelList = defaultAllMapel;
+            } else {
+                Object.values(mapelData).forEach(val => {
+                    if (typeof val === 'string') {
+                        val.split(',').forEach(m => mapelList.push(m.trim()));
+                    } else if (Array.isArray(val)) {
+                        mapelList.push(...val);
+                    }
+                });
+            }
+        } else if (mapelData[selectedKelas]) {
+            const val = mapelData[selectedKelas];
+            if (typeof val === 'string') {
+                mapelList = val.split(',').map(m => m.trim());
+            } else if (Array.isArray(val)) {
+                mapelList = val;
+            }
+        }
+
+        mapelList = [...new Set(mapelList)].filter(m => m.length > 0);
+        selectMapel.innerHTML = '';
+
+        const defaultOption = document.createElement('option');
+        defaultOption.value = 'semua';
+        defaultOption.textContent = mapelList.length > 1 ? 'Semua Mata Pelajaran' : 'Pilih Mata Pelajaran';
+        selectMapel.appendChild(defaultOption);
+
+        mapelList.forEach(mapel => {
+            const opt = document.createElement('option');
+            opt.value = mapel;
+            opt.textContent = mapel;
+            selectMapel.appendChild(opt);
+        });
+
+        if (mapelList.length === 1) {
+            selectMapel.value = mapelList[0];
+        }
+    }
+
+    selectKelas.addEventListener('change', updateMapelOptions);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateMapelOptions();
+        togglePeriodeBulan();
     });
 </script>
 @endsection
