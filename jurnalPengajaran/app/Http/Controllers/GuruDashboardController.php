@@ -196,8 +196,8 @@ class GuruDashboardController extends Controller
         }
 
         $jurnalTerbaru = $queryJurnal->orderBy('jurnals.created_at', 'desc')
-            ->limit(10)
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         foreach ($jurnalTerbaru as $j) {
             Carbon::setLocale('id');

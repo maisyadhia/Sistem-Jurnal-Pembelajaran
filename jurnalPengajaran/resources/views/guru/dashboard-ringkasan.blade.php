@@ -314,6 +314,20 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
+
+        <!-- LINK PAGINATION (GAYA HALAMAN SEPERTI GOOGLE) -->
+        @if($jurnalTerbaru->hasPages())
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                <p class="text-xs text-slate-500">
+                    Menampilkan <span class="font-semibold">{{ $jurnalTerbaru->firstItem() }}</span> sampai <span class="font-semibold">{{ $jurnalTerbaru->lastItem() }}</span> dari <span class="font-semibold">{{ $jurnalTerbaru->total() }}</span> total riwayat jurnal
+                </p>
+                <div class="flex items-center gap-1">
+                    {{ $jurnalTerbaru->links('pagination::tailwind') }}
+                </div>
+            </div>
+        @endif
+    </div>
         </div>
     </div>
 
