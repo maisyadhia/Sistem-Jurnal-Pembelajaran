@@ -174,6 +174,17 @@ class GuruDashboardController extends Controller
                 'mapel_master.nama_mapel as nama_mapel'
             );
 
+        // FITUR PENCARIAN
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $queryJurnal->where(function ($q) use ($search) {
+                $q->where('jurnals.materi', 'like', "%{$search}%")
+                    ->orWhere('jurnals.target_next', 'like', "%{$search}%")
+                    ->orWhere('kelas_master.nama_kelas', 'like', "%{$search}%")
+                    ->orWhere('mapel_master.nama_mapel', 'like', "%{$search}%");
+            });
+        }
+
         $currentFilter = $request->query('filter');
         $startDate = null;
 
@@ -194,6 +205,9 @@ class GuruDashboardController extends Controller
                 $queryJurnal->whereDate('jurnals.tanggal', '>=', $startDate);
             }
         }
+
+        $jurnalTerbaru = $queryJurnal->orderBy('jurnals.created_at', 'desc')
+            ->paginate(10);
 
         $jurnalTerbaru = $queryJurnal->orderBy('jurnals.created_at', 'desc')
             ->paginate(10)
