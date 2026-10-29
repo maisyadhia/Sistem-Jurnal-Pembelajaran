@@ -157,6 +157,11 @@ Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function
     // ====== FITUR INPUT JURNAL ======
     Route::get('/jurnal/{kelas_id}/{mapel_id}', [GuruJurnalController::class, 'index'])->name('guru.jurnal.form');
     Route::post('/jurnal', [GuruJurnalController::class, 'store'])->name('guru.jurnal.store');
+
+   // Route Profil
+    Route::get('/profile', [GuruDashboardController::class, 'editProfile'])->name('guru.profile.edit');
+    Route::post('/profile/update-photo', [GuruDashboardController::class, 'updatePhoto'])->name('guru.profile.update-photo');
+    Route::post('/profile/update-password', [GuruDashboardController::class, 'updatePassword'])->name('guru.profile.update-password');
 });
 
 // ============ PARENT ROUTES ============
