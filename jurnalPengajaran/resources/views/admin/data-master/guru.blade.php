@@ -17,14 +17,15 @@
        class="bg-green-600 text-white px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity">
         <span class="material-symbols-outlined text-sm">download</span> EXPORT EXCEL
     </a>
-    
-    <!-- Form Import -->
-    <form method="POST" action="{{ route('data-master.import.guru') }}" 
-          enctype="multipart/form-data" class="inline-flex items-center gap-2">
+
+    <!-- Form Import Langsung Pilih File (CSV & XLSX) -->
+    <form id="formDirectImport" method="POST" action="{{ route('data-master.import.guru') }}" 
+          enctype="multipart/form-data" class="inline-flex items-center">
         @csrf
         <label class="bg-blue-600 text-white px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer">
-            <span class="material-symbols-outlined text-sm">upload</span> IMPORT EXCEL
-            <input type="file" name="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="this.form.submit()">
+            <span class="material-symbols-outlined text-sm">upload</span> 
+            <span>IMPORT EXCEL</span>
+            <input type="file" name="file" accept=".csv, .xlsx, .xls" class="hidden" onchange="this.form.submit()">
         </label>
     </form>
 </div>
@@ -42,7 +43,7 @@
             </a>
         </div>
     </div>
-    
+
     <div class="p-6">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
@@ -103,7 +104,7 @@
 </div>
 
 <!-- ============ MODAL POPUP DELETE ============ -->
-<div id="deleteModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4">
+<div id="deleteModal" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl modal-content">
         <div class="flex items-center gap-3 mb-4">
             <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -114,7 +115,7 @@
                 <p class="text-sm text-slate-500">Tindakan ini tidak dapat dibatalkan.</p>
             </div>
         </div>
-        
+
         <div class="bg-red-50 rounded-xl p-4 mb-6">
             <p class="text-sm text-red-700">
                 <span class="font-semibold">Data yang akan dihapus:</span><br>
@@ -122,7 +123,7 @@
                 <span id="deleteItemCategory" class="text-xs text-red-500 ml-2">-</span>
             </p>
         </div>
-        
+
         <div class="flex gap-3 justify-end">
             <button onclick="closeDeleteModal()" 
                     class="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all text-sm font-medium">
@@ -157,28 +158,28 @@ function closeDeleteModal() {
 document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
     if (!deleteData) return;
     const { id, name, category } = deleteData;
-    
+
     this.disabled = true;
     this.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Menghapus...';
-    
+
     let route = '/admin/data-master/guru/' + id;
-    
+
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = route;
-    
+
     const csrfInput = document.createElement('input');
     csrfInput.type = 'hidden';
     csrfInput.name = '_token';
     csrfInput.value = '{{ csrf_token() }}';
     form.appendChild(csrfInput);
-    
+
     const methodInput = document.createElement('input');
     methodInput.type = 'hidden';
     methodInput.name = '_method';
     methodInput.value = 'DELETE';
     form.appendChild(methodInput);
-    
+
     document.body.appendChild(form);
     form.submit();
 });
