@@ -41,15 +41,19 @@
                            class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none" required />
                 </div>
 
-                <!-- PILIHAN KELAS DARI JADWAL -->
+                <!-- PILIHAN KELAS DARI JADWAL & FASE OTOMATIS -->
                 <div class="space-y-1.5">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Kelas</label>
-                    <select id="selectKelas" name="kelas_pilihan" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none">
-                        <option value="semua">Semua Kelas</option>
-                        @foreach($daftarKelasGuru as $kelas)
-                            <option value="{{ $kelas }}">{{ $kelas }}</option>
-                        @endforeach
-                    </select>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Kelas & Fase Otomatis</label>
+                    <div class="flex gap-2">
+                        <select id="selectKelas" name="kelas_pilihan" class="w-2/3 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs md:text-sm font-semibold text-slate-800 focus:border-teal-500 outline-none">
+                            <option value="semua">Semua Kelas</option>
+                            @foreach($daftarKelasGuru as $kelas)
+                                <option value="{{ $kelas }}">{{ $kelas }}</option>
+                            @endforeach
+                        </select>
+                        <input type="text" id="infoFase" readonly placeholder="Fase" 
+                               class="w-1/3 bg-slate-100 border border-slate-200 text-center rounded-xl p-3 text-xs md:text-sm font-bold text-teal-700 outline-none cursor-not-allowed" />
+                    </div>
                 </div>
 
                 <!-- MATA PELAJARAN (SELECT DINAMIS SESUAI KELAS & JADWAL) -->
@@ -132,14 +136,13 @@
 </div>
 
 <script>
-    // Data mapel per kelas dari controller
     const mapelData = @json($mapelPerKelas ?? []);
     const defaultAllMapel = @json($allMapel ?? '');
 
     const selectKelas = document.getElementById('selectKelas');
     const selectMapel = document.getElementById('selectMapel');
+    const infoFase = document.getElementById('infoFase');
 
-    // Elemen Filter Bulan
     const radioSatuBulan = document.getElementById('radioSatuBulan');
     const radioRentangBulan = document.getElementById('radioRentangBulan');
     const labelBulanAwal = document.getElementById('labelBulanAwal');
@@ -147,7 +150,23 @@
     const wrapperBulanAkhir = document.getElementById('wrapperBulanAkhir');
     const selectBulanAkhir = document.getElementById('selectBulanAkhir');
 
-    // Toggle Tipe Periode (1 Bulan vs Rentang Bulan)
+    // Fungsi Deteksi Fase Otomatis
+    function deteksiFase(namaKelas) {
+        if (!namaKelas || namaKelas === 'semua') return 'Semua Fase';
+        const match = namaKelas.match(/\d+/);
+        if (!match) return '-';
+        
+        const tingkat = parseInt(match[0]);
+        if ([1, 2].includes(tingkat)) return 'Fase A';
+        if ([3, 4].includes(tingkat)) return 'Fase B';
+        if ([5, 6].includes(tingkat)) return 'Fase C';
+        return '-';
+    }
+
+    function updateFaseDisplay() {
+        infoFase.value = deteksiFase(selectKelas.value);
+    }
+
     function togglePeriodeBulan() {
         if (radioSatuBulan.checked) {
             labelBulanAwal.textContent = "Pilih Bulan:";
@@ -166,7 +185,6 @@
     radioSatuBulan.addEventListener('change', togglePeriodeBulan);
     radioRentangBulan.addEventListener('change', togglePeriodeBulan);
 
-    // Fungsi update mapel dinamis & memecah teks gabungan dengan "/" atau ","
     function updateMapelOptions() {
         const selectedKelas = selectKelas.value;
         let mapelList = [];
@@ -211,10 +229,14 @@
         });
     }
 
-    selectKelas.addEventListener('change', updateMapelOptions);
+    selectKelas.addEventListener('change', () => {
+        updateMapelOptions();
+        updateFaseDisplay();
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         updateMapelOptions();
+        updateFaseDisplay();
         togglePeriodeBulan();
     });
 </script>

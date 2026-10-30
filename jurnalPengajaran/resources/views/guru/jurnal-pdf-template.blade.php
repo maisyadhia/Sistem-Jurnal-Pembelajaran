@@ -108,10 +108,10 @@
             text-align: center;
         }
 
-        /* METADATA HEADER PRESISI DIBUAT PROPOSIONAL DI TENGAH (TIDAK TERLALU POJOK) */
+        /* METADATA HEADER */
         .meta-table {
-            width: 82%; /* Membatasi lebar agar tidak terlalu ke pojok */
-            margin: 0 auto 14px auto; /* Posisi di tengah-tengah halaman */
+            width: 82%; 
+            margin: 0 auto 14px auto; 
             border-collapse: collapse;
         }
 
@@ -143,10 +143,10 @@
             vertical-align: middle;
         }
 
-        /* TTD AREA 2 KOLOM */
+        /* TTD AREA 2 KOLOM (RUANG KOSONG UNTUK TTE) */
         .ttd-table {
             width: 100%;
-            margin-top: 20px;
+            margin-top: 15px;
             border-collapse: collapse;
             page-break-inside: avoid;
         }
@@ -157,21 +157,9 @@
         }
 
         .ttd-box {
-            min-height: 70px;
-            height: 70px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
+            height: 60px; /* Ruang kosong untuk area TTE / Tanda Tangan */
+            width: 100%;
             margin: 4px 0;
-        }
-
-        .img-ttd {
-            max-height: 65px;
-            max-width: 180px;
-            width: auto;
-            height: auto;
-            object-fit: contain;
-            display: inline-block;
         }
 
         /* FOOTER SIJAMPANG */
@@ -187,75 +175,12 @@
             page-break-inside: avoid;
         }
 
-        /* RESPONSIVE MOBILE */
-        @media screen and (max-width: 768px) {
-            .container {
-                padding: 5px;
-            }
-
-            .kop-container {
-                flex-direction: column;
-                min-height: auto;
-                text-align: center;
-                padding-bottom: 10px;
-            }
-
-            .kop-logo {
-                position: static;
-                transform: none;
-                margin-bottom: 6px;
-            }
-
-            .kop-text {
-                padding-left: 0;
-                padding-right: 0;
-            }
-
-            .kop-text .sekolah {
-                font-size: 12pt;
-            }
-
-            .kop-text .alamat {
-                font-size: 7.5pt;
-            }
-
-            .meta-table {
-                width: 100%;
-            }
-
-            .meta-table td {
-                font-size: 8.5pt;
-            }
-
-            .data-table th,
-            .data-table td {
-                font-size: 8pt;
-                padding: 4px;
-            }
-
-            .overflow-mobile {
-                overflow-x: auto;
-            }
-
-            .ttd-table td {
-                display: block;
-                width: 100% !important;
-                margin-bottom: 20px;
-            }
-        }
-
         @media print {
             .no-print {
                 display: none !important;
             }
-
             .container {
                 padding: 0;
-            }
-
-            .img-ttd {
-                display: inline-block !important;
-                visibility: visible !important;
             }
         }
     </style>
@@ -289,15 +214,32 @@
             JURNAL MENGAJAR HARIAN
         </div>
 
-        <!-- METADATA HEADER (PROPORSIONAL DITENGAH PADA LANDSCAPE A4) -->
+        <!-- METADATA HEADER (DENGAN FORMAT KELAS / FASE) -->
         <table class="meta-table font-bold">
             <tr>
                 <td width="20%">Nama Penyusun</td>
                 <td width="2%">:</td>
                 <td width="38%">{{ $namaPenyusun }}</td>
-                <td width="18%">Kelas</td>
+                <td width="18%">Kelas/ Fase</td>
                 <td width="2%">:</td>
-                <td width="20%">{{ $faseKelas }}</td>
+                <td width="20%">
+                    @php
+                        $pilihanKelas = request('kelas_pilihan', 'semua');
+                        if ($pilihanKelas === 'semua' || empty($pilihanKelas)) {
+                            $faseGabung = 'Semua Kelas / Semua Fase';
+                        } else {
+                            preg_match('/\d+/', $pilihanKelas, $matchNum);
+                            $lvl = isset($matchNum[0]) ? (int)$matchNum[0] : 0;
+                            $faseHuruf = '-';
+                            if (in_array($lvl, [1, 2])) $faseHuruf = 'A';
+                            elseif (in_array($lvl, [3, 4])) $faseHuruf = 'B';
+                            elseif (in_array($lvl, [5, 6])) $faseHuruf = 'C';
+
+                            $faseGabung = $pilihanKelas . '/ ' . $faseHuruf;
+                        }
+                    @endphp
+                    {{ $faseGabung }}
+                </td>
             </tr>
             <tr>
                 <td>Satuan Pendidikan</td>
@@ -446,8 +388,8 @@
             </table>
         </div>
 
-        <!-- KOLOM TANDA TANGAN DUA SISI -->
-        <table class="ttd-table" style="width: 100%; margin-top: 20px; border-collapse: collapse;">
+        <!-- KOLOM TANDA TANGAN DUA SISI (RUANG KOSONG UNTUK TTE) -->
+        <table class="ttd-table" style="width: 100%; margin-top: 15px; border-collapse: collapse;">
             <tr>
                 <td style="width: 65%; text-align: left; vertical-align: bottom; padding: 0;">
                     Kepala {{ $satuanPendidikan }},
@@ -461,29 +403,13 @@
             </tr>
             <tr>
                 <td style="vertical-align: middle; padding: 0;">
-                    <div class="ttd-box"
-                        style="height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; margin: 4px 0;">
-                        <img id="imgKepala" class="img-ttd"
-                            style="display: none; max-height: 65px; max-width: 180px; object-fit: contain;"
-                            alt="TTD Kepala Sekolah" />
-                        <div class="no-print" style="margin-top: 4px;">
-                            <input type="file" accept="image/*" onchange="previewTTD(event, 'imgKepala')"
-                                style="font-size: 10px;" />
-                        </div>
-                    </div>
+                    <!-- Area Ruang Kosong untuk TTE Kepala Sekolah -->
+                    <div class="ttd-box"></div>
                 </td>
                 <td style="vertical-align: middle; padding: 0;">
                     <div style="float: right; text-align: left; min-width: 200px;">
-                        <div class="ttd-box"
-                            style="height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; margin: 4px 0;">
-                            <img id="imgGuru" class="img-ttd"
-                                style="display: none; max-height: 65px; max-width: 180px; object-fit: contain;"
-                                alt="TTD Guru" />
-                            <div class="no-print" style="margin-top: 4px;">
-                                <input type="file" accept="image/*" onchange="previewTTD(event, 'imgGuru')"
-                                    style="font-size: 10px;" />
-                            </div>
-                        </div>
+                        <!-- Area Ruang Kosong untuk TTE / Tanda Tangan Guru -->
+                        <div class="ttd-box"></div>
                     </div>
                 </td>
             </tr>
@@ -519,19 +445,6 @@
     </div>
 
     <script>
-        function previewTTD(event, targetId) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const img = document.getElementById(targetId);
-                    img.src = e.target.result;
-                    img.style.display = 'inline-block';
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
         function triggerPrint() {
             window.print();
         }
