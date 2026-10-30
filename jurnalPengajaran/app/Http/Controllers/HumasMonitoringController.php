@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Traits\LogsAdminActivity;
 use Illuminate\Http\Request;
 use App\Models\UnreportedClass;
-use App\Models\DataMaster;
-use App\Models\Admin;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -25,13 +23,8 @@ class HumasMonitoringController extends Controller
         $today = Carbon::today()->toDateString();
         $namaHariIndo = Carbon::now()->translatedFormat('l');
 
-        // Ambil semua guru
-        $allTeachers = DB::table('guru')->get();
-
-        // Ambil data master dari semua tabel
-        $dataMaster = collect();
-        
-        // Ambil data guru
+        // ========== AMBIL DATA MASTER TERKINI ==========
+        // Ambil data guru terbaru
         $guru = DB::table('guru')->select(
             'id',
             'nama_guru as name',
@@ -39,11 +32,25 @@ class HumasMonitoringController extends Controller
             DB::raw("'GURU' as category"),
             DB::raw("'Aktif' as status"),
             DB::raw("'bg-secondary' as statusColor"),
-            DB::raw("'bg-secondary-container' as color"),
-            DB::raw("UPPER(LEFT(nama_guru, 2)) as initials")
-        )->get();
-        
-        // Ambil data kelas
+            DB::raw("'bg-blue-500' as color"),
+            DB::raw("UPPER(LEFT(nama_guru, 2)) as initials"),
+            'created_at'
+        )->orderBy('created_at', 'desc')->limit(5)->get();
+
+        // Ambil data siswa terbaru
+        $siswa = DB::table('students')->select(
+            'id',
+            'name',
+            'nisn as identifier',
+            DB::raw("'SISWA' as category"),
+            DB::raw("'Aktif' as status"),
+            DB::raw("'bg-secondary' as statusColor"),
+            DB::raw("'bg-green-500' as color"),
+            DB::raw("UPPER(LEFT(name, 2)) as initials"),
+            'created_at'
+        )->orderBy('created_at', 'desc')->limit(5)->get();
+
+        // Ambil data kelas terbaru
         $kelas = DB::table('kelas_master')->select(
             'id',
             'nama_kelas as name',
@@ -51,11 +58,12 @@ class HumasMonitoringController extends Controller
             DB::raw("'KELAS' as category"),
             DB::raw("'Tersedia' as status"),
             DB::raw("'bg-secondary' as statusColor"),
-            DB::raw("'bg-primary-container' as color"),
-            DB::raw("UPPER(LEFT(nama_kelas, 2)) as initials")
-        )->get();
-        
-        // Ambil data mapel
+            DB::raw("'bg-purple-500' as color"),
+            DB::raw("UPPER(LEFT(nama_kelas, 2)) as initials"),
+            'created_at'
+        )->orderBy('created_at', 'desc')->limit(5)->get();
+
+        // Ambil data mapel terbaru
         $mapel = DB::table('mapel_master')->select(
             'id',
             'nama_mapel as name',
@@ -63,26 +71,58 @@ class HumasMonitoringController extends Controller
             DB::raw("'MATA PELAJARAN' as category"),
             DB::raw("'Aktif' as status"),
             DB::raw("'bg-secondary' as statusColor"),
-            DB::raw("'bg-tertiary-container' as color"),
-            DB::raw("UPPER(LEFT(nama_mapel, 2)) as initials")
-        )->get();
-        
-        // Gabungkan semua data
-        $dataMaster = $guru->merge($kelas)->merge($mapel)->take(5);
-        $totalDataMaster = $guru->count() + $kelas->count() + $mapel->count();
+            DB::raw("'bg-orange-500' as color"),
+            DB::raw("UPPER(LEFT(nama_mapel, 2)) as initials"),
+            'created_at'
+        )->orderBy('created_at', 'desc')->limit(5)->get();
 
-        
-        // Ambil ID guru yang sudah mengisi jurnal hari ini
+        // Ambil data jadwal terbaru
+        $jadwal = DB::table('jadwals')
+            ->join('guru', 'jadwals.guru_id', '=', 'guru.id')
+            ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
+            ->select(
+                'jadwals.id',
+                DB::raw("CONCAT(guru.nama_guru, ' - ', mapel_master.nama_mapel, ' (', kelas_master.nama_kelas, ')') as name"),
+                DB::raw("CONCAT(jadwals.hari, ', Jam ', jadwals.jam_ke) as identifier"),
+                DB::raw("'JADWAL' as category"),
+                DB::raw("'Aktif' as status"),
+                DB::raw("'bg-secondary' as statusColor"),
+                DB::raw("'bg-red-500' as color"),
+                DB::raw("UPPER(LEFT(guru.nama_guru, 2)) as initials"),
+                'jadwals.created_at'
+            )
+            ->orderBy('jadwals.created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Gabungkan semua data dan urutkan berdasarkan created_at terbaru
+        $dataMaster = $guru->merge($siswa)
+            ->merge($kelas)
+            ->merge($mapel)
+            ->merge($jadwal)
+            ->sortByDesc('created_at')
+            ->take(10)
+            ->values();
+
+        // Hitung total semua entitas
+        $totalDataMaster = DB::table('guru')->count()
+            + DB::table('students')->count()
+            + DB::table('kelas_master')->count()
+            + DB::table('mapel_master')->count()
+            + DB::table('jadwals')->count();
+
+        // ========== UNREPORTED CLASSES ==========
+        $allTeachers = DB::table('guru')->get();
+
         $teacherIdsWithJurnal = DB::table('jurnals')
             ->whereDate('tanggal', $today)
             ->pluck('guru_id')
             ->toArray();
-        
-        // Cari guru yang BELUM mengisi dan BELUM diingatkan hari ini
+
         $unreportedTeachers = collect();
         foreach ($allTeachers as $teacher) {
             if (!in_array($teacher->id, $teacherIdsWithJurnal)) {
-                // Cek apakah sudah diingatkan hari ini
                 $alreadyReminded = DB::table('notifications')
                     ->where('user_id', $teacher->id)
                     ->whereDate('created_at', $today)
@@ -90,8 +130,7 @@ class HumasMonitoringController extends Controller
                     ->exists();
 
                 if (!$alreadyReminded) {
-                    // Ambil jadwal guru hari ini
-                    $jadwal = DB::table('jadwals')
+                    $jadwalGuru = DB::table('jadwals')
                         ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
                         ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
                         ->where('jadwals.guru_id', $teacher->id)
@@ -102,14 +141,14 @@ class HumasMonitoringController extends Controller
                             DB::raw("CONCAT(jadwals.hari, ', ', TIME_FORMAT(jadwals.jam_mulai, '%H:%i'), ' - ', TIME_FORMAT(jadwals.jam_selesai, '%H:%i')) as schedule")
                         )
                         ->first();
-                    
-                    if ($jadwal) {
+
+                    if ($jadwalGuru) {
                         $unreportedTeachers->push((object) [
                             'id' => $teacher->id,
                             'teacher' => $teacher->nama_guru,
-                            'code' => $jadwal->code,
-                            'subject' => $jadwal->subject,
-                            'schedule' => $jadwal->schedule,
+                            'code' => $jadwalGuru->code,
+                            'subject' => $jadwalGuru->subject,
+                            'schedule' => $jadwalGuru->schedule,
                             'date' => $today,
                             'reported' => false,
                         ]);
@@ -118,16 +157,12 @@ class HumasMonitoringController extends Controller
             }
         }
 
-        // Ambil unreported classes dari tabel (fallback)
         $unreportedFromDb = DB::table('unreported_classes')
             ->whereDate('date', $today)
             ->where('reported', false)
             ->get();
 
         $unreportedClasses = $unreportedTeachers->merge($unreportedFromDb);
-
-        $dataMaster = DataMaster::latest()->take(5)->get();
-        $totalDataMaster = DataMaster::count();
 
         return view('humas.monitoring', compact(
             'complianceRate',
@@ -148,7 +183,7 @@ class HumasMonitoringController extends Controller
         $todayJurnals = DB::table('jurnals')
             ->whereDate('tanggal', today())
             ->count();
-            
+
         return round(($todayJurnals / $totalTeachers) * 100, 1);
     }
 
@@ -177,7 +212,6 @@ class HumasMonitoringController extends Controller
                 'subject' => 'nullable|string',
             ]);
 
-            // Cari guru di database
             $guru = DB::table('guru')
                 ->where('nama_guru', 'like', '%' . $request->teacher . '%')
                 ->first();
@@ -189,7 +223,6 @@ class HumasMonitoringController extends Controller
             }
 
             if ($guru) {
-                // Simpan notifikasi
                 $message = "Pengingat: Kelas {$request->class}";
                 if ($request->subject) {
                     $message .= " ({$request->subject})";
@@ -206,7 +239,6 @@ class HumasMonitoringController extends Controller
                     'updated_at' => now(),
                 ]);
 
-                // Log aktivitas
                 $this->logActivity(
                     'remind',
                     'monitoring',
@@ -239,15 +271,11 @@ class HumasMonitoringController extends Controller
         $date = $request->get('date', today()->format('Y-m-d'));
         $period = $request->get('period', 'weekly');
 
-        // Ambil semua guru
         $teachers = DB::table('guru')->get();
-        
-        // Ambil jurnal berdasarkan tanggal
         $jurnals = DB::table('jurnals')
             ->whereDate('tanggal', $date)
             ->get();
 
-        // Hitung status per guru
         $teacherStatus = [];
         foreach ($teachers as $teacher) {
             $isReported = false;
@@ -276,7 +304,6 @@ class HumasMonitoringController extends Controller
                 ->get(),
         ];
 
-        // Log aktivitas export
         $this->logActivity(
             'export',
             'report',
@@ -285,14 +312,13 @@ class HumasMonitoringController extends Controller
             ['date' => $date, 'period' => $period, 'format' => 'excel']
         );
 
-        // Langsung export Excel
         return $this->exportExcel($data);
     }
 
     private function exportExcel($data)
     {
         $filename = "laporan_kepatuhan_{$data['date']}.csv";
-        
+
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"$filename\"",
@@ -303,43 +329,37 @@ class HumasMonitoringController extends Controller
 
         $callback = function() use ($data) {
             $handle = fopen('php://output', 'w');
-            
-            // Add BOM for UTF-8
             fputs($handle, "\xEF\xBB\xBF");
-            
-            // Header Laporan
+
             fputcsv($handle, ['LAPORAN KEPATUHAN GURU']);
             fputcsv($handle, ['Tanggal', $data['date']]);
             fputcsv($handle, ['Periode', $data['period']]);
             fputcsv($handle, ['']);
-            
-            // Statistik
+
             fputcsv($handle, ['STATISTIK KEPATUHAN']);
             fputcsv($handle, ['Tingkat Kepatuhan', $data['complianceRate'] . '%']);
             fputcsv($handle, ['Tepat Waktu', $data['onTimeCount']]);
             fputcsv($handle, ['Terlambat', $data['lateCount']]);
             fputcsv($handle, ['']);
-            
-            // Daftar Guru
+
             fputcsv($handle, ['DAFTAR GURU']);
             fputcsv($handle, ['No', 'Nama Guru', 'NIK', 'Status']);
-            
+
             $no = 1;
             foreach ($data['teachers'] as $teacher) {
                 $isReported = isset($data['teacherStatus'][$teacher->id]) ? $data['teacherStatus'][$teacher->id] : false;
                 $status = $isReported ? 'Sudah Mengisi' : 'Belum Mengisi';
                 $teacherName = $teacher->nama_guru ?? $teacher->name ?? '-';
                 $teacherNik = $teacher->nik ?? '-';
-                
+
                 fputcsv($handle, [$no++, $teacherName, $teacherNik, $status]);
             }
-            
-            // Kelas Tanpa Catatan
+
             if ($data['unreported']->count() > 0) {
                 fputcsv($handle, ['']);
                 fputcsv($handle, ['KELAS TANPA CATATAN']);
                 fputcsv($handle, ['No', 'Kelas', 'Mata Pelajaran', 'Guru']);
-                
+
                 $no = 1;
                 foreach ($data['unreported'] as $class) {
                     fputcsv($handle, [
@@ -350,7 +370,7 @@ class HumasMonitoringController extends Controller
                     ]);
                 }
             }
-            
+
             fclose($handle);
         };
 
@@ -362,15 +382,11 @@ class HumasMonitoringController extends Controller
         $date = $request->get('date', today()->format('Y-m-d'));
         $period = $request->get('period', 'weekly');
 
-        // Ambil semua guru
         $teachers = DB::table('guru')->get();
-        
-        // Ambil jurnal berdasarkan tanggal
         $jurnals = DB::table('jurnals')
             ->whereDate('tanggal', $date)
             ->get();
 
-        // Hitung status per guru
         $teacherStatus = [];
         foreach ($teachers as $teacher) {
             $isReported = false;
