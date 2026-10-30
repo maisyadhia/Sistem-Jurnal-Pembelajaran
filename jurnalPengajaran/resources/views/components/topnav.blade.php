@@ -144,70 +144,81 @@
                 <div class="h-6 w-px bg-outline-variant/60"></div>
             @endif
 
-            <!-- User Profile Avatar dengan Dropdown Menu -->
+            <!-- User Profile Avatar -->
             <div class="relative" id="profileDropdownContainer">
-                <button type="button" onclick="toggleProfileDropdown()"
-                    class="flex items-center gap-2.5 pl-1 focus:outline-none hover:opacity-80 transition-opacity rounded-xl p-1 cursor-pointer">
-                    <div class="text-right hidden sm:block">
-                        <p class="font-label-caps text-label-caps text-primary leading-none mb-1 font-bold">
-                            {{ session('user_name', 'Pengguna') }}</p>
-                        <p class="text-[10px] text-on-surface-variant/70 leading-none font-medium">
-                            @if(session('user_role') == 'parent')
-                                Wali Murid
-                            @elseif(session('user_role') == 'admin')
-                                Admin
-                            @elseif(session('user_role') == 'guru')
-                                Guru
-                            @else
-                                Pengguna
-                            @endif
-                        </p>
-                    </div>
+                @if(session('user_role') === 'guru')
+                    <!-- JIKA GURU: Gunakan Dropdown Lengkap (Profil & Keluar) -->
+                    <button type="button" onclick="toggleProfileDropdown()"
+                        class="flex items-center gap-2.5 pl-1 focus:outline-none hover:opacity-80 transition-opacity rounded-xl p-1 cursor-pointer">
+                        <div class="text-right hidden sm:block">
+                            <p class="font-label-caps text-label-caps text-primary leading-none mb-1 font-bold">
+                                {{ session('user_name', 'Pengguna') }}</p>
+                            <p class="text-[10px] text-on-surface-variant/70 leading-none font-medium">Guru</p>
+                        </div>
 
-                    @php
-                        $guruDb = DB::table('guru')->where('id', $userId)->orWhere('nama_guru', session('user_name'))->first();
-                        
-                        // Pengecekan path foto yang aman
-                        if ($guruDb && !empty($guruDb->foto)) {
-                            // Jika di DB tercantum 'uploads/profiles/file.png', maka ltrim memastikan tidak ada garis miring ganda
-                            $avatarUrl = asset(ltrim($guruDb->foto, '/'));
-                        } else {
-                            $avatarUrl = "https://ui-avatars.com/api/?name=" . urlencode(session('user_name', 'User')) . "&background=00236f&color=ffffff&size=40";
-                        }
-                    @endphp
+                        @php
+                            $guruDb = DB::table('guru')->where('id', $userId)->orWhere('nama_guru', session('user_name'))->first();
+                            $avatarUrl = ($guruDb && !empty($guruDb->foto))
+                                ? asset($guruDb->foto)
+                                : "https://ui-avatars.com/api/?name=" . urlencode(session('user_name', 'User')) . "&background=00236f&color=ffffff&size=40";
+                        @endphp
 
-                    <img class="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-primary-fixed object-cover shrink-0 shadow-sm"
-                        src="{{ $avatarUrl }}" alt="{{ session('user_name', 'User') }}" />
+                        <img class="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-primary-fixed object-cover shrink-0 shadow-sm"
+                            src="{{ $avatarUrl }}" alt="{{ session('user_name', 'User') }}" />
 
-                    <span class="material-symbols-outlined text-slate-400 text-sm hidden sm:inline">expand_more</span>
-                </button>
+                        <span class="material-symbols-outlined text-slate-400 text-sm hidden sm:inline">expand_more</span>
+                    </button>
 
-                <!-- Dropdown Menu Profil -->
-                <div id="profileDropdownMenu"
-                    class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-fade-in py-1">
-                    <div class="px-4 py-2.5 border-b border-slate-100 sm:hidden bg-slate-50/50">
-                        <p class="text-xs font-bold text-slate-800 truncate">{{ session('user_name', 'Pengguna') }}</p>
-                        <p class="text-[10px] text-slate-500 capitalize">{{ session('user_role', 'Guru') }}</p>
-                    </div>
+                    <!-- Dropdown Menu Khusus Guru -->
+                    <div id="profileDropdownMenu"
+                        class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-fade-in py-1">
+                        <div class="px-4 py-2.5 border-b border-slate-100 sm:hidden bg-slate-50/50">
+                            <p class="text-xs font-bold text-slate-800 truncate">{{ session('user_name', 'Pengguna') }}</p>
+                            <p class="text-[10px] text-slate-500 capitalize">Guru</p>
+                        </div>
 
-                    @if(session('user_role') === 'guru')
                         <a href="{{ route('guru.profile.edit') }}"
                             class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-700 hover:bg-teal-50 hover:text-teal-700 font-medium transition-colors">
                             <span class="material-symbols-outlined text-base text-teal-600">manage_accounts</span>
                             Pengaturan Profil
                         </a>
                         <div class="border-t border-slate-100 my-1"></div>
-                    @endif
 
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit"
-                            class="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 font-medium text-left transition-colors">
-                            <span class="material-symbols-outlined text-base">logout</span>
-                            Keluar
-                        </button>
-                    </form>
-                </div>
+                        <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                class="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 font-medium text-left transition-colors">
+                                <span class="material-symbols-outlined text-base">logout</span>
+                                Keluar
+                            </button>
+                        </form>
+                    </div>
+
+                @else
+                    <!-- JIKA ADMIN / WALI MURID: Tampilan Profil Bersih Tanpa Ikon Logout Ekstra -->
+                    <div class="flex items-center gap-2.5 pl-1 rounded-xl p-1">
+                        <div class="text-right hidden sm:block">
+                            <p class="font-label-caps text-label-caps text-primary leading-none mb-1 font-bold">
+                                {{ session('user_name', 'Pengguna') }}</p>
+                            <p class="text-[10px] text-on-surface-variant/70 leading-none font-medium">
+                                @if(session('user_role') == 'parent')
+                                    Wali Murid
+                                @elseif(session('user_role') == 'admin')
+                                    Admin
+                                @else
+                                    Pengguna
+                                @endif
+                            </p>
+                        </div>
+
+                        @php
+                            $avatarUrl = "https://ui-avatars.com/api/?name=" . urlencode(session('user_name', 'User')) . "&background=00236f&color=ffffff&size=40";
+                        @endphp
+
+                        <img class="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-primary-fixed object-cover shrink-0 shadow-sm"
+                            src="{{ $avatarUrl }}" alt="{{ session('user_name', 'User') }}" />
+                    </div>
+                @endif
             </div>
         </div>
     </div>
