@@ -244,6 +244,24 @@
                     </thead>
                     <tbody class="divide-y divide-outline-variant">
                         @forelse($dataMaster as $item)
+                            @php
+                                // Tentukan route edit berdasarkan kategori
+                                $categoryUpper = strtoupper($item->category ?? '');
+                                $editRoute = '#';
+                                
+                                if (str_contains($categoryUpper, 'GURU')) {
+                                    $editRoute = route('data-master.guru.edit', $item->id);
+                                } elseif (str_contains($categoryUpper, 'SISWA')) {
+                                    $editRoute = route('data-master.siswa.edit', $item->id);
+                                } elseif (str_contains($categoryUpper, 'KELAS') || str_contains($categoryUpper, 'INFRASTRUKTUR')) {
+                                    $editRoute = route('data-master.kelas.edit', $item->id);
+                                } elseif (str_contains($categoryUpper, 'MATA PELAJARAN') || str_contains($categoryUpper, 'MAPEL')) {
+                                    $editRoute = route('data-master.mapel.edit', $item->id);
+                                } elseif (str_contains($categoryUpper, 'JADWAL')) {
+                                    $editRoute = route('data-master.jadwal.edit', $item->id);
+                                }
+                            @endphp
+                            
                             <tr class="hover:bg-surface-container-low transition-colors group" data-id="{{ $item->id }}">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
@@ -267,12 +285,18 @@
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <a href="#" 
-                                        class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+                                        <!-- EDIT BUTTON - Arahkan ke route edit yang benar -->
+                                        <a href="{{ $editRoute }}" 
+                                        class="p-1.5 text-on-surface-variant hover:text-primary transition-colors"
+                                        title="Edit {{ $item->name }}">
                                             <span class="material-symbols-outlined text-lg">edit</span>
                                         </a>
-                                        <button onclick="openDeleteModal('{{ $item->id }}', '{{ $item->name }}', '{{ $item->category }}')" 
-                                                class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
+                                        
+                                        <!-- DELETE BUTTON - Buka modal konfirmasi -->
+                                        <button type="button"
+                                                onclick="openDeleteModal('{{ $item->id }}', '{{ addslashes($item->name) }}', '{{ addslashes($item->category) }}')" 
+                                                class="p-1.5 text-on-surface-variant hover:text-error transition-colors"
+                                                title="Hapus {{ $item->name }}">
                                             <span class="material-symbols-outlined text-lg">delete</span>
                                         </button>
                                     </div>
@@ -435,28 +459,40 @@
         deleteData = null;
     }
 
-    // Confirm delete button
+    // ============ CONFIRM DELETE ============
     document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
         if (!deleteData) return;
         
         const { id, name, category } = deleteData;
+        const categoryUpper = category.toUpperCase();
+        
+        let route = '';
+        
+        // 🔥 TENTUKAN ROUTE BERDASARKAN KATEGORI
+        if (categoryUpper.includes('GURU')) {
+            route = '/admin/data-master/guru/' + id;
+        } else if (categoryUpper.includes('SISWA')) {
+            route = '/admin/data-master/siswa/' + id;          // ← TAMBAHKAN INI
+        } else if (categoryUpper.includes('KELAS') || categoryUpper.includes('INFRASTRUKTUR')) {
+            route = '/admin/data-master/kelas/' + id;
+        } else if (categoryUpper.includes('MATA PELAJARAN') || categoryUpper.includes('MAPEL')) {
+            route = '/admin/data-master/mapel/' + id;
+        } else if (categoryUpper.includes('JADWAL')) {
+            route = '/admin/data-master/jadwal/' + id;         // ← TAMBAHKAN INI
+        } else {
+            // Fallback jika kategori tidak dikenali
+            alert('Kategori tidak dikenali: ' + categoryUpper);
+            return;
+        }
+        
+        // Debug log (bisa dihapus nanti)
+        console.log('Deleting:', { id, category: categoryUpper, route });
         
         // Disable button
         this.disabled = true;
         this.innerHTML = '<span class="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></span> Menghapus...';
         
-        let route = '';
-        const categoryUpper = category.toUpperCase();
-        if (categoryUpper.includes('GURU')) {
-            route = '/admin/data-master/guru/' + id;
-        } else if (categoryUpper.includes('KELAS') || categoryUpper.includes('INFRASTRUKTUR')) {
-            route = '/admin/data-master/kelas/' + id;
-        } else if (categoryUpper.includes('MATA PELAJARAN') || categoryUpper.includes('MAPEL')) {
-            route = '/admin/data-master/mapel/' + id;
-        } else {
-            route = '/admin/data-master/guru/' + id;
-        }
-        
+        // Buat form DELETE
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = route;
