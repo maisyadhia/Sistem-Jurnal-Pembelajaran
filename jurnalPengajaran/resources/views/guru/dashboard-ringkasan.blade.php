@@ -145,7 +145,6 @@
                     <!-- FORM PENCARIAN LIVE SEARCH -->
                     <form method="GET" action="{{ route('guru.dashboard') }}" id="form-search"
                         class="flex items-center gap-1 shrink-0">
-                        <!-- Pertahankan filter aktif jika ada -->
                         @if(request('filter'))
                             <input type="hidden" name="filter" value="{{ request('filter') }}">
                         @endif
@@ -225,7 +224,7 @@
                     <thead>
                         <tr
                             class="border-b border-slate-200 text-slate-400 text-[10px] font-bold uppercase tracking-wider bg-slate-50/70">
-                            <th class="py-2.5 px-3">Waktu Input</th>
+                            <th class="py-2.5 px-3">Waktu Input & Tanggal KBM</th>
                             <th class="py-2.5 px-3">Kelas</th>
                             <th class="py-2.5 px-3">Mata Pelajaran</th>
                             <th class="py-2.5 px-3">Sesi</th>
@@ -235,9 +234,23 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-xs md:text-sm text-slate-700">
                         @forelse($jurnalTerbaru as $jurnal)
-                            <tr class="hover:bg-slate-50/50 transition-colors align-top">
+                            <!-- HIGHLIGHT MERAH JIKA JURNAL TERLAMBAT -->
+                            <tr class="transition-colors align-top {{ $jurnal->is_telat ? 'bg-red-50/80 hover:bg-red-100/80 border-l-4 border-l-red-500' : 'hover:bg-slate-50/50' }}">
                                 <td class="py-2.5 px-3 whitespace-nowrap text-[11px] text-slate-500">
-                                    {{ \Carbon\Carbon::parse($jurnal->created_at)->format('d M Y H:i') }}
+                                    <div class="flex items-center gap-1.5 mb-0.5">
+                                        <span class="font-bold text-slate-800">
+                                            KBM: {{ \Carbon\Carbon::parse($jurnal->tanggal)->format('d M Y') }}
+                                        </span>
+                                        @if($jurnal->is_telat)
+                                            <span class="inline-flex items-center gap-0.5 px-2 py-0.2 rounded-full text-[9px] font-extrabold bg-red-100 text-red-700 border border-red-200 shadow-sm" title="Jurnal diisi setelah tanggal KBM berlangsung">
+                                                <span class="material-symbols-outlined text-[11px]">schedule</span>
+                                                Terlambat
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <span class="text-[10px] text-slate-400 block">
+                                        Input: {{ \Carbon\Carbon::parse($jurnal->created_at)->format('d M Y H:i') }}
+                                    </span>
                                 </td>
                                 <td class="py-2.5 px-3 font-semibold text-slate-800 whitespace-nowrap">
                                     {{ $jurnal->nama_kelas }}
@@ -246,43 +259,36 @@
                                     {{ $jurnal->nama_mapel }}
                                 </td>
 
+
                                 <td class="py-2.5 px-3 whitespace-nowrap text-[11px] text-slate-700 font-semibold">
                                     @if(!empty($jurnal->waktu_sesi_list) && count($jurnal->waktu_sesi_list) > 0)
                                         <div class="flex flex-col gap-0.5">
-                                            @foreach($jurnal->waktu_sesi_list as $wSesi)
-                                                <span>{{ $wSesi }}</span>
-                                            @endforeach
+                                    @foreach($jurnal->waktu_sesi_list as $wSesi)
+                                        <span class="text-slate-800 font-medium">{{ $wSesi }}</span>
+                                    @endforeach
                                         </div>
                                     @else
                                         <span>Jam ke-{{ $jurnal->jam_ke }}</span>
                                     @endif
 
                                     @if(!empty($jurnal->jam_ke_label))
-                                        <span
-                                            class="text-[10px] text-slate-400 font-medium block mt-0.5">{{ $jurnal->jam_ke_label }}</span>
+                                        <span class="text-[10px] text-slate-400 font-bold block mt-0.5">{{ $jurnal->jam_ke_label }}</span>
                                     @endif
                                 </td>
 
-                                <!-- BAHASAN MATERI DAN TARGET PEMBELAJARAN (STYLING SELARAS) -->
                                 <td class="py-2.5 px-3 max-w-[200px] md:max-w-xs break-words text-xs leading-relaxed">
                                     <div>
-                                        <span class="font-bold text-teal-700 text-[10px] uppercase tracking-wider">Bahasan
-                                            Materi:</span>
-                                        <p class="text-slate-600 text-[11px] whitespace-pre-line">{{ $jurnal->materi ?? '-' }}
-                                        </p>
+                                        <span class="font-bold text-teal-700 text-[10px] uppercase tracking-wider">Bahasan Materi:</span>
+                                        <p class="text-slate-600 text-[11px] whitespace-pre-line">{{ $jurnal->materi ?? '-' }}</p>
                                     </div>
 
                                     @if(!empty($jurnal->target_next))
                                         <div class="mt-1.5 pt-1.5 border-t border-slate-100">
-                                            <span class="font-bold text-teal-700 text-[10px] uppercase tracking-wider">Target
-                                                Pembelajaran:</span>
-                                            <p class="text-slate-500 italic text-[11px] whitespace-pre-line">
-                                                {{ $jurnal->target_next }}
-                                            </p>
+                                            <span class="font-bold text-teal-700 text-[10px] uppercase tracking-wider">Target Pembelajaran:</span>
+                                            <p class="text-slate-500 italic text-[11px] whitespace-pre-line">{{ $jurnal->target_next }}</p>
                                         </div>
                                     @endif
 
-                                    <!-- TOMBOL EDIT BAHASAN MATERI & TARGET PEMBELAJARAN -->
                                     <div class="mt-2 pt-1 border-t border-slate-100">
                                         <a href="{{ route('guru.jurnal.edit', $jurnal->id) }}"
                                             class="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:text-teal-800 uppercase tracking-wider transition-colors">
@@ -336,8 +342,7 @@
                                                         </span>
                                                     </span>
                                                     @if(count($absenList) > 1)
-                                                        <span
-                                                            class="text-[10px] text-slate-400 font-bold">+{{ count($absenList) - 1 }}</span>
+                                                        <span class="text-[10px] text-slate-400 font-bold">+{{ count($absenList) - 1 }}</span>
                                                     @endif
                                                 </div>
                                             @endif
@@ -345,8 +350,7 @@
                                             @if(count($noteList) > 0)
                                                 <div class="text-[11px] text-slate-600 truncate max-w-[150px]">
                                                     <span class="font-bold text-teal-700 text-[10px] uppercase">Catatan:</span>
-                                                    <span
-                                                        class="italic">"{{ \Illuminate\Support\Str::limit($noteList[0]['text'], 20) }}"</span>
+                                                    <span class="italic">"{{ \Illuminate\Support\Str::limit($noteList[0]['text'], 20) }}"</span>
                                                 </div>
                                             @endif
 
@@ -377,7 +381,7 @@
                 </table>
             </div>
 
-            <!-- LINK PAGINATION (GAYA HALAMAN SEPERTI GOOGLE) -->
+            <!-- LINK PAGINATION -->
             @if($jurnalTerbaru->hasPages())
                 <div class="pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
                     <p class="text-xs text-slate-500">
@@ -391,91 +395,59 @@
                 </div>
             @endif
         </div>
-    </div>
-    </div>
 
-    <!-- Card Notifikasi Bawah -->
-    @if(isset($notifications) && $notifications->count() > 0)
-        <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-200/80">
-            <h3 class="text-base md:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <span class="material-symbols-outlined text-amber-500">notifications_active</span>
-                Notifikasi Pengingat Jurnal
-                <span
-                    class="ml-auto text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">{{ $notifications->count() }}</span>
-            </h3>
-            <div class="divide-y divide-slate-100">
-                @foreach($notifications as $notif)
-                    @php
-                        date_default_timezone_set('Asia/Jakarta');
-                        $targetKelasId = $notif->kelas_id ?? null;
-                        $targetMapelId = $notif->mapel_id ?? null;
+        <!-- Card Notifikasi Bawah -->
+        @if(isset($notifications) && $notifications->count() > 0)
+            <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-200/80">
+                <h3 class="text-base md:text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-amber-500">notifications_active</span>
+                    Notifikasi Pengingat Jurnal
+                    <span class="ml-auto text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">{{ $notifications->count() }}</span>
+                </h3>
+                <div class="divide-y divide-slate-100">
+                    @foreach($notifications as $notif)
+                        @php
+                            date_default_timezone_set('Asia/Jakarta');
+                            $tglKbmNotif = \Carbon\Carbon::parse($notif->created_at)->toDateString();
 
-                        if (!$targetKelasId || !$targetMapelId) {
-                            $guruIdSession = session('guru_id') ?? session('admin_id');
-                            Carbon\Carbon::setLocale('id');
-                            $hariIndo = Carbon\Carbon::now('Asia/Jakarta')->translatedFormat('l');
-
-                            $allJadwalHariIni = DB::table('jadwals')
-                                ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
-                                ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
-                                ->where('jadwals.guru_id', $guruIdSession)
-                                ->where('jadwals.hari', $hariIndo)
-                                ->select('jadwals.kelas_id', 'jadwals.mapel_id', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
-                                ->get();
-
-                            foreach ($allJadwalHariIni as $j) {
-                                $kelasMatch = str_contains(strtolower($notif->message), strtolower($j->nama_kelas));
-
-                                $cleanMapel = trim(preg_replace('/\s+/', ' ', str_replace(['(', ')'], '', $j->nama_mapel)));
-                                $firstWord = explode(' ', $cleanMapel)[0] ?? $j->nama_mapel;
-                                $mapelMatch = str_contains(strtolower($notif->message), strtolower($cleanMapel)) || str_contains(strtolower($notif->message), strtolower($firstWord));
-
-                                if ($kelasMatch && $mapelMatch) {
-                                    $targetKelasId = $j->kelas_id;
-                                    $targetMapelId = $j->mapel_id;
-                                    break;
-                                }
+                            if (!empty($notif->target_kelas_id) && !empty($notif->target_mapel_id)) {
+                                $urlTujuan = url('/guru/jurnal/' . $notif->target_kelas_id . '/' . $notif->target_mapel_id . '?tanggal=' . $tglKbmNotif);
+                            } else {
+                                $urlTujuan = route('guru.pilih.sesi');
                             }
-                        }
+                        @endphp
 
-                        $urlTujuan = ($targetKelasId && $targetMapelId)
-                            ? route('guru.jurnal.form', ['kelas_id' => $targetKelasId, 'mapel_id' => $targetMapelId])
-                            : route('guru.pilih.sesi');
-                    @endphp
+                        <div class="py-3 flex items-start gap-2.5 md:gap-3">
+                            <span class="material-symbols-outlined text-amber-500 text-base mt-0.5 shrink-0">info</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs md:text-sm text-slate-700 leading-snug">{{ $notif->message }}</p>
+                                <p class="text-[10px] md:text-xs text-slate-400 mt-0.5">
+                                    Target KBM: {{ \Carbon\Carbon::parse($notif->created_at)->translatedFormat('l, d F Y') }}
+                                </p>
+                            </div>
 
-                    <div class="py-3 flex items-start gap-2.5 md:gap-3">
-                        <span class="material-symbols-outlined text-amber-500 text-base mt-0.5 shrink-0">info</span>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs md:text-sm text-slate-700 leading-snug">{{ $notif->message }}</p>
-                            <p class="text-[10px] md:text-xs text-slate-400 mt-0.5">
-                                {{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}
-                            </p>
+                            <a href="{{ $urlTujuan }}"
+                                class="text-xs font-bold text-teal-600 hover:text-teal-800 hover:underline shrink-0 flex items-center gap-0.5">
+                                Isi Jurnal
+                                <span class="material-symbols-outlined text-xs">arrow_forward</span>
+                            </a>
                         </div>
-
-                        <a href="{{ $urlTujuan }}"
-                            class="text-xs font-bold text-teal-600 hover:text-teal-800 hover:underline shrink-0 flex items-center gap-0.5">
-                            Isi Jurnal
-                            <span class="material-symbols-outlined text-xs">arrow_forward</span>
-                        </a>
-                    </div>
-                @endforeach
+                    @endforeach
+                </div>
             </div>
-        </div>
-    @endif
+        @endif
     </div>
 
     <!-- MODAL POP-UP DETAIL ABSENSI & CATATAN SISWA -->
     <div id="modalDetailJurnal"
         class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div
-            class="bg-white rounded-2xl max-w-md w-full p-5 md:p-6 shadow-2xl border border-slate-100 flex flex-col gap-4 animate-fade-in">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 md:p-6 shadow-2xl border border-slate-100 flex flex-col gap-4 animate-fade-in">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-teal-600">assignment_ind</span>
                     <h4 class="font-bold text-slate-800 text-sm md:text-base" id="modalTitle">Detail Siswa</h4>
                 </div>
-                <button type="button" onclick="closeDetailModal()"
-                    class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">
+                <button type="button" onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">
                     &times;
                 </button>
             </div>
@@ -560,14 +532,12 @@
             document.getElementById('modalDetailJurnal').classList.add('hidden');
         }
 
-        // Fitur Live Search otomatis saat diketik
         let searchTimer;
         const inputSearch = document.getElementById('input-search');
 
         if (inputSearch) {
             inputSearch.addEventListener('input', function () {
                 clearTimeout(searchTimer);
-                // Tunggu 500ms setelah pengguna selesai mengetik baru lakukan submit form otomatis
                 searchTimer = setTimeout(() => {
                     document.getElementById('form-search').submit();
                 }, 500);

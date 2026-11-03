@@ -77,7 +77,7 @@ class GuruDashboardController extends Controller
         return view('guru.profile', compact('user', 'guru'));
     }
 
-    // Memproses ganti foto profil (VERSI STANDAR LARAVEL / PUBLIC_PATH)
+    // Memproses ganti foto profil (VERSI LOKAL: public_path standar Laravel)
     public function updatePhoto(Request $request)
     {
         $request->validate([
@@ -95,8 +95,7 @@ class GuruDashboardController extends Controller
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-            
-            // Mengarah ke folder public/uploads/profiles di dalam project Laravel
+
             $destinationPath = public_path('uploads/profiles');
 
             if (!File::exists($destinationPath)) {
@@ -168,79 +167,134 @@ class GuruDashboardController extends Controller
             }
         }
 
+        // LOGIKA PENGINGAT MUNDUR (CEK TERTINGGAL DARI 10 AGUSTUS 2026 SAMPAI HARI INI)
         if (session('user_role') === 'guru') {
             Carbon::setLocale('id');
             $now = Carbon::now('Asia/Jakarta');
             $today = $now->toDateString();
-            $namaHariIndo = $now->translatedFormat('l');
 
-            DB::table('notifications')
-                ->where('user_id', $guruId)
-                ->whereDate('created_at', '<', $today)
-                ->where('is_read', 0)
-                ->update(['is_read' => 1]);
+            $startDateLimit = '2026-08-10';
 
-            $jadwalHariIni = DB::table('jadwals')
+            // Ambil semua jadwal guru
+            $jadwalGuru = DB::table('jadwals')
                 ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
                 ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
                 ->where('jadwals.guru_id', $guruId)
-                ->where('jadwals.hari', $namaHariIndo)
-                ->select('jadwals.*', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
+                ->select('jadwals.kelas_id', 'jadwals.mapel_id', 'jadwals.hari', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
+                ->distinct()
                 ->get();
 
-            foreach ($jadwalHariIni as $jadwal) {
-                $jurnalAda = DB::table('jurnals')
-                    ->where('guru_id', $guruId)
-                    ->where('kelas_id', $jadwal->kelas_id)
-                    ->where('mapel_id', $jadwal->mapel_id)
-                    ->whereDate('tanggal', $today)
-                    ->exists();
+            // Loop mundur dari hari ini sampai 10 Agustus 2026
+            $currentDate = Carbon::parse($today, 'Asia/Jakarta');
+            $limitDate = Carbon::parse($startDateLimit, 'Asia/Jakarta');
 
-                $cleanMapel = trim(preg_replace('/\s+/', ' ', str_replace(['(', ')'], '', $jadwal->nama_mapel)));
-                $firstMapelWord = explode(' ', $cleanMapel)[0] ?? $jadwal->nama_mapel;
+            $loopCount = 0;
+            while ($currentDate->greaterThanOrEqualTo($limitDate) && $loopCount < 90) {
+                $tanggalStr = $currentDate->toDateString();
+                $namaHariIndo = $currentDate->translatedFormat('l');
 
-                if ($jurnalAda) {
-                    DB::table('notifications')
-                        ->where('user_id', $guruId)
-                        ->whereDate('created_at', $today)
-                        ->where('is_read', 0)
-                        ->where('message', 'like', "%{$jadwal->nama_kelas}%")
-                        ->where(function ($query) use ($jadwal, $firstMapelWord) {
-                            $query->where('message', 'like', "%{$jadwal->nama_mapel}%")
-                                ->orWhere('message', 'like', "%{$firstMapelWord}%");
-                        })
-                        ->update(['is_read' => 1]);
-                } else {
-                    $notifPernahDibuat = DB::table('notifications')
-                        ->where('user_id', $guruId)
-                        ->whereDate('created_at', $today)
-                        ->where('is_read', 0)
-                        ->where('message', 'like', "%{$jadwal->nama_kelas}%")
-                        ->where(function ($query) use ($jadwal, $firstMapelWord) {
-                            $query->where('message', 'like', "%{$jadwal->nama_mapel}%")
-                                ->orWhere('message', 'like', "%{$firstMapelWord}%");
-                        })
-                        ->exists();
+                foreach ($jadwalGuru as $jadwal) {
+                    if ($jadwal->hari === $namaHariIndo) {
 
-                    if (!$notifPernahDibuat) {
-                        DB::table('notifications')->insert([
-                            'user_id' => $guruId,
-                            'message' => "Pengingat Otomatis: Anda belum mengisi jurnal mengajar kelas {$jadwal->nama_kelas} ({$jadwal->nama_mapel}) hari ini!",
-                            'is_read' => 0,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
+                        // 1. Cek apakah jurnal sudah diisi pada tanggal KBM ini
+                        $jurnalAda = DB::table('jurnals')
+                            ->where('guru_id', $guruId)
+                            ->where('kelas_id', $jadwal->kelas_id)
+                            ->where('mapel_id', $jadwal->mapel_id)
+                            ->whereDate('tanggal', $tanggalStr)
+                            ->exists();
+
+                        // 2. Cek apakah notifikasi untuk tanggal & jadwal ini sudah ada di database
+                        $notifExisting = DB::table('notifications')
+                            ->where('user_id', $guruId)
+                            ->whereDate('created_at', $tanggalStr)
+                            ->where('message', 'like', "%kelas {$jadwal->nama_kelas}%")
+                            ->where('message', 'like', "%({$jadwal->nama_mapel})%")
+                            ->first();
+
+                        if ($jurnalAda) {
+                            // Jika sudah diisi, ubah status jadi read (is_read = 1) agar hilang dari lonceng
+                            if ($notifExisting && $notifExisting->is_read == 0) {
+                                DB::table('notifications')
+                                    ->where('id', $notifExisting->id)
+                                    ->update(['is_read' => 1]);
+                            }
+                        } else {
+                            // Jika belum diisi, buat notifnya agar muncul di lonceng (is_read = 0)
+                            if (!$notifExisting) {
+                                $pesanNotif = "Pengingat Jurnal: Jurnal mengajar kelas {$jadwal->nama_kelas} ({$jadwal->nama_mapel}) belum diisi!";
+
+                                DB::table('notifications')->insert([
+                                    'user_id' => $guruId,
+                                    'message' => $pesanNotif,
+                                    'is_read' => 0,
+                                    'created_at' => $tanggalStr . ' 07:00:00',
+                                    'updated_at' => now(),
+                                ]);
+                            }
+                        }
+                    }
+                }
+
+                $currentDate->subDay();
+                $loopCount++;
+            }
+        }
+
+        // 3. AMBIL NOTIFIKASI YANG BELUM DIISI (is_read = 0) DAN PETAKAN ID KELAS & MAPELNYA SECARA PRESISI
+        $notifications = DB::table('notifications')
+            ->where('user_id', $guruId)
+            ->where('is_read', 0)
+            ->whereDate('created_at', '>=', '2026-08-10')
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        // Ambil seluruh jadwal guru untuk pemetaan data notifikasi ke tombol Isi Jurnal
+        $jadwalsGuruFull = DB::table('jadwals')
+            ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
+            ->where('jadwals.guru_id', $guruId)
+            ->select('jadwals.kelas_id', 'jadwals.mapel_id', 'jadwals.hari', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
+            ->get();
+
+        foreach ($notifications as $notif) {
+            $notif->target_kelas_id = null;
+            $notif->target_mapel_id = null;
+
+            Carbon::setLocale('id');
+            $tglNotifCarbon = Carbon::parse($notif->created_at);
+            $hariKbmNotif = $tglNotifCarbon->translatedFormat('l');
+
+            // Pencocokan presisi (Kelas, Mapel, dan Hari KBM)
+            foreach ($jadwalsGuruFull as $j) {
+                $kelasMatch = str_contains(strtolower($notif->message), strtolower($j->nama_kelas));
+                $cleanMapel = trim(preg_replace('/\s+/', ' ', str_replace(['(', ')'], '', $j->nama_mapel)));
+                $firstWord = explode(' ', $cleanMapel)[0] ?? $j->nama_mapel;
+                $mapelMatch = str_contains(strtolower($notif->message), strtolower($cleanMapel)) || str_contains(strtolower($notif->message), strtolower($firstWord));
+
+                if ($kelasMatch && $mapelMatch && strtolower($j->hari) === strtolower($hariKbmNotif)) {
+                    $notif->target_kelas_id = $j->kelas_id;
+                    $notif->target_mapel_id = $j->mapel_id;
+                    break;
+                }
+            }
+
+            // Fallback pencocokan tingkat kedua (Kelas dan Mapel saja)
+            if (!$notif->target_kelas_id || !$notif->target_mapel_id) {
+                foreach ($jadwalsGuruFull as $j) {
+                    $kelasMatch = str_contains(strtolower($notif->message), strtolower($j->nama_kelas));
+                    $cleanMapel = trim(preg_replace('/\s+/', ' ', str_replace(['(', ')'], '', $j->nama_mapel)));
+                    $firstWord = explode(' ', $cleanMapel)[0] ?? $j->nama_mapel;
+                    $mapelMatch = str_contains(strtolower($notif->message), strtolower($cleanMapel)) || str_contains(strtolower($notif->message), strtolower($firstWord));
+
+                    if ($kelasMatch && $mapelMatch) {
+                        $notif->target_kelas_id = $j->kelas_id;
+                        $notif->target_mapel_id = $j->mapel_id;
+                        break;
                     }
                 }
             }
         }
-
-        $notifications = DB::table('notifications')
-            ->where('user_id', $guruId)
-            ->where('is_read', 0)
-            ->whereDate('created_at', Carbon::now('Asia/Jakarta')->toDateString())
-            ->orderBy('created_at', 'desc')
-            ->get();
 
         $totalKelas = DB::table('jadwals')->where('guru_id', $guruId)->distinct('kelas_id')->count('kelas_id');
         $totalMapel = DB::table('jadwals')->where('guru_id', $guruId)->distinct('mapel_id')->count('mapel_id');
@@ -289,6 +343,12 @@ class GuruDashboardController extends Controller
             Carbon::setLocale('id');
             $hariJurnal = Carbon::parse($j->tanggal)->translatedFormat('l');
 
+            // 1. DETEKSI TELAT YANG PRESISI (Tanggal Input > Tanggal KBM)
+            $tglKbm = Carbon::parse($j->tanggal)->startOfDay();
+            $tglInput = Carbon::parse($j->created_at)->startOfDay();
+            $j->is_telat = $tglInput->greaterThan($tglKbm);
+
+            // 2. AMBIL SEMUA JADWAL SESI (UNTUK MENAMPILKAN JAM & RENTANG WAKTU SEPERTI GAMBAR)
             $jadwalMatching = DB::table('jadwals')
                 ->where('guru_id', $guruId)
                 ->where('kelas_id', $j->kelas_id)
@@ -312,9 +372,16 @@ class GuruDashboardController extends Controller
             }
 
             $j->waktu_sesi_list = $waktuSesiArr;
-            $j->jam_ke_label = count($jamKeList) > 0 ? 'Jam ke ' . implode(' & ', array_unique($jamKeList)) : 'Jam ke-' . $j->jam_ke;
-        }
+            $uniqueJamKe = array_unique($jamKeList);
 
+            if (count($uniqueJamKe) > 1) {
+                $j->jam_ke_label = 'Jam ke ' . min($uniqueJamKe) . ' & ' . max($uniqueJamKe);
+            } elseif (count($uniqueJamKe) == 1) {
+                $j->jam_ke_label = 'Jam ke-' . reset($uniqueJamKe);
+            } else {
+                $j->jam_ke_label = 'Jam ke-' . ($j->jam_ke ?? '1');
+            }
+        }
         return view('guru.dashboard-ringkasan', compact('totalKelas', 'totalMapel', 'jurnalHariIni', 'jurnalTerbaru', 'notifications', 'currentFilter'));
     }
 
@@ -322,7 +389,8 @@ class GuruDashboardController extends Controller
     {
         date_default_timezone_set('Asia/Jakarta');
         $guruId = session('guru_id') ?? session('admin_id');
-        if (!$guruId) return redirect()->route('login');
+        if (!$guruId)
+            return redirect()->route('login');
 
         $guruUser = DB::table('users')->where('id', $guruId)->first();
         $guruName = $guruUser->name ?? (session('user_name') ?? 'Guru');
@@ -368,7 +436,8 @@ class GuruDashboardController extends Controller
     {
         date_default_timezone_set('Asia/Jakarta');
         $guruId = session('guru_id') ?? session('admin_id');
-        if (!$guruId) return redirect()->route('login');
+        if (!$guruId)
+            return redirect()->route('login');
 
         $guruUser = DB::table('users')->where('id', $guruId)->first();
         $guruName = $guruUser->name ?? (session('user_name') ?? 'Guru');
@@ -464,7 +533,8 @@ class GuruDashboardController extends Controller
     {
         date_default_timezone_set('Asia/Jakarta');
         $guruId = session('guru_id') ?? session('admin_id');
-        if (!$guruId) return redirect()->route('login');
+        if (!$guruId)
+            return redirect()->route('login');
 
         $guruName = session('user_name') ?? 'Guru';
 
@@ -534,16 +604,23 @@ class GuruDashboardController extends Controller
                 $waktuSesi = count($waktuArr) > 0 ? implode(' | ', $waktuArr) : ('Jam ke-' . ($jurnal->jam_ke ?? '-'));
 
                 $students = json_decode($jurnal->student_ids, true);
-                $hadirCount = 0; $sakitCount = 0; $izinCount = 0; $alphaCount = 0;
+                $hadirCount = 0;
+                $sakitCount = 0;
+                $izinCount = 0;
+                $alphaCount = 0;
                 $catatanArr = [];
 
                 if (is_array($students)) {
                     foreach ($students as $s) {
                         $status = strtolower($s['status'] ?? 'hadir');
-                        if ($status === 'hadir') $hadirCount++;
-                        elseif ($status === 'sakit') $sakitCount++;
-                        elseif ($status === 'izin') $izinCount++;
-                        elseif ($status === 'alpha') $alphaCount++;
+                        if ($status === 'hadir')
+                            $hadirCount++;
+                        elseif ($status === 'sakit')
+                            $sakitCount++;
+                        elseif ($status === 'izin')
+                            $izinCount++;
+                        elseif ($status === 'alpha')
+                            $alphaCount++;
 
                         if (!empty($s['catatan'])) {
                             $siswaDb = DB::table('students')->where('id', $s['student_id'] ?? 0)->first();

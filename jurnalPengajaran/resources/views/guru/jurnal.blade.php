@@ -90,6 +90,9 @@
     <!-- Form Utama -->
     <form class="flex flex-col gap-4 md:gap-6" method="POST" action="{{ route('guru.jurnal.store') }}" id="jurnalForm">
         @csrf
+        <!-- MENGATUR TANGGAL KBM DARI NOTIFIKASI TERKIRIM KE CONTROLLER -->
+        <input type="hidden" name="tanggal_mengajar" value="{{ $tanggal }}">
+        
         <input type="hidden" name="kelas_id" value="{{ request()->route('kelas_id') }}">
         <input type="hidden" name="mapel_id" value="{{ request()->route('mapel_id') }}">
         

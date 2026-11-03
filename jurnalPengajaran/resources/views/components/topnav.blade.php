@@ -6,7 +6,6 @@
             <span class="material-symbols-outlined block">menu</span>
         </button>
 
-        <!-- Tanggal: Ringkas di HP, Lengkap di Laptop -->
         <a href="{{ route('dashboard') }}"
             class="flex items-center gap-1.5 hover:opacity-80 transition-opacity bg-surface-container-low/60 md:bg-transparent px-2.5 py-1 md:p-0 rounded-lg shrink-0">
             <span class="material-symbols-outlined text-primary text-lg md:text-xl">calendar_today</span>
@@ -72,23 +71,25 @@
                                 @php
                                     $targetKelasId = $notif->kelas_id ?? null;
                                     $targetMapelId = $notif->mapel_id ?? null;
+                                    $tglKbmNotif = \Carbon\Carbon::parse($notif->created_at)->toDateString();
 
                                     if (!$targetKelasId || !$targetMapelId) {
                                         \Carbon\Carbon::setLocale('id');
-                                        $hariIndo = \Carbon\Carbon::now()->translatedFormat('l');
+                                        $tglNotifCarbon = \Carbon\Carbon::parse($notif->created_at);
+                                        $hariKbmNotif = $tglNotifCarbon->translatedFormat('l');
 
                                         preg_match('/\((.*?)\)/', $notif->message, $matches);
                                         $mapelInNotif = isset($matches[1]) ? trim($matches[1]) : '';
 
-                                        $allJadwalHariIni = DB::table('jadwals')
+                                        $allJadwalGuru = DB::table('jadwals')
                                             ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
                                             ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
                                             ->where('jadwals.guru_id', $userId)
-                                            ->where('jadwals.hari', $hariIndo)
+                                            ->where('jadwals.hari', $hariKbmNotif)
                                             ->select('jadwals.kelas_id', 'jadwals.mapel_id', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel')
                                             ->get();
 
-                                        foreach ($allJadwalHariIni as $j) {
+                                        foreach ($allJadwalGuru as $j) {
                                             $kelasMatch = str_contains($notif->message, $j->nama_kelas);
 
                                             $mapelMatch = false;
@@ -106,8 +107,9 @@
                                         }
                                     }
 
+                                    // Mengarahkan langsung ke halaman jurnal dengan menyertakan tanggal KBM
                                     $urlTujuan = ($targetKelasId && $targetMapelId)
-                                        ? route('guru.jurnal.form', ['kelas_id' => $targetKelasId, 'mapel_id' => $targetMapelId])
+                                        ? route('guru.jurnal.form', ['kelas_id' => $targetKelasId, 'mapel_id' => $targetMapelId]) . '?tanggal=' . $tglKbmNotif
                                         : route('guru.pilih.sesi');
                                 @endphp
 
@@ -119,7 +121,7 @@
                                         <p class="text-slate-800 font-medium leading-snug">{{ $notif->message }}</p>
                                         <div class="flex items-center justify-between mt-1.5">
                                             <span class="text-[10px] text-slate-400">
-                                                {{ \Carbon\Carbon::parse($notif->created_at)->diffForHumans() }}
+                                                Target KBM: {{ \Carbon\Carbon::parse($notif->created_at)->translatedFormat('l, d F Y') }}
                                             </span>
                                             <span
                                                 class="text-[10px] font-bold text-teal-600 group-hover:underline flex items-center gap-0.5">
@@ -131,7 +133,7 @@
                                 </a>
                             @empty
                                 <div class="p-6 text-center text-slate-400 text-xs italic">
-                                    Semua jurnal hari ini sudah lengkap diisi! 🎉
+                                    Semua jurnal sudah lengkap diisi! 🎉
                                 </div>
                             @endforelse
                         </div>
@@ -147,7 +149,6 @@
             <!-- User Profile Avatar -->
             <div class="relative" id="profileDropdownContainer">
                 @if(session('user_role') === 'guru')
-                    <!-- JIKA GURU: Gunakan Dropdown Lengkap (Profil & Keluar) -->
                     <button type="button" onclick="toggleProfileDropdown()"
                         class="flex items-center gap-2.5 pl-1 focus:outline-none hover:opacity-80 transition-opacity rounded-xl p-1 cursor-pointer">
                         <div class="text-right hidden sm:block">
@@ -195,7 +196,6 @@
                     </div>
 
                 @else
-                    <!-- JIKA ADMIN / WALI MURID: Tampilan Profil Bersih Tanpa Ikon Logout Ekstra -->
                     <div class="flex items-center gap-2.5 pl-1 rounded-xl p-1">
                         <div class="text-right hidden sm:block">
                             <p class="font-label-caps text-label-caps text-primary leading-none mb-1 font-bold">
@@ -277,14 +277,12 @@
     }
 
     document.addEventListener('click', function (e) {
-        // Tutup Notifikasi saat klik di luar
         const notifContainer = document.getElementById('notifDropdownContainer');
         const notifMenu = document.getElementById('notifDropdownMenu');
         if (notifContainer && notifMenu && !notifContainer.contains(e.target)) {
             notifMenu.classList.add('hidden');
         }
 
-        // Tutup Profil saat klik di luar
         const profileContainer = document.getElementById('profileDropdownContainer');
         const profileMenu = document.getElementById('profileDropdownMenu');
         if (profileContainer && profileMenu && !profileContainer.contains(e.target)) {
