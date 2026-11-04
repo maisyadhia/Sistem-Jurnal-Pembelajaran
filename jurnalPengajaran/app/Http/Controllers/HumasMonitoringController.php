@@ -276,17 +276,54 @@ class HumasMonitoringController extends Controller
             ->whereDate('tanggal', $date)
             ->get();
 
+        // 🔥 HITUNG STATUS + KETERLAMBATAN
         $teacherStatus = [];
+        $teacherLateStatus = [];
+        $teacherLateCount = [];
+
         foreach ($teachers as $teacher) {
             $isReported = false;
+            $isLate = false;
+            $lateCount = 0;
+
             foreach ($jurnals as $jurnal) {
                 if ($jurnal->guru_id == $teacher->id) {
                     $isReported = true;
-                    break;
+
+                    $tglKbm = \Carbon\Carbon::parse($jurnal->tanggal)->startOfDay();
+                    $tglInput = \Carbon\Carbon::parse($jurnal->created_at)->startOfDay();
+
+                    if ($tglInput->greaterThan($tglKbm)) {
+                        $isLate = true;
+                        $lateCount++;
+                    }
                 }
             }
+
             $teacherStatus[$teacher->id] = $isReported;
+            $teacherLateStatus[$teacher->id] = $isLate;
+            $teacherLateCount[$teacher->id] = $lateCount;
         }
+
+        // 🔥 AMBIL JURNAL TERLAMBAT
+        $jurnalsTerlambat = DB::table('jurnals')
+            ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
+            ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
+            ->select(
+                'jurnals.id',
+                'jurnals.tanggal as tanggal_kbm',
+                'jurnals.created_at as tanggal_input',
+                'guru.nama_guru',
+                'kelas_master.nama_kelas',
+                'mapel_master.nama_mapel',
+                'jurnals.materi',
+                DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari')
+            )
+            ->whereDate('jurnals.tanggal', $date)
+            ->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal')
+            ->orderBy('jurnals.created_at', 'desc')
+            ->get();
 
         $data = [
             'title' => 'Laporan Kepatuhan Guru',
@@ -298,6 +335,9 @@ class HumasMonitoringController extends Controller
             'teachers' => $teachers,
             'jurnals' => $jurnals,
             'teacherStatus' => $teacherStatus,
+            'teacherLateStatus' => $teacherLateStatus,
+            'teacherLateCount' => $teacherLateCount,
+            'jurnalsTerlambat' => $jurnalsTerlambat,
             'unreported' => DB::table('unreported_classes')
                 ->whereDate('date', $date)
                 ->where('reported', false)
@@ -342,19 +382,51 @@ class HumasMonitoringController extends Controller
             fputcsv($handle, ['Terlambat', $data['lateCount']]);
             fputcsv($handle, ['']);
 
+            // 🔥 DAFTAR GURU + KETERANGAN
             fputcsv($handle, ['DAFTAR GURU']);
-            fputcsv($handle, ['No', 'Nama Guru', 'NIK', 'Status']);
+            fputcsv($handle, ['No', 'Nama Guru', 'NIK', 'Status', 'Keterangan']);
 
             $no = 1;
             foreach ($data['teachers'] as $teacher) {
                 $isReported = isset($data['teacherStatus'][$teacher->id]) ? $data['teacherStatus'][$teacher->id] : false;
-                $status = $isReported ? 'Sudah Mengisi' : 'Belum Mengisi';
+                $isLate = isset($data['teacherLateStatus'][$teacher->id]) ? $data['teacherLateStatus'][$teacher->id] : false;
+                $lateCount = isset($data['teacherLateCount'][$teacher->id]) ? $data['teacherLateCount'][$teacher->id] : 0;
+
+                if ($isReported) {
+                    $status = $isLate ? 'Terlambat' : 'Tepat Waktu';
+                    $keterangan = $isLate ? "{$lateCount} jurnal terlambat" : 'Tepat waktu';
+                } else {
+                    $status = 'Belum Mengisi';
+                    $keterangan = 'Belum ada jurnal';
+                }
+
                 $teacherName = $teacher->nama_guru ?? $teacher->name ?? '-';
                 $teacherNik = $teacher->nik ?? '-';
 
-                fputcsv($handle, [$no++, $teacherName, $teacherNik, $status]);
+                fputcsv($handle, [$no++, $teacherName, $teacherNik, $status, $keterangan]);
             }
 
+            // 🔥 JURNAL TERLAMBAT
+            if (isset($data['jurnalsTerlambat']) && $data['jurnalsTerlambat']->count() > 0) {
+                fputcsv($handle, ['']);
+                fputcsv($handle, ['JURNAL TERLAMBAT']);
+                fputcsv($handle, ['No', 'Nama Guru', 'Kelas', 'Mapel', 'Tanggal KBM', 'Tanggal Input', 'Terlambat']);
+
+                $no = 1;
+                foreach ($data['jurnalsTerlambat'] as $jurnal) {
+                    fputcsv($handle, [
+                        $no++,
+                        $jurnal->nama_guru,
+                        $jurnal->nama_kelas,
+                        $jurnal->nama_mapel,
+                        \Carbon\Carbon::parse($jurnal->tanggal_kbm)->format('d/m/Y'),
+                        \Carbon\Carbon::parse($jurnal->tanggal_input)->format('d/m/Y H:i'),
+                        $jurnal->selisih_hari . ' hari'
+                    ]);
+                }
+            }
+
+            // Kelas Tanpa Catatan
             if ($data['unreported']->count() > 0) {
                 fputcsv($handle, ['']);
                 fputcsv($handle, ['KELAS TANPA CATATAN']);
@@ -387,17 +459,56 @@ class HumasMonitoringController extends Controller
             ->whereDate('tanggal', $date)
             ->get();
 
+        // 🔥 HITUNG STATUS + KETERLAMBATAN PER GURU
         $teacherStatus = [];
+        $teacherLateStatus = [];
+        $teacherLateCount = [];
+
         foreach ($teachers as $teacher) {
             $isReported = false;
+            $isLate = false;
+            $lateCount = 0;
+
             foreach ($jurnals as $jurnal) {
                 if ($jurnal->guru_id == $teacher->id) {
                     $isReported = true;
-                    break;
+
+                    // Cek keterlambatan: tanggal input > tanggal KBM
+                    $tglKbm = \Carbon\Carbon::parse($jurnal->tanggal)->startOfDay();
+                    $tglInput = \Carbon\Carbon::parse($jurnal->created_at)->startOfDay();
+
+                    if ($tglInput->greaterThan($tglKbm)) {
+                        $isLate = true;
+                        $lateCount++;
+                    }
                 }
             }
+
             $teacherStatus[$teacher->id] = $isReported;
+            $teacherLateStatus[$teacher->id] = $isLate;
+            $teacherLateCount[$teacher->id] = $lateCount;
         }
+
+        // 🔥 AMBIL DAFTAR JURNAL YANG TERLAMBAT (tanggal input > tanggal KBM)
+        $jurnalsTerlambat = DB::table('jurnals')
+            ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
+            ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
+            ->select(
+                'jurnals.id',
+                'jurnals.tanggal as tanggal_kbm',
+                'jurnals.created_at as tanggal_input',
+                'guru.nama_guru',
+                'guru.nik',
+                'kelas_master.nama_kelas',
+                'mapel_master.nama_mapel',
+                'jurnals.materi',
+                DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari')
+            )
+            ->whereDate('jurnals.tanggal', $date)
+            ->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal')
+            ->orderBy('jurnals.created_at', 'desc')
+            ->get();
 
         $data = [
             'title' => 'Laporan Kepatuhan Guru',
@@ -409,6 +520,9 @@ class HumasMonitoringController extends Controller
             'teachers' => $teachers,
             'jurnals' => $jurnals,
             'teacherStatus' => $teacherStatus,
+            'teacherLateStatus' => $teacherLateStatus,
+            'teacherLateCount' => $teacherLateCount,
+            'jurnalsTerlambat' => $jurnalsTerlambat,
             'unreported' => DB::table('unreported_classes')
                 ->whereDate('date', $date)
                 ->where('reported', false)

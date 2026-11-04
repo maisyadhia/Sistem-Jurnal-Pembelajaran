@@ -4,28 +4,12 @@
 
 @push('styles')
 <style>
-    .stat-card {
-        transition: all 0.2s ease;
-    }
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-    }
-    .status-badge {
-        display: inline-block;
-        padding: 2px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    .status-badge.success {
-        background: #86f2e4;
-        color: #006a61;
-    }
-    .status-badge.warning {
-        background: #ffddb8;
-        color: #3e2400;
-    }
+    .stat-card { transition: all 0.2s ease; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    .status-badge { display: inline-block; padding: 2px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    .status-badge.success { background: #86f2e4; color: #006a61; }
+    .status-badge.warning { background: #ffddb8; color: #3e2400; }
+    .status-badge.danger { background: #fecaca; color: #991b1b; }
 </style>
 @endpush
 
@@ -42,7 +26,6 @@
             </p>
         </div>
         <div class="flex gap-2">
-            <!-- Filter Tanggal -->
             <form method="GET" action="{{ route('laporan.index') }}" class="flex items-center gap-2">
                 <input type="date" name="date" value="{{ $date }}" 
                        class="px-3 py-2 border border-outline-variant rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none">
@@ -50,7 +33,6 @@
                     Filter
                 </button>
             </form>
-            <!-- Tombol Download Excel -->
             <a href="{{ route('report.export', ['date' => $date]) }}" 
                class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-colors">
                 <span class="material-symbols-outlined text-sm">download</span>
@@ -96,7 +78,7 @@
         </div>
     </div>
 
-    <!-- Daftar Guru -->
+    <!-- Daftar Guru dengan Keterangan Keterlambatan -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="p-4 border-b border-slate-200 flex justify-between items-center">
             <h3 class="font-bold text-slate-800">Daftar Guru</h3>
@@ -110,6 +92,7 @@
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Guru</th>
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">NIK</th>
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Keterangan</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -117,16 +100,78 @@
                     @foreach($teachers as $teacher)
                         @php
                             $isReported = isset($teacherStatus[$teacher->id]) ? $teacherStatus[$teacher->id] : false;
-                            $status = $isReported ? 'Sudah Mengisi' : 'Belum Mengisi';
-                            $statusClass = $isReported ? 'success' : 'warning';
+                            $isLate = isset($teacherLateStatus[$teacher->id]) ? $teacherLateStatus[$teacher->id] : false;
+                            $lateCount = isset($teacherLateCount[$teacher->id]) ? $teacherLateCount[$teacher->id] : 0;
+
+                            if ($isReported) {
+                                $status = $isLate ? 'Terlambat' : 'Tepat Waktu';
+                                $statusClass = $isLate ? 'danger' : 'success';
+                                $keterangan = $isLate ? "{$lateCount} jurnal terlambat" : 'Tepat waktu';
+                            } else {
+                                $status = 'Belum Mengisi';
+                                $statusClass = 'warning';
+                                $keterangan = 'Belum ada jurnal';
+                            }
                         @endphp
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-4 py-3 text-sm">{{ $no++ }}</td>
                             <td class="px-4 py-3 text-sm font-medium">{{ $teacher->nama_guru }}</td>
                             <td class="px-4 py-3 text-sm">{{ $teacher->nik }}</td>
                             <td class="px-4 py-3">
-                                <span class="status-badge {{ $statusClass }}">
-                                    {{ $status }}
+                                <span class="status-badge {{ $statusClass }}">{{ $status }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                @if($isLate)
+                                    <span class="text-red-600 font-medium">⚠️ {{ $keterangan }}</span>
+                                @elseif($isReported)
+                                    <span class="text-green-600">✅ {{ $keterangan }}</span>
+                                @else
+                                    <span class="text-amber-600">⏳ {{ $keterangan }}</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 🔥 JURNAL TERLAMBAT -->
+    @if(isset($jurnalsTerlambat) && $jurnalsTerlambat->count() > 0)
+    <div class="bg-white rounded-2xl shadow-sm border border-red-200 overflow-hidden">
+        <div class="p-4 border-b border-red-200 flex justify-between items-center bg-red-50">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-red-600">schedule</span>
+                <h3 class="font-bold text-red-700">Jurnal Terlambat</h3>
+            </div>
+            <span class="text-sm text-red-600 font-medium">{{ $jurnalsTerlambat->count() }} jurnal</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-red-50 border-b border-red-200">
+                    <tr>
+                        <th class="px-4 py-3 text-xs font-bold text-red-600 uppercase tracking-wider">No</th>
+                        <th class="px-4 py-3 text-xs font-bold text-red-600 uppercase tracking-wider">Nama Guru</th>
+                        <th class="px-4 py-3 text-xs font-bold text-red-600 uppercase tracking-wider">Kelas</th>
+                        <th class="px-4 py-3 text-xs font-bold text-red-600 uppercase tracking-wider">Mapel</th>
+                        <th class="px-4 py-3 text-xs font-bold text-red-600 uppercase tracking-wider">Tanggal KBM</th>
+                        <th class="px-4 py-3 text-xs font-bold text-red-600 uppercase tracking-wider">Tanggal Input</th>
+                        <th class="px-4 py-3 text-xs font-bold text-red-600 uppercase tracking-wider">Terlambat</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-red-100">
+                    @php $no = 1; @endphp
+                    @foreach($jurnalsTerlambat as $jurnal)
+                        <tr class="hover:bg-red-50/50 transition-colors">
+                            <td class="px-4 py-3 text-sm">{{ $no++ }}</td>
+                            <td class="px-4 py-3 text-sm font-medium">{{ $jurnal->nama_guru }}</td>
+                            <td class="px-4 py-3 text-sm">{{ $jurnal->nama_kelas }}</td>
+                            <td class="px-4 py-3 text-sm">{{ $jurnal->nama_mapel }}</td>
+                            <td class="px-4 py-3 text-sm">{{ \Carbon\Carbon::parse($jurnal->tanggal_kbm)->format('d M Y') }}</td>
+                            <td class="px-4 py-3 text-sm">{{ \Carbon\Carbon::parse($jurnal->tanggal_input)->format('d M Y H:i') }}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                                    {{ $jurnal->selisih_hari }} hari
                                 </span>
                             </td>
                         </tr>
@@ -135,6 +180,7 @@
             </table>
         </div>
     </div>
+    @endif
 
     <!-- Kelas Tanpa Catatan -->
     @if($unreported->count() > 0)
