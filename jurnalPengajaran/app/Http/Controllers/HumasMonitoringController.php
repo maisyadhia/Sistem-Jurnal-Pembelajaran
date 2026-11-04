@@ -268,229 +268,10 @@ class HumasMonitoringController extends Controller
 
     public function exportReport(Request $request)
     {
-        $date = $request->get('date', today()->format('Y-m-d'));
-        $period = $request->get('period', 'weekly');
-
         $teachers = DB::table('guru')->get();
-        $jurnals = DB::table('jurnals')
-            ->whereDate('tanggal', $date)
-            ->get();
-
-        // 🔥 HITUNG STATUS + KETERLAMBATAN
-        $teacherStatus = [];
-        $teacherLateStatus = [];
-        $teacherLateCount = [];
-
-        foreach ($teachers as $teacher) {
-            $isReported = false;
-            $isLate = false;
-            $lateCount = 0;
-
-            foreach ($jurnals as $jurnal) {
-                if ($jurnal->guru_id == $teacher->id) {
-                    $isReported = true;
-
-                    $tglKbm = \Carbon\Carbon::parse($jurnal->tanggal)->startOfDay();
-                    $tglInput = \Carbon\Carbon::parse($jurnal->created_at)->startOfDay();
-
-                    if ($tglInput->greaterThan($tglKbm)) {
-                        $isLate = true;
-                        $lateCount++;
-                    }
-                }
-            }
-
-            $teacherStatus[$teacher->id] = $isReported;
-            $teacherLateStatus[$teacher->id] = $isLate;
-            $teacherLateCount[$teacher->id] = $lateCount;
-        }
-
-        // 🔥 AMBIL JURNAL TERLAMBAT
-        $jurnalsTerlambat = DB::table('jurnals')
-            ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
-            ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
-            ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
-            ->select(
-                'jurnals.id',
-                'jurnals.tanggal as tanggal_kbm',
-                'jurnals.created_at as tanggal_input',
-                'guru.nama_guru',
-                'kelas_master.nama_kelas',
-                'mapel_master.nama_mapel',
-                'jurnals.materi',
-                DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari')
-            )
-            ->whereDate('jurnals.tanggal', $date)
-            ->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal')
-            ->orderBy('jurnals.created_at', 'desc')
-            ->get();
-
-        $data = [
-            'title' => 'Laporan Kepatuhan Guru',
-            'date' => $date,
-            'period' => $period,
-            'complianceRate' => $this->calculateComplianceRate(),
-            'onTimeCount' => $this->getOnTimeCount(),
-            'lateCount' => $this->getLateCount(),
-            'teachers' => $teachers,
-            'jurnals' => $jurnals,
-            'teacherStatus' => $teacherStatus,
-            'teacherLateStatus' => $teacherLateStatus,
-            'teacherLateCount' => $teacherLateCount,
-            'jurnalsTerlambat' => $jurnalsTerlambat,
-            'unreported' => DB::table('unreported_classes')
-                ->whereDate('date', $date)
-                ->where('reported', false)
-                ->get(),
-        ];
-
-        $this->logActivity(
-            'export',
-            'report',
-            "Mengekspor laporan kepatuhan periode {$period} tanggal {$date}",
-            null,
-            ['date' => $date, 'period' => $period, 'format' => 'excel']
-        );
-
-        return $this->exportExcel($data);
-    }
-
-    private function exportExcel($data)
-    {
-        $filename = "laporan_kepatuhan_{$data['date']}.csv";
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"$filename\"",
-            'Pragma' => 'no-cache',
-            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0',
-        ];
-
-        $callback = function() use ($data) {
-            $handle = fopen('php://output', 'w');
-            fputs($handle, "\xEF\xBB\xBF");
-
-            fputcsv($handle, ['LAPORAN KEPATUHAN GURU']);
-            fputcsv($handle, ['Tanggal', $data['date']]);
-            fputcsv($handle, ['Periode', $data['period']]);
-            fputcsv($handle, ['']);
-
-            fputcsv($handle, ['STATISTIK KEPATUHAN']);
-            fputcsv($handle, ['Tingkat Kepatuhan', $data['complianceRate'] . '%']);
-            fputcsv($handle, ['Tepat Waktu', $data['onTimeCount']]);
-            fputcsv($handle, ['Terlambat', $data['lateCount']]);
-            fputcsv($handle, ['']);
-
-            // 🔥 DAFTAR GURU + KETERANGAN
-            fputcsv($handle, ['DAFTAR GURU']);
-            fputcsv($handle, ['No', 'Nama Guru', 'NIK', 'Status', 'Keterangan']);
-
-            $no = 1;
-            foreach ($data['teachers'] as $teacher) {
-                $isReported = isset($data['teacherStatus'][$teacher->id]) ? $data['teacherStatus'][$teacher->id] : false;
-                $isLate = isset($data['teacherLateStatus'][$teacher->id]) ? $data['teacherLateStatus'][$teacher->id] : false;
-                $lateCount = isset($data['teacherLateCount'][$teacher->id]) ? $data['teacherLateCount'][$teacher->id] : 0;
-
-                if ($isReported) {
-                    $status = $isLate ? 'Terlambat' : 'Tepat Waktu';
-                    $keterangan = $isLate ? "{$lateCount} jurnal terlambat" : 'Tepat waktu';
-                } else {
-                    $status = 'Belum Mengisi';
-                    $keterangan = 'Belum ada jurnal';
-                }
-
-                $teacherName = $teacher->nama_guru ?? $teacher->name ?? '-';
-                $teacherNik = $teacher->nik ?? '-';
-
-                fputcsv($handle, [$no++, $teacherName, $teacherNik, $status, $keterangan]);
-            }
-
-            // 🔥 JURNAL TERLAMBAT
-            if (isset($data['jurnalsTerlambat']) && $data['jurnalsTerlambat']->count() > 0) {
-                fputcsv($handle, ['']);
-                fputcsv($handle, ['JURNAL TERLAMBAT']);
-                fputcsv($handle, ['No', 'Nama Guru', 'Kelas', 'Mapel', 'Tanggal KBM', 'Tanggal Input', 'Terlambat']);
-
-                $no = 1;
-                foreach ($data['jurnalsTerlambat'] as $jurnal) {
-                    fputcsv($handle, [
-                        $no++,
-                        $jurnal->nama_guru,
-                        $jurnal->nama_kelas,
-                        $jurnal->nama_mapel,
-                        \Carbon\Carbon::parse($jurnal->tanggal_kbm)->format('d/m/Y'),
-                        \Carbon\Carbon::parse($jurnal->tanggal_input)->format('d/m/Y H:i'),
-                        $jurnal->selisih_hari . ' hari'
-                    ]);
-                }
-            }
-
-            // Kelas Tanpa Catatan
-            if ($data['unreported']->count() > 0) {
-                fputcsv($handle, ['']);
-                fputcsv($handle, ['KELAS TANPA CATATAN']);
-                fputcsv($handle, ['No', 'Kelas', 'Mata Pelajaran', 'Guru']);
-
-                $no = 1;
-                foreach ($data['unreported'] as $class) {
-                    fputcsv($handle, [
-                        $no++,
-                        $class->code ?? $class->nama_kelas ?? '-',
-                        $class->subject ?? $class->nama_mapel ?? '-',
-                        $class->teacher ?? $class->nama_guru ?? '-'
-                    ]);
-                }
-            }
-
-            fclose($handle);
-        };
-
-        return response()->stream($callback, 200, $headers);
-    }
-
-    public function laporanIndex(Request $request)
-    {
-        $date = $request->get('date', today()->format('Y-m-d'));
-        $period = $request->get('period', 'weekly');
-
-        $teachers = DB::table('guru')->get();
-        $jurnals = DB::table('jurnals')
-            ->whereDate('tanggal', $date)
-            ->get();
-
-        // 🔥 HITUNG STATUS + KETERLAMBATAN PER GURU
-        $teacherStatus = [];
-        $teacherLateStatus = [];
-        $teacherLateCount = [];
-
-        foreach ($teachers as $teacher) {
-            $isReported = false;
-            $isLate = false;
-            $lateCount = 0;
-
-            foreach ($jurnals as $jurnal) {
-                if ($jurnal->guru_id == $teacher->id) {
-                    $isReported = true;
-
-                    // Cek keterlambatan: tanggal input > tanggal KBM
-                    $tglKbm = \Carbon\Carbon::parse($jurnal->tanggal)->startOfDay();
-                    $tglInput = \Carbon\Carbon::parse($jurnal->created_at)->startOfDay();
-
-                    if ($tglInput->greaterThan($tglKbm)) {
-                        $isLate = true;
-                        $lateCount++;
-                    }
-                }
-            }
-
-            $teacherStatus[$teacher->id] = $isReported;
-            $teacherLateStatus[$teacher->id] = $isLate;
-            $teacherLateCount[$teacher->id] = $lateCount;
-        }
-
-        // 🔥 AMBIL DAFTAR JURNAL YANG TERLAMBAT (tanggal input > tanggal KBM)
-        $jurnalsTerlambat = DB::table('jurnals')
+        
+        // Ambil SEMUA jurnal (dengan filter jika ada)
+        $queryJurnal = DB::table('jurnals')
             ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
@@ -503,32 +284,187 @@ class HumasMonitoringController extends Controller
                 'kelas_master.nama_kelas',
                 'mapel_master.nama_mapel',
                 'jurnals.materi',
-                DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari')
-            )
-            ->whereDate('jurnals.tanggal', $date)
-            ->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal')
-            ->orderBy('jurnals.created_at', 'desc')
-            ->get();
+                'jurnals.target_next',
+                DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari'),
+                DB::raw('CASE WHEN DATE(jurnals.created_at) > jurnals.tanggal THEN 1 ELSE 0 END as is_terlambat')
+            );
 
-        $data = [
-            'title' => 'Laporan Kepatuhan Guru',
-            'date' => $date,
-            'period' => $period,
-            'complianceRate' => $this->calculateComplianceRate(),
-            'onTimeCount' => $this->getOnTimeCount(),
-            'lateCount' => $this->getLateCount(),
-            'teachers' => $teachers,
+        // Filter
+        if ($request->filled('filter')) {
+            $filter = $request->filter;
+            if ($filter === 'hari_ini') {
+                $queryJurnal->whereDate('jurnals.tanggal', today());
+            } elseif ($filter === '1_minggu') {
+                $queryJurnal->whereDate('jurnals.tanggal', '>=', now()->subWeek());
+            } elseif ($filter === '1_bulan') {
+                $queryJurnal->whereDate('jurnals.tanggal', '>=', now()->subMonth());
+            } elseif ($filter === 'terlambat') {
+                $queryJurnal->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal');
+            }
+        }
+
+        $jurnals = $queryJurnal->orderBy('jurnals.created_at', 'desc')->get();
+
+        $this->logActivity('export', 'report', 'Mengekspor laporan kepatuhan', null, ['total' => $jurnals->count()]);
+
+        return $this->exportExcel([
             'jurnals' => $jurnals,
-            'teacherStatus' => $teacherStatus,
-            'teacherLateStatus' => $teacherLateStatus,
-            'teacherLateCount' => $teacherLateCount,
-            'jurnalsTerlambat' => $jurnalsTerlambat,
-            'unreported' => DB::table('unreported_classes')
-                ->whereDate('date', $date)
-                ->where('reported', false)
-                ->get(),
+            'teachers' => $teachers,
+        ]);
+    }
+
+    private function exportExcel($data)
+    {
+        $filename = "laporan_kepatuhan_" . date('Y-m-d_His') . ".csv";
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ];
 
-        return view('humas.laporan', $data);
+        $callback = function() use ($data) {
+            $handle = fopen('php://output', 'w');
+            fputs($handle, "\xEF\xBB\xBF");
+
+            fputcsv($handle, ['LAPORAN KEPATUHAN GURU']);
+            fputcsv($handle, ['Generated', now()->format('d/m/Y H:i')]);
+            fputcsv($handle, ['']);
+
+            fputcsv($handle, ['DAFTAR JURNAL']);
+            fputcsv($handle, ['No', 'Tanggal KBM', 'Tanggal Input', 'Guru', 'NIK', 'Kelas', 'Mapel', 'Materi', 'Status', 'Selisih Hari']);
+
+            $no = 1;
+            foreach ($data['jurnals'] as $jurnal) {
+                $status = $jurnal->is_terlambat ? 'Terlambat' : 'Tepat Waktu';
+                fputcsv($handle, [
+                    $no++,
+                    \Carbon\Carbon::parse($jurnal->tanggal_kbm)->format('d/m/Y'),
+                    \Carbon\Carbon::parse($jurnal->tanggal_input)->format('d/m/Y H:i'),
+                    $jurnal->nama_guru,
+                    $jurnal->nik ?? '-',
+                    $jurnal->nama_kelas,
+                    $jurnal->nama_mapel,
+                    $jurnal->materi ?? '-',
+                    $status,
+                    $jurnal->selisih_hari . ' hari'
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function laporanIndex(Request $request)
+    {
+        // ========== FILTER ==========
+        $currentFilter = $request->query('filter');
+        $search = $request->query('search');
+        
+        // ========== QUERY JURNAL (SEMUA RIWAYAT) ==========
+        $queryJurnal = DB::table('jurnals')
+            ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
+            ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
+            ->select(
+                'jurnals.id',
+                'jurnals.tanggal as tanggal_kbm',
+                'jurnals.created_at as tanggal_input',
+                'guru.nama_guru',
+                'guru.nik',
+                'kelas_master.nama_kelas',
+                'mapel_master.nama_mapel',
+                'jurnals.materi',
+                'jurnals.target_next',
+                DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari'),
+                DB::raw('CASE WHEN DATE(jurnals.created_at) > jurnals.tanggal THEN 1 ELSE 0 END as is_terlambat')
+            );
+
+        // Search
+        if ($search) {
+            $queryJurnal->where(function($q) use ($search) {
+                $q->where('guru.nama_guru', 'like', "%{$search}%")
+                ->orWhere('kelas_master.nama_kelas', 'like', "%{$search}%")
+                ->orWhere('mapel_master.nama_mapel', 'like', "%{$search}%")
+                ->orWhere('jurnals.materi', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter periode
+        if ($currentFilter === 'hari_ini') {
+            $queryJurnal->whereDate('jurnals.tanggal', today());
+        } elseif ($currentFilter === '1_minggu') {
+            $queryJurnal->whereDate('jurnals.tanggal', '>=', now()->subWeek());
+        } elseif ($currentFilter === '1_bulan') {
+            $queryJurnal->whereDate('jurnals.tanggal', '>=', now()->subMonth());
+        } elseif ($currentFilter === 'terlambat') {
+            $queryJurnal->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal');
+        }
+
+        // 🔥 PAGINATION - seperti dashboard guru
+        $jurnals = $queryJurnal->orderBy('jurnals.created_at', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        // ========== STATISTIK ==========
+        $totalJurnal = DB::table('jurnals')->count();
+        $totalTerlambat = DB::table('jurnals')
+            ->whereRaw('DATE(created_at) > tanggal')
+            ->count();
+        $totalTepatWaktu = $totalJurnal - $totalTerlambat;
+        
+        // Persentase
+        $complianceRate = $totalJurnal > 0 
+            ? round(($totalTepatWaktu / $totalJurnal) * 100, 1) 
+            : 0;
+
+        // ========== DAFTAR GURU (untuk tabel status) ==========
+        $teachers = DB::table('guru')->get();
+        
+        // Hitung status per guru dari SEMUA jurnal
+        $teacherStatus = [];
+        $teacherLateStatus = [];
+        $teacherLateCount = [];
+        $teacherTotalCount = [];
+
+        foreach ($teachers as $teacher) {
+            $totalJurnalGuru = DB::table('jurnals')
+                ->where('guru_id', $teacher->id)
+                ->count();
+            
+            $totalTerlambatGuru = DB::table('jurnals')
+                ->where('guru_id', $teacher->id)
+                ->whereRaw('DATE(created_at) > tanggal')
+                ->count();
+
+            $teacherStatus[$teacher->id] = $totalJurnalGuru > 0;
+            $teacherLateStatus[$teacher->id] = $totalTerlambatGuru > 0;
+            $teacherLateCount[$teacher->id] = $totalTerlambatGuru;
+            $teacherTotalCount[$teacher->id] = $totalJurnalGuru;
+        }
+
+        // ========== UNREPORTED CLASSES ==========
+        $unreported = DB::table('unreported_classes')
+            ->where('reported', false)
+            ->get();
+
+        return view('humas.laporan', compact(
+            'jurnals',
+            'totalJurnal',
+            'totalTerlambat',
+            'totalTepatWaktu',
+            'complianceRate',
+            'teachers',
+            'teacherStatus',
+            'teacherLateStatus',
+            'teacherLateCount',
+            'teacherTotalCount',
+            'unreported',
+            'currentFilter',
+            'search'
+        ));
     }
 }
