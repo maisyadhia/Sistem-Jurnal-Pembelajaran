@@ -69,88 +69,99 @@ class GuruDashboardController extends Controller
         }
 
         $user = DB::table('users')->where('id', $guruId)->first();
-        $guru = DB::table('guru')
-            ->where('id', $guruId)
-            ->orWhere('nama_guru', $user->name ?? '')
-            ->first();
+        
+        // Ambil data guru langsung berdasarkan id (karena id di session sama dengan id di tabel guru)
+        $guru = DB::table('guru')->where('id', $guruId)->first();
 
         return view('guru.profile', compact('user', 'guru'));
     }
 
-    // Memproses ganti foto profil (VERSI LOKAL: public_path standar Laravel)
-    public function updatePhoto(Request $request)
+    // METHOD TERPADU: UPDATE DATA PROFIL (FOTO, NO HP, PASSWORD - OPSIONAL)
+    public function updateProfile(Request $request)
     {
+        $guruId = session('guru_id') ?? session('admin_id');
+        if (!$guruId) {
+            return redirect()->route('login');
+        }
+
+        $guru = DB::table('guru')->where('id', $guruId)->first();
+        $user = DB::table('users')->where('id', $guruId)->first();
+
+        // Validasi input (semuanya opsional/nullable kecuali jika diisi)
         $request->validate([
-            'photo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'photo'            => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'no_hp'            => 'nullable|string|max:20',
+            'current_password' => 'nullable|required_with:new_password',
+            'new_password'     => 'nullable|min:6|confirmed',
         ], [
-            'photo.required' => 'Pilih file foto terlebih dahulu.',
-            'photo.image' => 'File harus berupa gambar.',
-            'photo.mimes' => 'Format foto harus berjenis: JPG, JPEG, PNG.',
-            'photo.max' => 'Ukuran foto maksimal 2MB.',
+            'photo.image'                    => 'File foto harus berupa gambar.',
+            'photo.mimes'                    => 'Format foto harus: JPG, JPEG, PNG.',
+            'photo.max'                      => 'Ukuran foto maksimal 2MB.',
+            'no_hp.max'                      => 'Nomor WhatsApp maksimal 20 karakter.',
+            'current_password.required_with' => 'Password saat ini harus diisi jika ingin mengganti password baru.',
+            'new_password.min'               => 'Password baru minimal 6 karakter.',
+            'new_password.confirmed'         => 'Konfirmasi password baru tidak cocok.',
         ]);
 
-        $userId = session('guru_id') ?? session('admin_id') ?? session('user_id');
-        $guru = DB::table('guru')->where('id', $userId)->first();
+        $updateData = ['updated_at' => now()];
 
+        // 1. UPDATE FOTO PROFIL (JIKA ADA UPLOAD)
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
 
-            $destinationPath = public_path('uploads/profiles');
+            // Jalur cPanel / Public standard
+            $destinationPath = base_path('../public/uploads/profiles');
+            if (!file_exists($destinationPath)) {
+                $destinationPath = public_path('uploads/profiles');
+            }
 
-            if (!File::exists($destinationPath)) {
-                File::makeDirectory($destinationPath, 0755, true, true);
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
             }
 
             $file->move($destinationPath, $filename);
 
+            // Hapus foto lama jika ada
             if ($guru && !empty($guru->foto)) {
                 $oldFilePath = public_path($guru->foto);
-                if (File::exists($oldFilePath)) {
-                    File::delete($oldFilePath);
+                if (file_exists($oldFilePath)) {
+                    @unlink($oldFilePath);
                 }
             }
 
-            $path = 'uploads/profiles/' . $filename;
-
-            DB::table('guru')->where('id', $userId)->update([
-                'foto' => $path,
-                'updated_at' => now()
-            ]);
+            $updateData['foto'] = 'uploads/profiles/' . $filename;
         }
 
-        return back()->with('success', 'Foto profil berhasil diperbarui!');
-    }
-
-    public function updatePassword(Request $request)
-    {
-        $request->validate([
-            'current_password' => 'required',
-            'new_password' => 'required|min:6|confirmed',
-        ], [
-            'current_password.required' => 'Password saat ini harus diisi.',
-            'new_password.required' => 'Password baru harus diisi.',
-            'new_password.min' => 'Password baru minimal 6 karakter.',
-            'new_password.confirmed' => 'Konfirmasi password baru tidak cocok.',
-        ]);
-
-        $guruId = session('guru_id') ?? session('admin_id');
-        $guru = DB::table('guru')->where('id', $guruId)->first();
-
-        if (!$guru) {
-            return back()->withErrors(['current_password' => 'Data guru tidak ditemukan.']);
+        // 2. UPDATE NOMOR WHATSAPP (Sesuai kolom no_hp di tabel)
+        if ($request->filled('no_hp')) {
+            $updateData['no_hp'] = $request->no_hp;
         }
 
-        if (!Hash::check($request->current_password, $guru->password)) {
-            return back()->withErrors(['current_password' => 'Password saat ini salah!']);
+        // 3. UPDATE PASSWORD (JIKA DIISI)
+        if ($request->filled('new_password')) {
+            $currentPasswordDb = $guru->password ?? ($user->password ?? '');
+            
+            if (!Hash::check($request->current_password, $currentPasswordDb)) {
+                return back()->withErrors(['current_password' => 'Password saat ini salah!']);
+            }
+
+            $hashedPassword = Hash::make($request->new_password);
+            $updateData['password'] = $hashedPassword;
+
+            // Update juga tabel users jika datanya terhubung
+            if ($user) {
+                DB::table('users')->where('id', $guruId)->update([
+                    'password'   => $hashedPassword,
+                    'updated_at' => now()
+                ]);
+            }
         }
 
-        DB::table('guru')->where('id', $guruId)->update([
-            'password' => Hash::make($request->new_password),
-            'updated_at' => now()
-        ]);
+        // Eksekusi Update ke tabel 'guru' berdasarkan id
+        DB::table('guru')->where('id', $guruId)->update($updateData);
 
-        return back()->with('success', 'Password berhasil diperbarui!');
+        return redirect()->route('guru.dashboard')->with('success', 'Data profil berhasil diperbarui!');
     }
 
     // Dashboard Ringkasan
