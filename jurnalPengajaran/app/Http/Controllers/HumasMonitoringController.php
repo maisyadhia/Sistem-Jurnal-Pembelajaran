@@ -51,17 +51,22 @@ class HumasMonitoringController extends Controller
         )->orderBy('created_at', 'desc')->limit(5)->get();
 
         // Ambil data kelas terbaru
-        $kelas = DB::table('kelas_master')->select(
-            'id',
-            'nama_kelas as name',
-            'wali_kelas as identifier',
-            DB::raw("'KELAS' as category"),
-            DB::raw("'Tersedia' as status"),
-            DB::raw("'bg-secondary' as statusColor"),
-            DB::raw("'bg-purple-500' as color"),
-            DB::raw("UPPER(LEFT(nama_kelas, 2)) as initials"),
-            'created_at'
-        )->orderBy('created_at', 'desc')->limit(5)->get();
+        $kelas = DB::table('kelas_master')
+            ->leftJoin('guru', 'kelas_master.wali_kelas_id', '=', 'guru.id')
+            ->select(
+                'kelas_master.id',
+                'kelas_master.nama_kelas as name',
+                'guru.nama_guru as identifier',
+                DB::raw("'KELAS' as category"),
+                DB::raw("'Tersedia' as status"),
+                DB::raw("'bg-secondary' as statusColor"),
+                DB::raw("'bg-purple-500' as color"),
+                DB::raw("UPPER(LEFT(kelas_master.nama_kelas, 2)) as initials"),
+                'kelas_master.created_at'
+            )
+            ->orderBy('kelas_master.created_at', 'desc')
+            ->limit(5)
+            ->get();
 
         // Ambil data mapel terbaru
         $mapel = DB::table('mapel_master')->select(
