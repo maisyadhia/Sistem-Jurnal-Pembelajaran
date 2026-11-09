@@ -13,7 +13,7 @@ class KelasMaster extends Model
 
     protected $fillable = [
         'nama_kelas',
-        'wali_kelas',
+        'wali_kelas_id', // <- Ganti dari 'wali_kelas'
         'tahun_ajaran',
         'is_aktif',
     ];
@@ -21,6 +21,12 @@ class KelasMaster extends Model
     protected $casts = [
         'is_aktif' => 'boolean',
     ];
+
+    // Tambahkan Relasi
+    public function waliKelas()
+    {
+        return $this->belongsTo(Guru::class, 'wali_kelas_id');
+    }
 
     public function scopeAktif($query)
     {

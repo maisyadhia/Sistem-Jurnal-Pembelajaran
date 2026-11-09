@@ -64,7 +64,7 @@
                                     <span class="font-data-tabular text-data-tabular">{{ $item->nama_kelas }}</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-4">{{ $item->wali_kelas }}</td>
+                            <td class="px-4 py-4">{{ $item->waliKelas->nama_guru ?? '-' }}</td>
                             <td class="px-4 py-4 text-right">
                                 <div class="flex justify-end gap-1">
                                     <a href="{{ route('data-master.kelas.edit', $item->id) }}" 

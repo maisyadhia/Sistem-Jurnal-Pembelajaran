@@ -43,6 +43,15 @@
                 @enderror
             </div>
             
+            <div class="space-y-1.5">
+                <label class="block font-label-caps text-label-caps text-on-surface-variant" for="no_hp">No HP</label>
+                <input class="w-full h-[40px] bg-surface border border-outline-variant rounded-lg px-4 text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('no_hp') border-error @enderror" 
+                    id="no_hp" name="no_hp" type="text" value="{{ old('no_hp', $guru->no_hp ?? '') }}" placeholder="08xxxxxxxxxx"/>
+                @error('no_hp')
+                    <p class="text-error text-sm">{{ $message }}</p>
+                @enderror
+            </div>
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="space-y-1.5">
                     <label class="block font-label-caps text-label-caps text-on-surface-variant" for="password">Password (kosongkan jika tidak diubah)</label>

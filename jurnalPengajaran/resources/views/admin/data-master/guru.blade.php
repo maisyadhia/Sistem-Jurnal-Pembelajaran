@@ -52,6 +52,7 @@
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">NAMA</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">KODE</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">NIK</th>
+                        <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">NO HP</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">ROLE</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant text-right">AKSI</th>
                     </tr>
@@ -59,6 +60,7 @@
                 <tbody class="divide-y divide-outline-variant">
                     @forelse($guru as $item)
                         <tr class="hover:bg-surface-container-low transition-colors">
+                            <!-- 1. NAMA -->
                             <td class="px-4 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-[10px]">
@@ -67,8 +69,17 @@
                                     <span class="font-data-tabular text-data-tabular">{{ $item->nama_guru }}</span>
                                 </div>
                             </td>
+                            
+                            <!-- 2. KODE -->
                             <td class="px-4 py-4">{{ $item->kode_guru }}</td>
+                            
+                            <!-- 3. NIK -->
                             <td class="px-4 py-4">{{ $item->nik }}</td>
+                            
+                            <!-- 4. NO HP (TAMBAHKAN INI) -->
+                            <td class="px-4 py-4">{{ $item->no_hp ?? '-' }}</td>
+                            
+                            <!-- 5. ROLE -->
                             <td class="px-4 py-4">
                                 <span class="px-2 py-1 rounded-full text-xs font-medium
                                     {{ $item->role == 'admin' ? 'bg-red-100 text-red-700' : '' }}
@@ -76,10 +87,12 @@
                                     {{ strtoupper($item->role) }}
                                 </span>
                             </td>
+                            
+                            <!-- 6. AKSI -->
                             <td class="px-4 py-4 text-right">
                                 <div class="flex justify-end gap-1">
                                     <a href="{{ route('data-master.guru.edit', $item->id) }}" 
-                                       class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+                                    class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined text-lg">edit</span>
                                     </a>
                                     <button onclick="openDeleteModal('{{ $item->id }}', '{{ $item->nama_guru }}', 'GURU')" 
@@ -91,7 +104,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-8 text-center text-on-surface-variant">
+                            <!-- Ubah colspan menjadi 6 karena ada 6 kolom -->
+                            <td colspan="6" class="px-4 py-8 text-center text-on-surface-variant">
                                 <span class="material-symbols-outlined text-3xl block mx-auto mb-2">inbox</span>
                                 Belum ada data guru.
                             </td>

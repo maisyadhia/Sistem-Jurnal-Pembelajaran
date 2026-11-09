@@ -23,12 +23,16 @@
             </div>
             
             <div class="space-y-1.5">
-                <label class="block font-label-caps text-label-caps text-on-surface-variant" for="wali_kelas">Wali Kelas</label>
-                <input class="w-full h-[40px] bg-surface border border-outline-variant rounded-lg px-4 text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('wali_kelas') border-error @enderror" 
-                       id="wali_kelas" name="wali_kelas" type="text" required value="{{ old('wali_kelas') }}"/>
-                @error('wali_kelas')
-                    <p class="text-error text-sm">{{ $message }}</p>
-                @enderror
+                <label class="block font-label-caps text-label-caps text-on-surface-variant" for="wali_kelas_id">Wali Kelas</label>
+                <select class="w-full h-[40px] bg-surface border border-outline-variant rounded-lg px-4" 
+                        id="wali_kelas_id" name="wali_kelas_id">
+                    <option value="">Pilih Wali Kelas</option>
+                    @foreach($guru as $g)
+                        <option value="{{ $g->id }}" {{ old('wali_kelas_id') == $g->id ? 'selected' : '' }}>
+                            {{ $g->nama_guru }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
             
             <div class="flex justify-end gap-3 pt-4 border-t border-outline-variant">

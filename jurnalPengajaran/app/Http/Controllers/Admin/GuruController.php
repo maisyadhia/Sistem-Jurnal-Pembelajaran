@@ -27,24 +27,26 @@ class GuruController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'kode_guru' => 'required|unique:guru,kode_guru',
-            'nik' => 'required|unique:guru,nik|min:16',
-            'nama_guru' => 'required',
-            'password' => 'required|min:6',
-            'role' => 'required|in:guru,admin,humas',
-        ]);
+        'kode_guru' => 'required|unique:guru,kode_guru',
+        'nik' => 'required|unique:guru,nik|min:16',
+        'nama_guru' => 'required',
+        'no_hp' => 'nullable|string|max:20',
+        'password' => 'required|min:6',
+        'role' => 'required|in:guru,admin,humas',
+    ]);
 
-        $data = [
-            'kode_guru' => $request->kode_guru,
-            'nik' => $request->nik,
-            'nama_guru' => $request->nama_guru,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ];
+    $data = [
+        'kode_guru' => $request->kode_guru,
+        'nik' => $request->nik,
+        'nama_guru' => $request->nama_guru,
+        'no_hp' => $request->no_hp, // <-- TAMBAHKAN INI
+        'password' => Hash::make($request->password),
+        'role' => $request->role,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ];
 
-        DB::table('guru')->insert($data);
+    DB::table('guru')->insert($data);
 
         // Log aktivitas
         $this->logActivity(
@@ -75,6 +77,7 @@ class GuruController extends Controller
             'kode_guru' => 'required|unique:guru,kode_guru,' . $id,
             'nik' => 'required|min:16|unique:guru,nik,' . $id,
             'nama_guru' => 'required',
+            'no_hp' => 'nullable|string|max:20',
             'role' => 'required|in:guru,admin,humas',
         ]);
 
@@ -85,6 +88,7 @@ class GuruController extends Controller
             'kode_guru' => $request->kode_guru,
             'nik' => $request->nik,
             'nama_guru' => $request->nama_guru,
+            'no_hp' => $request->no_hp,
             'role' => $request->role,
             'updated_at' => now(),
         ];

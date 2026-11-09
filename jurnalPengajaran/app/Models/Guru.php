@@ -12,6 +12,7 @@ class Guru extends Model
         'kode_guru',
         'nik',
         'nama_guru',
+        'no_hp',
         'password',
         'role',
     ];
