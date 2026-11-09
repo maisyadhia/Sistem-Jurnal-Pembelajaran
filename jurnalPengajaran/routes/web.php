@@ -160,8 +160,7 @@ Route::middleware(['auth.session', 'role:guru'])->prefix('guru')->group(function
 
    // Route Profil
     Route::get('/profile', [GuruDashboardController::class, 'editProfile'])->name('guru.profile.edit');
-    Route::post('/profile/update-photo', [GuruDashboardController::class, 'updatePhoto'])->name('guru.profile.update-photo');
-    Route::post('/profile/update-password', [GuruDashboardController::class, 'updatePassword'])->name('guru.profile.update-password');
+    Route::put('/profile/update', [GuruDashboardController::class, 'updateProfile'])->name('guru.profile.update');
 });
 
 // ============ PARENT ROUTES ============

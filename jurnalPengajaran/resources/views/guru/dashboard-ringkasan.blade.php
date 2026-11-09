@@ -2,7 +2,7 @@
 
 @section('title', 'Dashboard Guru - SIMJAR')
 
-@push('styles')
+@section('styles')
     <style>
         .stat-card {
             transition: all 0.2s ease;
@@ -38,7 +38,7 @@
             scrollbar-width: none;
         }
     </style>
-@endpush
+@endsection
 
 @section('content')
     <div class="max-w-6xl mx-auto w-full flex flex-col gap-4 pt-2 pb-6 px-3 md:px-6">
@@ -50,23 +50,13 @@
             <p class="text-xs md:text-body-base text-slate-500">Ringkasan aktivitas mengajar Anda</p>
         </section>
 
-        <!-- Banner Alerts -->
+        <!-- Banner Alerts (Warning tetap ada, session('success') manual dihapus agar tidak duplikat dengan layout utama) -->
         @if(session('warning'))
             <div
                 class="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-center text-amber-800 animate-fade-in">
                 <span class="material-symbols-outlined text-amber-600 shrink-0">warning</span>
                 <div class="flex-1 text-xs md:text-sm font-medium">
                     {{ session('warning') }}
-                </div>
-            </div>
-        @endif
-
-        @if(session('success'))
-            <div
-                class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex gap-3 items-center text-emerald-800 animate-fade-in">
-                <span class="material-symbols-outlined text-emerald-600 shrink-0">check_circle</span>
-                <div class="flex-1 text-xs md:text-sm font-medium">
-                    {{ session('success') }}
                 </div>
             </div>
         @endif
@@ -478,7 +468,7 @@
     </div>
 @endsection
 
-@push('scripts')
+@section('scripts')
     <script>
         function openDetailModalSafe(btn) {
             const absenList = JSON.parse(btn.getAttribute('data-absen') || '[]');
@@ -497,11 +487,11 @@
                     let badgeBg = item.status === 'Alpha' ? 'bg-red-100 text-red-700 border-red-200' : (item.status === 'Sakit' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-blue-100 text-blue-700 border-blue-200');
 
                     listAbsen.innerHTML += `
-                            <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100 text-xs">
-                                <span class="font-semibold text-slate-800">${item.nama}</span>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeBg}">${item.status}</span>
-                            </div>
-                        `;
+                        <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100 text-xs">
+                            <span class="font-semibold text-slate-800">${item.nama}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeBg}">${item.status}</span>
+                        </div>
+                    `;
                 });
             } else {
                 containerAbsen.classList.add('hidden');
@@ -515,11 +505,11 @@
                 containerCatatan.classList.remove('hidden');
                 noteList.forEach(item => {
                     listCatatan.innerHTML += `
-                            <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs">
-                                <p class="font-bold text-slate-800 mb-0.5">${item.nama}</p>
-                                <p class="text-slate-600 italic">"${item.text}"</p>
-                            </div>
-                        `;
+                        <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs">
+                            <p class="font-bold text-slate-800 mb-0.5">${item.nama}</p>
+                            <p class="text-slate-600 italic">"${item.text}"</p>
+                        </div>
+                    `;
                 });
             } else {
                 containerCatatan.classList.add('hidden');
@@ -544,4 +534,4 @@
             });
         }
     </script>
-@endpush
+@endsection
