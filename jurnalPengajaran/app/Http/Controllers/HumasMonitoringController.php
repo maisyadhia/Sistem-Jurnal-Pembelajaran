@@ -365,10 +365,10 @@ class HumasMonitoringController extends Controller
 
     public function laporanIndex(Request $request)
     {
-        // ========== FILTER ==========
         $currentFilter = $request->query('filter');
         $search = $request->query('search');
-        
+        $dateFilter = $request->query('tanggal', today()->toDateString());
+
         // ========== QUERY JURNAL (SEMUA RIWAYAT) ==========
         $queryJurnal = DB::table('jurnals')
             ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
@@ -409,7 +409,6 @@ class HumasMonitoringController extends Controller
             $queryJurnal->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal');
         }
 
-        // 🔥 PAGINATION - seperti dashboard guru
         $jurnals = $queryJurnal->orderBy('jurnals.created_at', 'desc')
             ->paginate(15)
             ->withQueryString();
@@ -421,34 +420,44 @@ class HumasMonitoringController extends Controller
             ->count();
         $totalTepatWaktu = $totalJurnal - $totalTerlambat;
         
-        // Persentase
         $complianceRate = $totalJurnal > 0 
             ? round(($totalTepatWaktu / $totalJurnal) * 100, 1) 
             : 0;
 
-        // ========== DAFTAR GURU (untuk tabel status) ==========
+        // ========== DAFTAR GURU & STATUS ==========
         $teachers = DB::table('guru')->get();
         
-        // Hitung status per guru dari SEMUA jurnal
         $teacherStatus = [];
         $teacherLateStatus = [];
         $teacherLateCount = [];
         $teacherTotalCount = [];
+        $teacherBelumIsi = [];
 
         foreach ($teachers as $teacher) {
-            $totalJurnalGuru = DB::table('jurnals')
+            // Cek jurnal hari ini
+            $totalJurnalHariIni = DB::table('jurnals')
                 ->where('guru_id', $teacher->id)
+                ->whereDate('tanggal', $dateFilter)
                 ->count();
             
+            // Cek jurnal terlambat
             $totalTerlambatGuru = DB::table('jurnals')
                 ->where('guru_id', $teacher->id)
                 ->whereRaw('DATE(created_at) > tanggal')
                 ->count();
 
-            $teacherStatus[$teacher->id] = $totalJurnalGuru > 0;
+            // 🔥 CEK NOTIFIKASI BELUM DIBACA (BERARTI BELUM ISI)
+            $notifBelumDibaca = DB::table('notifications')
+                ->where('user_id', $teacher->id)
+                ->whereDate('created_at', $dateFilter)
+                ->where('is_read', 0)
+                ->exists();
+
+            $teacherStatus[$teacher->id] = $totalJurnalHariIni > 0;
             $teacherLateStatus[$teacher->id] = $totalTerlambatGuru > 0;
             $teacherLateCount[$teacher->id] = $totalTerlambatGuru;
-            $teacherTotalCount[$teacher->id] = $totalJurnalGuru;
+            $teacherTotalCount[$teacher->id] = $totalJurnalHariIni;
+            $teacherBelumIsi[$teacher->id] = $notifBelumDibaca;
         }
 
         // ========== UNREPORTED CLASSES ==========
@@ -467,9 +476,11 @@ class HumasMonitoringController extends Controller
             'teacherLateStatus',
             'teacherLateCount',
             'teacherTotalCount',
+            'teacherBelumIsi', 
             'unreported',
             'currentFilter',
-            'search'
+            'search',
+            'dateFilter'
         ));
     }
 }

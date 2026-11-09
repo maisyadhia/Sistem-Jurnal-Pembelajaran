@@ -225,20 +225,28 @@
                     @php $no = 1; @endphp
                     @foreach($teachers as $teacher)
                         @php
-                            $total = $teacherTotalCount[$teacher->id] ?? 0;
-                            $lateCount = $teacherLateCount[$teacher->id] ?? 0;
-                            $isLate = $lateCount > 0;
+                        $total = $teacherTotalCount[$teacher->id] ?? 0;
+                        $lateCount = $teacherLateCount[$teacher->id] ?? 0;
+                        $isLate = $lateCount > 0;
+                        $belumIsi = $teacherBelumIsi[$teacher->id] ?? false; // <-- CEK NOTIFIKASI
 
-                            if ($total > 0) {
-                                $status = $isLate ? 'Terlambat' : 'Tepat Waktu';
-                                $statusClass = $isLate ? 'danger' : 'success';
-                                $keterangan = $isLate ? "{$lateCount} dari {$total} jurnal terlambat" : 'Tepat waktu';
-                            } else {
-                                $status = 'Belum Mengisi';
-                                $statusClass = 'warning';
-                                $keterangan = 'Belum ada jurnal';
-                            }
-                        @endphp
+                        if ($belumIsi) {
+                            // Prioritas 1: Jika ada notif belum dibaca, berarti belum mengisi
+                            $status = 'Belum Mengisi';
+                            $statusClass = 'warning';
+                            $keterangan = 'Tidak mengisi jurnal hari ini';
+                        } elseif ($total > 0) {
+                            // Prioritas 2: Jika sudah isi, cek terlambat atau tepat waktu
+                            $status = $isLate ? 'Terlambat' : 'Tepat Waktu';
+                            $statusClass = $isLate ? 'danger' : 'success';
+                            $keterangan = $isLate ? "{$lateCount} dari {$total} jurnal terlambat" : 'Tepat waktu';
+                        } else {
+                            // Prioritas 3: Jika tidak ada jurnal dan tidak ada notif (misal tidak ada jadwal)
+                            $status = 'Belum Ada Jurnal';
+                            $statusClass = 'warning';
+                            $keterangan = 'Tidak ada jurnal';
+                        }
+                    @endphp
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-4 py-3 text-sm">{{ $no++ }}</td>
                             <td class="px-4 py-3 text-sm font-medium">{{ $teacher->nama_guru }}</td>
