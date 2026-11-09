@@ -14,23 +14,34 @@ class Student extends Model
     protected $fillable = [
         'nisn',
         'name',
+        'gender',
         'dob',
         'class',
+        'tahun_ajaran',
+        'status',
+        'tanggal_keluar',
+        'keterangan',
         'parent_name',
         'parent_phone',
     ];
 
     protected $casts = [
         'dob' => 'date',
+        'tanggal_keluar' => 'date',
     ];
 
-    public function activities()
+    public function scopeAktif($query)
     {
-        return $this->hasMany(Activity::class);
+        return $query->where('status', 'aktif');
     }
 
-    public function notes()
+    public function scopeTahunAjaran($query, $tahun)
     {
-        return $this->hasMany(Note::class);
+        return $query->where('tahun_ajaran', $tahun);
+    }
+
+    public function classHistories()
+    {
+        return $this->hasMany(StudentClassHistory::class);
     }
 }

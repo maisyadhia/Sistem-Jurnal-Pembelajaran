@@ -43,11 +43,20 @@ class SiswaImport extends DefaultValueBinder implements
         return new Student([
             'nisn' => $nisn,
             'name' => $row['nama'] ?? '',
+            'gender' => $this->parseGender($row['jenis_kelamin'] ?? ''),
             'dob' => $dob,
             'class' => $row['kelas'] ?? '',
             'parent_name' => $row['orang_tua'] ?? null,
             'parent_phone' => $row['no_telepon'] ?? null,
         ]);
+    }
+
+    private function parseGender($value)
+    {
+        $value = strtoupper(trim($value));
+        if (in_array($value, ['L', 'LAKI-LAKI', 'LAKI LAKI', 'MALE', 'M'])) return 'L';
+        if (in_array($value, ['P', 'PEREMPUAN', 'FEMALE', 'F'])) return 'P';
+        return 'L'; // Default
     }
 
     private function parseDate($date)

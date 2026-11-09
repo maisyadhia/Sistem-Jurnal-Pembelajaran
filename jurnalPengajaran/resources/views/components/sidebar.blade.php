@@ -9,8 +9,7 @@
     <!-- BRAND & LOGO HEADER -->
     <div class="mb-10 px-2 flex items-center gap-3">
         <div class="w-10 h-10 flex items-center justify-center filter drop-shadow-sm">
-            <!-- LOGO SIMJAR -->
-            <img class="w-full h-full object-contain" src="{{ asset('images/logoJurnal.png') }}" alt="Logo SIMJAR"/>
+            <img class="w-full h-full object-contain" src="{{ asset('images/logoJurnal.png') }}" alt="Logo SIJAMPANG"/>
         </div>
         <div>
             <h1 class="font-headline-md text-headline-md text-primary font-bold leading-tight tracking-tight">SIJAMPANG</h1>
@@ -38,6 +37,8 @@
                 $menuItems = [
                     ['route' => 'monitoring', 'icon' => 'analytics', 'label' => 'Monitoring', 'params' => []],
                     ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'params' => []],
+                    ['route' => 'nilai-asat.index', 'icon' => 'grade', 'label' => 'Nilai ASAT', 'params' => []],
+                    ['route' => 'kenaikan-kelas.index', 'icon' => 'upgrade', 'label' => 'Kenaikan Kelas', 'params' => []],
                     ['route' => 'admin.logs', 'icon' => 'history', 'label' => 'Log Aktivitas', 'params' => []],
                     ['route' => 'laporan.index', 'icon' => 'description', 'label' => 'Laporan', 'params' => []],
                 ];

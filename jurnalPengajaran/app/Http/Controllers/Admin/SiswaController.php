@@ -30,6 +30,7 @@ class SiswaController extends Controller
         $request->validate([
             'nisn' => 'required|unique:students,nisn|min:10|max:10',
             'name' => 'required|string|max:255',
+            'gender' => 'required|in:L,P',  
             'dob' => 'required|date',
             'class' => 'required|string',
             'parent_name' => 'nullable|string|max:255',
@@ -39,6 +40,7 @@ class SiswaController extends Controller
         $data = [
             'nisn' => $request->nisn,
             'name' => $request->name,
+            'gender' => $request->gender,
             'dob' => $request->dob,
             'class' => $request->class,
             'parent_name' => $request->parent_name,
@@ -77,6 +79,7 @@ class SiswaController extends Controller
         $request->validate([
             'nisn' => 'required|min:10|max:10|unique:students,nisn,' . $id,
             'name' => 'required|string|max:255',
+            'gender' => 'required|in:L,P',
             'dob' => 'required|date',
             'class' => 'required|string',
             'parent_name' => 'nullable|string|max:255',
@@ -88,6 +91,7 @@ class SiswaController extends Controller
         $data = [
             'nisn' => $request->nisn,
             'name' => $request->name,
+            'gender' => $request->gender,
             'dob' => $request->dob,
             'class' => $request->class,
             'parent_name' => $request->parent_name,
@@ -125,5 +129,15 @@ class SiswaController extends Controller
 
         return redirect()->route('data-master.siswa')
             ->with('success', 'Siswa berhasil dihapus!');
+    }
+
+    public function exportGender(Request $request)
+    {
+        $tahunAjaran = $request->get('tahun_ajaran', config('tahun_ajaran.aktif'));
+        
+        return Excel::download(
+            new SiswaGenderExport($tahunAjaran), 
+            'siswa_gender_' . date('Y-m-d') . '.xlsx'
+        );
     }
 }

@@ -51,6 +51,7 @@
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">NAMA</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">NISN</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">KELAS</th>
+                        <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">GENDER</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">ORANG TUA</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant text-right">AKSI</th>
                     </tr>
@@ -58,6 +59,7 @@
                 <tbody class="divide-y divide-outline-variant">
                     @forelse($siswa as $item)
                         <tr class="hover:bg-surface-container-low transition-colors">
+                            <!-- 1. NAMA -->
                             <td class="px-4 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-[10px]">
@@ -66,13 +68,32 @@
                                     <span class="font-data-tabular text-data-tabular">{{ $item->name }}</span>
                                 </div>
                             </td>
+                            
+                            <!-- 2. NISN -->
                             <td class="px-4 py-4">{{ $item->nisn }}</td>
+                            
+                            <!-- 3. KELAS -->
                             <td class="px-4 py-4">{{ $item->class }}</td>
+                            
+                            <!-- 4. GENDER (Dipindah ke sini) -->
+                            <td class="px-4 py-4 text-center">
+                                @if($item->gender === 'L')
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">L</span>
+                                @elseif($item->gender === 'P')
+                                    <span class="px-2 py-1 bg-pink-100 text-pink-700 rounded text-xs font-medium">P</span>
+                                @else
+                                    <span class="text-slate-400 text-xs">-</span>
+                                @endif
+                            </td>
+                            
+                            <!-- 5. ORANG TUA -->
                             <td class="px-4 py-4">{{ $item->parent_name ?? '-' }}</td>
+                            
+                            <!-- 6. AKSI (Dipindah ke paling akhir) -->
                             <td class="px-4 py-4 text-right">
                                 <div class="flex justify-end gap-1">
                                     <a href="{{ route('data-master.siswa.edit', $item->id) }}" 
-                                       class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
+                                    class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined text-lg">edit</span>
                                     </a>
                                     <button onclick="openDeleteModal('{{ $item->id }}', '{{ $item->name }}', 'SISWA')" 
@@ -84,7 +105,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-4 py-8 text-center text-on-surface-variant">
+                            <td colspan="6" class="px-4 py-8 text-center text-on-surface-variant">
                                 <span class="material-symbols-outlined text-3xl block mx-auto mb-2">inbox</span>
                                 Belum ada data siswa.
                             </td>

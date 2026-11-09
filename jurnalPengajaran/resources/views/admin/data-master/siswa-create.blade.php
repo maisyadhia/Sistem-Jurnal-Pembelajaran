@@ -43,6 +43,19 @@
             </div>
             
             <div class="space-y-1.5">
+                <label class="block font-label-caps text-label-caps text-on-surface-variant" for="gender">Jenis Kelamin</label>
+                <select class="w-full h-[40px] bg-surface border border-outline-variant rounded-lg px-4 text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('gender') border-error @enderror" 
+                        id="gender" name="gender" required>
+                    <option value="">Pilih Jenis Kelamin</option>
+                    <option value="L" {{ old('gender', $siswa->gender ?? '') == 'L' ? 'selected' : '' }}>Laki-laki</option>
+                    <option value="P" {{ old('gender', $siswa->gender ?? '') == 'P' ? 'selected' : '' }}>Perempuan</option>
+                </select>
+                @error('gender')
+                    <p class="text-error text-sm">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="space-y-1.5">
                 <label class="block font-label-caps text-label-caps text-on-surface-variant" for="class">Kelas</label>
                 <select class="w-full h-[40px] bg-surface border border-outline-variant rounded-lg px-4 text-body-base focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all @error('class') border-error @enderror" 
                         id="class" name="class" required>

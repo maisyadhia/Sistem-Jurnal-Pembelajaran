@@ -14,6 +14,8 @@ use App\Http\Controllers\Admin\LogController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Admin\KenaikanKelasController;
+use App\Http\Controllers\Admin\NilaiAsatController;
 
 // ============ GUEST ROUTES ============
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -53,6 +55,25 @@ Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(functi
     
     // ====== DATA MASTER ======
     Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-master');
+
+    // ====== DATA MASTER KENAIKAN KELAS ======
+    Route::prefix('data-master/kenaikan-kelas')->group(function () {
+        Route::get('/', [KenaikanKelasController::class, 'index'])->name('kenaikan-kelas.index');
+        Route::post('/proses', [KenaikanKelasController::class, 'proses'])->name('kenaikan-kelas.proses');
+        Route::post('/{id}/tinggal-kelas', [KenaikanKelasController::class, 'tinggalKelas'])->name('kenaikan-kelas.tinggal');
+        Route::post('/{id}/lulus', [KenaikanKelasController::class, 'luluskan'])->name('kenaikan-kelas.lulus');
+        Route::post('/{id}/pindah', [KenaikanKelasController::class, 'pindah'])->name('kenaikan-kelas.pindah');
+        Route::post('/{id}/batalkan', [KenaikanKelasController::class, 'batalkanStatus'])->name('kenaikan-kelas.batalkan');
+        Route::post('/bagi-nilai', [KenaikanKelasController::class, 'bagiKelasBerdasarkanNilai'])->name('kenaikan-kelas.bagi-nilai');
+    });
+
+    Route::prefix('data-master/nilai-asat')->group(function () {
+        Route::get('/', [NilaiAsatController::class, 'index'])->name('nilai-asat.index');
+        Route::post('/import', [NilaiAsatController::class, 'import'])->name('nilai-asat.import');
+        Route::get('/template', [NilaiAsatController::class, 'downloadTemplate'])->name('nilai-asat.template');
+        Route::get('/export', [NilaiAsatController::class, 'export'])->name('nilai-asat.export');
+        Route::delete('/{id}', [NilaiAsatController::class, 'destroy'])->name('nilai-asat.destroy');
+    });
     
     // ====== GURU CRUD ======
     Route::prefix('data-master/guru')->group(function () {
@@ -74,6 +95,10 @@ Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(functi
         Route::delete('/{id}', [SiswaController::class, 'destroy'])->name('data-master.siswa.destroy');
     });
     
+    Route::get('/data-master/siswa/export-gender', 
+        [SiswaController::class, 'exportGender'])->name('data-master.siswa.export-gender'
+    );
+
     // ====== KELAS CRUD ======
     Route::prefix('data-master/kelas')->group(function () {
         Route::get('/', [KelasController::class, 'index'])->name('data-master.kelas');
