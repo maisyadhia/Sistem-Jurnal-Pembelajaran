@@ -216,53 +216,53 @@
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">No</th>
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Guru</th>
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">NIK</th>
-                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Total Jurnal</th>
-                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Keterangan</th>
+                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Harian Tepat Hari</th>
+                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Mingguan Tepat Waktu</th>
+                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Skor</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @php $no = 1; @endphp
                     @foreach($teachers as $teacher)
                         @php
-                        $total = $teacherTotalCount[$teacher->id] ?? 0;
-                        $lateCount = $teacherLateCount[$teacher->id] ?? 0;
-                        $isLate = $lateCount > 0;
-                        $belumIsi = $teacherBelumIsi[$teacher->id] ?? false; // <-- CEK NOTIFIKASI
+                            $total = $teacherTotalCount[$teacher->id] ?? 0;
+                            $lateCount = $teacherLateCount[$teacher->id] ?? 0;
+                            $isLate = $lateCount > 0;
+                            $belumIsi = $teacherBelumIsi[$teacher->id] ?? false;
+                            $skor = $teacherSkor[$teacher->id] ?? 0;
 
-                        if ($belumIsi) {
-                            // Prioritas 1: Jika ada notif belum dibaca, berarti belum mengisi
-                            $status = 'Belum Mengisi';
-                            $statusClass = 'warning';
-                            $keterangan = 'Tidak mengisi jurnal hari ini';
-                        } elseif ($total > 0) {
-                            // Prioritas 2: Jika sudah isi, cek terlambat atau tepat waktu
-                            $status = $isLate ? 'Terlambat' : 'Tepat Waktu';
-                            $statusClass = $isLate ? 'danger' : 'success';
-                            $keterangan = $isLate ? "{$lateCount} dari {$total} jurnal terlambat" : 'Tepat waktu';
-                        } else {
-                            // Prioritas 3: Jika tidak ada jurnal dan tidak ada notif (misal tidak ada jadwal)
-                            $status = 'Belum Ada Jurnal';
-                            $statusClass = 'warning';
-                            $keterangan = 'Tidak ada jurnal';
-                        }
-                    @endphp
+                            $skorColor = $skor >= 90 ? 'bg-emerald-600' : ($skor >= 75 ? 'bg-amber-500' : 'bg-red-500');
+                        @endphp
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-4 py-3 text-sm">{{ $no++ }}</td>
-                            <td class="px-4 py-3 text-sm font-medium">{{ $teacher->nama_guru }}</td>
-                            <td class="px-4 py-3 text-sm">{{ $teacher->nik }}</td>
-                            <td class="px-4 py-3 text-sm">{{ $total }} jurnal</td>
-                            <td class="px-4 py-3">
-                                <span class="status-badge {{ $statusClass }}">{{ $status }}</span>
-                            </td>
-                            <td class="px-4 py-3 text-sm">
-                                @if($isLate)
-                                    <span class="text-red-600 font-medium">⚠️ {{ $keterangan }}</span>
-                                @elseif($total > 0)
-                                    <span class="text-green-600">✅ {{ $keterangan }}</span>
-                                @else
-                                    <span class="text-amber-600">⏳ {{ $keterangan }}</span>
+                            <td class="px-4 py-3 text-sm font-medium">
+                                {{ $teacher->nama_guru }}
+                                @if($belumIsi)
+                                    <span class="text-amber-500 text-[10px] ml-1" title="Belum mengisi jurnal hari ini">⏳</span>
+                                @elseif($isLate)
+                                    <span class="text-red-500 text-[10px] ml-1" title="Ada jurnal terlambat">⚠️</span>
                                 @endif
+                            </td>
+                            <td class="px-4 py-3 text-sm">{{ $teacher->nik }}</td>
+                            
+                            <!-- Harian -->
+                            <td class="px-4 py-3 text-sm text-center">
+                                <div class="font-bold text-slate-700">{{ $total }}/{{ $targetHari }} hari</div>
+                                <div class="text-[10px] text-slate-500">{{ $skor }}%</div>
+                            </td>
+
+                            <!-- Mingguan -->
+                            <td class="px-4 py-3 text-sm text-center">
+                                <!-- Hapus perkalian * 5, langsung pakai targetHari karena target mingguan = 5 hari -->
+                                <div class="font-bold text-slate-700">{{ $total }}/{{ $targetMinggu * 5 }} hari</div>
+                                <div class="text-[10px] text-slate-500">{{ $skor }}%</div>
+                            </td>
+
+                            <!-- Skor Badge -->
+                            <td class="px-4 py-3 text-center">
+                                <span class="inline-block px-3 py-1 rounded-full text-xs font-bold text-white {{ $skorColor }}">
+                                    {{ $skor }}%
+                                </span>
                             </td>
                         </tr>
                     @endforeach
@@ -270,6 +270,8 @@
             </table>
         </div>
     </div>
+
+</div>
 
     <!-- Tombol Kembali -->
     <div class="flex justify-start">

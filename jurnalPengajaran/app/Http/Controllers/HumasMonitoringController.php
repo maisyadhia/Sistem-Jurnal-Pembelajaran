@@ -388,7 +388,6 @@ class HumasMonitoringController extends Controller
                 DB::raw('CASE WHEN DATE(jurnals.created_at) > jurnals.tanggal THEN 1 ELSE 0 END as is_terlambat')
             );
 
-        // Search
         if ($search) {
             $queryJurnal->where(function($q) use ($search) {
                 $q->where('guru.nama_guru', 'like', "%{$search}%")
@@ -398,7 +397,6 @@ class HumasMonitoringController extends Controller
             });
         }
 
-        // Filter periode
         if ($currentFilter === 'hari_ini') {
             $queryJurnal->whereDate('jurnals.tanggal', today());
         } elseif ($currentFilter === '1_minggu') {
@@ -409,78 +407,74 @@ class HumasMonitoringController extends Controller
             $queryJurnal->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal');
         }
 
-        $jurnals = $queryJurnal->orderBy('jurnals.created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
+        $jurnals = $queryJurnal->orderBy('jurnals.created_at', 'desc')->paginate(15)->withQueryString();
 
         // ========== STATISTIK ==========
         $totalJurnal = DB::table('jurnals')->count();
-        $totalTerlambat = DB::table('jurnals')
-            ->whereRaw('DATE(created_at) > tanggal')
-            ->count();
+        $totalTerlambat = DB::table('jurnals')->whereRaw('DATE(created_at) > tanggal')->count();
         $totalTepatWaktu = $totalJurnal - $totalTerlambat;
-        
-        $complianceRate = $totalJurnal > 0 
-            ? round(($totalTepatWaktu / $totalJurnal) * 100, 1) 
-            : 0;
+        $complianceRate = $totalJurnal > 0 ? round(($totalTepatWaktu / $totalJurnal) * 100, 1) : 0;
 
         // ========== DAFTAR GURU & STATUS ==========
         $teachers = DB::table('guru')->get();
-        
         $teacherStatus = [];
         $teacherLateStatus = [];
         $teacherLateCount = [];
         $teacherTotalCount = [];
         $teacherBelumIsi = [];
+        $teacherSkor = [];
+
+        // Target
+        $targetHari = ($currentFilter === '1_minggu') ? 5 : (($currentFilter === '1_bulan') ? 20 : 1);
+        $targetMinggu = ($currentFilter === '1_bulan') ? 4 : 1;
 
         foreach ($teachers as $teacher) {
-            // Cek jurnal hari ini
-            $totalJurnalHariIni = DB::table('jurnals')
-                ->where('guru_id', $teacher->id)
-                ->whereDate('tanggal', $dateFilter)
-                ->count();
-            
-            // Cek jurnal terlambat
-            $totalTerlambatGuru = DB::table('jurnals')
-                ->where('guru_id', $teacher->id)
-                ->whereRaw('DATE(created_at) > tanggal')
-                ->count();
+            $queryJurnalGuru = DB::table('jurnals')->where('guru_id', $teacher->id);
 
-            // 🔥 CEK NOTIFIKASI BELUM DIBACA (BERARTI BELUM ISI)
+            // Target
+            if ($currentFilter === 'hari_ini') {
+                $targetHari = 1;
+                $targetMinggu = 1;
+            } elseif ($currentFilter === '1_minggu') {
+                $targetHari = 5;
+                $targetMinggu = 1;
+            } elseif ($currentFilter === '1_bulan') {
+                $targetHari = 20;
+                $targetMinggu = 4;
+            } else {
+                // DEFAULT (Tanpa Filter): Anggap target sebulan penuh (20 hari kerja)
+                $targetHari = 20;
+                $targetMinggu = 4;
+            }
+            $totalJurnalGuru = $queryJurnalGuru->count();
+            $totalTerlambatGuru = $queryJurnalGuru->clone()->whereRaw('DATE(created_at) > tanggal')->count();
+
             $notifBelumDibaca = DB::table('notifications')
                 ->where('user_id', $teacher->id)
-                ->whereDate('created_at', $dateFilter)
+                ->whereDate('created_at', today())
                 ->where('is_read', 0)
                 ->exists();
 
-            $teacherStatus[$teacher->id] = $totalJurnalHariIni > 0;
+            $skor = $targetHari > 0 ? min(100, round(($totalJurnalGuru / $targetHari) * 100)) : 0;
+
+            $teacherStatus[$teacher->id] = $totalJurnalGuru > 0;
             $teacherLateStatus[$teacher->id] = $totalTerlambatGuru > 0;
             $teacherLateCount[$teacher->id] = $totalTerlambatGuru;
-            $teacherTotalCount[$teacher->id] = $totalJurnalHariIni;
+            $teacherTotalCount[$teacher->id] = $totalJurnalGuru;
             $teacherBelumIsi[$teacher->id] = $notifBelumDibaca;
+            $teacherSkor[$teacher->id] = $skor;
         }
 
         // ========== UNREPORTED CLASSES ==========
-        $unreported = DB::table('unreported_classes')
-            ->where('reported', false)
-            ->get();
+        $unreported = DB::table('unreported_classes')->where('reported', false)->get();
 
+        // RETURN VIEW (HANYA SEKALI)
         return view('humas.laporan', compact(
-            'jurnals',
-            'totalJurnal',
-            'totalTerlambat',
-            'totalTepatWaktu',
-            'complianceRate',
-            'teachers',
-            'teacherStatus',
-            'teacherLateStatus',
-            'teacherLateCount',
-            'teacherTotalCount',
-            'teacherBelumIsi', 
-            'unreported',
-            'currentFilter',
-            'search',
-            'dateFilter'
+            'jurnals', 'totalJurnal', 'totalTerlambat', 'totalTepatWaktu', 'complianceRate',
+            'teachers', 'teacherStatus', 'teacherLateStatus', 'teacherLateCount', 
+            'teacherTotalCount', 'teacherBelumIsi', 'teacherSkor', 
+            'targetHari', 'targetMinggu',
+            'unreported', 'currentFilter', 'search', 'dateFilter'
         ));
     }
 }
