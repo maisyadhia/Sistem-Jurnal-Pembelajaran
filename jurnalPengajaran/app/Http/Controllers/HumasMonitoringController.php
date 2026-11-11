@@ -424,28 +424,53 @@ class HumasMonitoringController extends Controller
         $teacherBelumIsi = [];
         $teacherSkor = [];
 
-        // Target
-        $targetHari = ($currentFilter === '1_minggu') ? 5 : (($currentFilter === '1_bulan') ? 20 : 1);
-        $targetMinggu = ($currentFilter === '1_bulan') ? 4 : 1;
+        // HITUNG TARGET BERDASARKAN HARI KERJA (SENIN - JUMAT)
+        $targetHari = 0;
+        $startDate = now()->startOfMonth(); // Default awal bulan
+        $endDate = now();
+
+        if ($currentFilter === 'hari_ini') {
+            $dayOfWeek = today()->dayOfWeek;
+            $targetHari = in_array($dayOfWeek, [0, 6]) ? 0 : 1; 
+        } elseif ($currentFilter === '1_minggu') {
+            $startDate = now()->subWeek();
+            for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+                if (!in_array($date->dayOfWeek, [0, 6])) { // 0=Minggu, 6=Sabtu
+                    $targetHari++;
+                }
+            }
+        } elseif ($currentFilter === '1_bulan') {
+            $startDate = now()->subMonth();
+            for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+                if (!in_array($date->dayOfWeek, [0, 6])) {
+                    $targetHari++;
+                }
+            }
+        } else {
+            // Default (Tanpa Filter) - Hitung hari kerja dari awal bulan ini sampai hari ini
+            for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+                if (!in_array($date->dayOfWeek, [0, 6])) {
+                    $targetHari++;
+                }
+            }
+        }
+        
+        // Target mingguan dihitung dari targetHari / 5
+        $targetMinggu = max(1, ceil($targetHari / 5));
 
         foreach ($teachers as $teacher) {
             $queryJurnalGuru = DB::table('jurnals')->where('guru_id', $teacher->id);
 
-            // Target
             if ($currentFilter === 'hari_ini') {
-                $targetHari = 1;
-                $targetMinggu = 1;
+                $queryJurnalGuru->whereDate('tanggal', today());
             } elseif ($currentFilter === '1_minggu') {
-                $targetHari = 5;
-                $targetMinggu = 1;
+                $queryJurnalGuru->whereDate('tanggal', '>=', now()->subWeek());
             } elseif ($currentFilter === '1_bulan') {
-                $targetHari = 20;
-                $targetMinggu = 4;
-            } else {
-                // DEFAULT (Tanpa Filter): Anggap target sebulan penuh (20 hari kerja)
-                $targetHari = 20;
-                $targetMinggu = 4;
+                $queryJurnalGuru->whereDate('tanggal', '>=', now()->subMonth());
+            } elseif ($currentFilter === 'terlambat') {
+                $queryJurnalGuru->whereRaw('DATE(created_at) > tanggal');
             }
+
             $totalJurnalGuru = $queryJurnalGuru->count();
             $totalTerlambatGuru = $queryJurnalGuru->clone()->whereRaw('DATE(created_at) > tanggal')->count();
 

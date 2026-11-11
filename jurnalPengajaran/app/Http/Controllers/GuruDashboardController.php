@@ -203,45 +203,51 @@ class GuruDashboardController extends Controller
             while ($currentDate->greaterThanOrEqualTo($limitDate) && $loopCount < 90) {
                 $tanggalStr = $currentDate->toDateString();
                 $namaHariIndo = $currentDate->translatedFormat('l');
+                
+                // 🔥 CEK HARI LIBUR (SABTU/MINGGU)
+                $dayOfWeek = $currentDate->dayOfWeek;
+                $isWeekend = in_array($dayOfWeek, [0, 6]);
 
-                foreach ($jadwalGuru as $jadwal) {
-                    if ($jadwal->hari === $namaHariIndo) {
+                // Jika hari libur, lewati pembuatan notifikasi
+                if (!$isWeekend) {
+                    foreach ($jadwalGuru as $jadwal) {
+                        if ($jadwal->hari === $namaHariIndo) {
+                            // 1. Cek apakah jurnal sudah diisi pada tanggal KBM ini
+                            $jurnalAda = DB::table('jurnals')
+                                ->where('guru_id', $guruId)
+                                ->where('kelas_id', $jadwal->kelas_id)
+                                ->where('mapel_id', $jadwal->mapel_id)
+                                ->whereDate('tanggal', $tanggalStr)
+                                ->exists();
 
-                        // 1. Cek apakah jurnal sudah diisi pada tanggal KBM ini
-                        $jurnalAda = DB::table('jurnals')
-                            ->where('guru_id', $guruId)
-                            ->where('kelas_id', $jadwal->kelas_id)
-                            ->where('mapel_id', $jadwal->mapel_id)
-                            ->whereDate('tanggal', $tanggalStr)
-                            ->exists();
+                            // 2. Cek apakah notifikasi untuk tanggal & jadwal ini sudah ada di database
+                            $notifExisting = DB::table('notifications')
+                                ->where('user_id', $guruId)
+                                ->whereDate('created_at', $tanggalStr)
+                                ->where('message', 'like', "%kelas {$jadwal->nama_kelas}%")
+                                ->where('message', 'like', "%({$jadwal->nama_mapel})%")
+                                ->first();
 
-                        // 2. Cek apakah notifikasi untuk tanggal & jadwal ini sudah ada di database
-                        $notifExisting = DB::table('notifications')
-                            ->where('user_id', $guruId)
-                            ->whereDate('created_at', $tanggalStr)
-                            ->where('message', 'like', "%kelas {$jadwal->nama_kelas}%")
-                            ->where('message', 'like', "%({$jadwal->nama_mapel})%")
-                            ->first();
+                            if ($jurnalAda) {
+                                // Jika sudah diisi, ubah status jadi read (is_read = 1) agar hilang dari lonceng
+                                if ($notifExisting && $notifExisting->is_read == 0) {
+                                    DB::table('notifications')
+                                        ->where('id', $notifExisting->id)
+                                        ->update(['is_read' => 1]);
+                                }
+                            } else {
+                                // Jika belum diisi, buat notifnya agar muncul di lonceng (is_read = 0)
+                                if (!$notifExisting) {
+                                    $pesanNotif = "Pengingat Jurnal: Jurnal mengajar kelas {$jadwal->nama_kelas} ({$jadwal->nama_mapel}) belum diisi!";
 
-                        if ($jurnalAda) {
-                            // Jika sudah diisi, ubah status jadi read (is_read = 1) agar hilang dari lonceng
-                            if ($notifExisting && $notifExisting->is_read == 0) {
-                                DB::table('notifications')
-                                    ->where('id', $notifExisting->id)
-                                    ->update(['is_read' => 1]);
-                            }
-                        } else {
-                            // Jika belum diisi, buat notifnya agar muncul di lonceng (is_read = 0)
-                            if (!$notifExisting) {
-                                $pesanNotif = "Pengingat Jurnal: Jurnal mengajar kelas {$jadwal->nama_kelas} ({$jadwal->nama_mapel}) belum diisi!";
-
-                                DB::table('notifications')->insert([
-                                    'user_id' => $guruId,
-                                    'message' => $pesanNotif,
-                                    'is_read' => 0,
-                                    'created_at' => $tanggalStr . ' 07:00:00',
-                                    'updated_at' => now(),
-                                ]);
+                                    DB::table('notifications')->insert([
+                                        'user_id' => $guruId,
+                                        'message' => $pesanNotif,
+                                        'is_read' => 0,
+                                        'created_at' => $tanggalStr . ' 07:00:00',
+                                        'updated_at' => now(),
+                                    ]);
+                                }
                             }
                         }
                     }
@@ -251,6 +257,7 @@ class GuruDashboardController extends Controller
                 $loopCount++;
             }
         }
+
 
         // 3. AMBIL NOTIFIKASI YANG BELUM DIISI (is_read = 0) DAN PETAKAN ID KELAS & MAPELNYA SECARA PRESISI
         $notifications = DB::table('notifications')
