@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\JadwalController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Admin\KenaikanKelasController;
 use App\Http\Controllers\Admin\NilaiAsatController;
+use App\Http\Controllers\Admin\HariLiburController;
 
 // ============ GUEST ROUTES ============
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -155,6 +156,12 @@ Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(functi
         Route::get('/kelas', [DataMasterController::class, 'exportKelas'])->name('data-master.export.kelas');
         Route::get('/mapel', [DataMasterController::class, 'exportMapel'])->name('data-master.export.mapel');
         Route::get('/jadwal', [DataMasterController::class, 'exportJadwal'])->name('data-master.export.jadwal');
+    });
+
+    Route::prefix('data-master/hari-libur')->group(function () {
+        Route::get('/', [HariLiburController::class, 'index'])->name('hari-libur.index');
+        Route::post('/sync', [HariLiburController::class, 'sync'])->name('hari-libur.sync');
+        Route::delete('/{id}', [HariLiburController::class, 'destroy'])->name('hari-libur.destroy');
     });
 });
 

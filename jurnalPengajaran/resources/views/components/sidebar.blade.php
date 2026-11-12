@@ -39,6 +39,7 @@
                     ['route' => 'data-master', 'icon' => 'database', 'label' => 'Data Master', 'params' => []],
                     ['route' => 'nilai-asat.index', 'icon' => 'grade', 'label' => 'Nilai ASAT', 'params' => []],
                     ['route' => 'kenaikan-kelas.index', 'icon' => 'upgrade', 'label' => 'Kenaikan Kelas', 'params' => []],
+                    ['route' => 'hari-libur.index', 'icon' => 'event_busy', 'label' => 'Hari Libur', 'params' => []],
                     ['route' => 'admin.logs', 'icon' => 'history', 'label' => 'Log Aktivitas', 'params' => []],
                     ['route' => 'laporan.index', 'icon' => 'description', 'label' => 'Laporan', 'params' => []],
                 ];

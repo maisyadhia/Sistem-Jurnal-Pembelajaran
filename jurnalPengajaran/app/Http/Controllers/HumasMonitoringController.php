@@ -424,38 +424,41 @@ class HumasMonitoringController extends Controller
         $teacherBelumIsi = [];
         $teacherSkor = [];
 
-        // HITUNG TARGET BERDASARKAN HARI KERJA (SENIN - JUMAT)
+        // 🔥 AMBIL HARI LIBUR DARI DATABASE
+        $hariLibur = DB::table('hari_libur')->pluck('tanggal')->toArray();
+
+        // 🔥 HITUNG TARGET BERDASARKAN HARI KERJA (SENIN - JUMAT) + LIBUR NASIONAL
         $targetHari = 0;
-        $startDate = now()->startOfMonth(); // Default awal bulan
-        $endDate = now();
+        $endDate = today();
 
         if ($currentFilter === 'hari_ini') {
-            $dayOfWeek = today()->dayOfWeek;
-            $targetHari = in_array($dayOfWeek, [0, 6]) ? 0 : 1; 
+            $isWeekend = in_array(today()->dayOfWeek, [0, 6]);
+            $isLibur = in_array(today()->toDateString(), $hariLibur);
+            $targetHari = ($isWeekend || $isLibur) ? 0 : 1;
         } elseif ($currentFilter === '1_minggu') {
             $startDate = now()->subWeek();
             for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-                if (!in_array($date->dayOfWeek, [0, 6])) { // 0=Minggu, 6=Sabtu
+                if (!in_array($date->dayOfWeek, [0, 6]) && !in_array($date->toDateString(), $hariLibur)) {
                     $targetHari++;
                 }
             }
         } elseif ($currentFilter === '1_bulan') {
             $startDate = now()->subMonth();
             for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-                if (!in_array($date->dayOfWeek, [0, 6])) {
+                if (!in_array($date->dayOfWeek, [0, 6]) && !in_array($date->toDateString(), $hariLibur)) {
                     $targetHari++;
                 }
             }
         } else {
-            // Default (Tanpa Filter) - Hitung hari kerja dari awal bulan ini sampai hari ini
+            $startDate = now()->startOfMonth();
             for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-                if (!in_array($date->dayOfWeek, [0, 6])) {
+                if (!in_array($date->dayOfWeek, [0, 6]) && !in_array($date->toDateString(), $hariLibur)) {
                     $targetHari++;
                 }
             }
         }
-        
-        // Target mingguan dihitung dari targetHari / 5
+
+        // Target mingguan
         $targetMinggu = max(1, ceil($targetHari / 5));
 
         foreach ($teachers as $teacher) {
@@ -480,7 +483,12 @@ class HumasMonitoringController extends Controller
                 ->where('is_read', 0)
                 ->exists();
 
-            $skor = $targetHari > 0 ? min(100, round(($totalJurnalGuru / $targetHari) * 100)) : 0;
+            // 🔥 JIKA TARGET 0 (LIBUR), JANGAN ANGGAP 0% TAPI ANGGAP 100% (AMAN)
+            if ($targetHari > 0) {
+                $skor = min(100, round(($totalJurnalGuru / $targetHari) * 100));
+            } else {
+                $skor = $totalJurnalGuru > 0 ? 100 : 0;
+            }
 
             $teacherStatus[$teacher->id] = $totalJurnalGuru > 0;
             $teacherLateStatus[$teacher->id] = $totalTerlambatGuru > 0;

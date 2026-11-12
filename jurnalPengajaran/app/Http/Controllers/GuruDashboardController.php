@@ -208,6 +208,9 @@ class GuruDashboardController extends Controller
                 $dayOfWeek = $currentDate->dayOfWeek;
                 $isWeekend = in_array($dayOfWeek, [0, 6]);
 
+                // 2. CEK HARI LIBUR NASIONAL DARI DATABASE
+                $isHariLibur = DB::table('hari_libur')->where('tanggal', $tanggalStr)->exists();
+
                 // Jika hari libur, lewati pembuatan notifikasi
                 if (!$isWeekend) {
                     foreach ($jadwalGuru as $jadwal) {
