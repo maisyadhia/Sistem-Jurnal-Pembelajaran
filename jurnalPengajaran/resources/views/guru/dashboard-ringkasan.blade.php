@@ -50,7 +50,7 @@
             <p class="text-xs md:text-body-base text-slate-500">Ringkasan aktivitas mengajar Anda</p>
         </section>
 
-        <!-- Banner Alerts (Warning tetap ada, session('success') manual dihapus agar tidak duplikat dengan layout utama) -->
+        <!-- Banner Alerts -->
         @if(session('warning'))
             <div
                 class="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-center text-amber-800 animate-fade-in">
@@ -468,7 +468,7 @@
     </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
     <script>
         function openDetailModalSafe(btn) {
             const absenList = JSON.parse(btn.getAttribute('data-absen') || '[]');
@@ -534,4 +534,4 @@
             });
         }
     </script>
-@endsection
+@endpush
