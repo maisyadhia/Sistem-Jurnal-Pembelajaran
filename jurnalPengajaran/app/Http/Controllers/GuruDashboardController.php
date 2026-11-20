@@ -69,8 +69,6 @@ class GuruDashboardController extends Controller
         }
 
         $user = DB::table('users')->where('id', $guruId)->first();
-        
-        // Ambil data guru langsung berdasarkan id (karena id di session sama dengan id di tabel guru)
         $guru = DB::table('guru')->where('id', $guruId)->first();
 
         return view('guru.profile', compact('user', 'guru'));
@@ -87,7 +85,6 @@ class GuruDashboardController extends Controller
         $guru = DB::table('guru')->where('id', $guruId)->first();
         $user = DB::table('users')->where('id', $guruId)->first();
 
-        // Validasi input (semuanya opsional/nullable kecuali jika diisi)
         $request->validate([
             'photo'            => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'no_hp'            => 'nullable|string|max:20',
@@ -105,12 +102,10 @@ class GuruDashboardController extends Controller
 
         $updateData = ['updated_at' => now()];
 
-        // 1. UPDATE FOTO PROFIL (JIKA ADA UPLOAD)
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
 
-            // Jalur cPanel / Public standard
             $destinationPath = base_path('../public/uploads/profiles');
             if (!file_exists($destinationPath)) {
                 $destinationPath = public_path('uploads/profiles');
@@ -122,7 +117,6 @@ class GuruDashboardController extends Controller
 
             $file->move($destinationPath, $filename);
 
-            // Hapus foto lama jika ada
             if ($guru && !empty($guru->foto)) {
                 $oldFilePath = public_path($guru->foto);
                 if (file_exists($oldFilePath)) {
@@ -133,12 +127,10 @@ class GuruDashboardController extends Controller
             $updateData['foto'] = 'uploads/profiles/' . $filename;
         }
 
-        // 2. UPDATE NOMOR WHATSAPP (Sesuai kolom no_hp di tabel)
         if ($request->filled('no_hp')) {
             $updateData['no_hp'] = $request->no_hp;
         }
 
-        // 3. UPDATE PASSWORD (JIKA DIISI)
         if ($request->filled('new_password')) {
             $currentPasswordDb = $guru->password ?? ($user->password ?? '');
             
@@ -149,7 +141,6 @@ class GuruDashboardController extends Controller
             $hashedPassword = Hash::make($request->new_password);
             $updateData['password'] = $hashedPassword;
 
-            // Update juga tabel users jika datanya terhubung
             if ($user) {
                 DB::table('users')->where('id', $guruId)->update([
                     'password'   => $hashedPassword,
@@ -158,7 +149,6 @@ class GuruDashboardController extends Controller
             }
         }
 
-        // Eksekusi Update ke tabel 'guru' berdasarkan id
         DB::table('guru')->where('id', $guruId)->update($updateData);
 
         return redirect()->route('guru.dashboard')->with('success', 'Data profil berhasil diperbarui!');
@@ -178,7 +168,7 @@ class GuruDashboardController extends Controller
             }
         }
 
-        // LOGIKA PENGINGAT MUNDUR (CEK TERTINGGAL DARI 10 AGUSTUS 2026 SAMPAI HARI INI)
+        // LOGIKA PENGINGAT MUNDUR TERINTEGRASI HARI LIBUR & DATABASE SYNC
         if (session('user_role') === 'guru') {
             Carbon::setLocale('id');
             $now = Carbon::now('Asia/Jakarta');
@@ -186,7 +176,24 @@ class GuruDashboardController extends Controller
 
             $startDateLimit = '2026-08-10';
 
-            // Ambil semua jadwal guru
+            //  1. BERSIHKAN OTOMATIS NOTIFIKASI LAMA YANG JATUH PADA HARI LIBUR NASIONAL
+            $daftarHariLibur = DB::table('hari_libur')->pluck('tanggal')->toArray();
+            if (!empty($daftarHariLibur)) {
+                DB::table('notifications')
+                    ->where('user_id', $guruId)
+                    ->whereIn(DB::raw('DATE(created_at)'), $daftarHariLibur)
+                    ->delete();
+            }
+
+            //  2. BERSIHKAN OTOMATIS NOTIFIKASI LAMA YANG JATUH PADA AKHIR PEKAN (Sabtu / Minggu)
+            DB::table('notifications')
+                ->where('user_id', $guruId)
+                ->where(function($query) {
+                    $query->whereRaw('DAYOFWEEK(created_at) = 1') // Minggu
+                          ->orWhereRaw('DAYOFWEEK(created_at) = 7'); // Sabtu
+                })
+                ->delete();
+
             $jadwalGuru = DB::table('jadwals')
                 ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
                 ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
@@ -195,7 +202,6 @@ class GuruDashboardController extends Controller
                 ->distinct()
                 ->get();
 
-            // Loop mundur dari hari ini sampai 10 Agustus 2026
             $currentDate = Carbon::parse($today, 'Asia/Jakarta');
             $limitDate = Carbon::parse($startDateLimit, 'Asia/Jakarta');
 
@@ -204,18 +210,17 @@ class GuruDashboardController extends Controller
                 $tanggalStr = $currentDate->toDateString();
                 $namaHariIndo = $currentDate->translatedFormat('l');
                 
-                // 🔥 CEK HARI LIBUR (SABTU/MINGGU)
+                // Cek Akhir Pekan (Sabtu = 6, Minggu = 0)
                 $dayOfWeek = $currentDate->dayOfWeek;
                 $isWeekend = in_array($dayOfWeek, [0, 6]);
 
-                // 2. CEK HARI LIBUR NASIONAL DARI DATABASE
-                $isHariLibur = DB::table('hari_libur')->where('tanggal', $tanggalStr)->exists();
+                // Cek Hari Libur Nasional dari Tabel Admin (hari_libur)
+                $isHariLibur = in_array($tanggalStr, $daftarHariLibur);
 
-                // Jika hari libur, lewati pembuatan notifikasi
-                if (!$isWeekend) {
+                // Proses hanya jika BUKAN weekend dan BUKAN hari libur nasional
+                if (!$isWeekend && !$isHariLibur) {
                     foreach ($jadwalGuru as $jadwal) {
                         if ($jadwal->hari === $namaHariIndo) {
-                            // 1. Cek apakah jurnal sudah diisi pada tanggal KBM ini
                             $jurnalAda = DB::table('jurnals')
                                 ->where('guru_id', $guruId)
                                 ->where('kelas_id', $jadwal->kelas_id)
@@ -223,7 +228,6 @@ class GuruDashboardController extends Controller
                                 ->whereDate('tanggal', $tanggalStr)
                                 ->exists();
 
-                            // 2. Cek apakah notifikasi untuk tanggal & jadwal ini sudah ada di database
                             $notifExisting = DB::table('notifications')
                                 ->where('user_id', $guruId)
                                 ->whereDate('created_at', $tanggalStr)
@@ -232,21 +236,24 @@ class GuruDashboardController extends Controller
                                 ->first();
 
                             if ($jurnalAda) {
-                                // Jika sudah diisi, ubah status jadi read (is_read = 1) agar hilang dari lonceng
+                                // Jika jurnal sudah dikerjakan, ubah database is_read menjadi 1 secara permanen
                                 if ($notifExisting && $notifExisting->is_read == 0) {
                                     DB::table('notifications')
                                         ->where('id', $notifExisting->id)
-                                        ->update(['is_read' => 1]);
+                                        ->update([
+                                            'is_read'    => 1,
+                                            'updated_at' => now()
+                                        ]);
                                 }
                             } else {
-                                // Jika belum diisi, buat notifnya agar muncul di lonceng (is_read = 0)
+                                // Jika belum dikerjakan, simpan/pertahankan notif di database (is_read = 0)
                                 if (!$notifExisting) {
                                     $pesanNotif = "Pengingat Jurnal: Jurnal mengajar kelas {$jadwal->nama_kelas} ({$jadwal->nama_mapel}) belum diisi!";
 
                                     DB::table('notifications')->insert([
-                                        'user_id' => $guruId,
-                                        'message' => $pesanNotif,
-                                        'is_read' => 0,
+                                        'user_id'    => $guruId,
+                                        'message'    => $pesanNotif,
+                                        'is_read'    => 0,
                                         'created_at' => $tanggalStr . ' 07:00:00',
                                         'updated_at' => now(),
                                     ]);
@@ -261,8 +268,7 @@ class GuruDashboardController extends Controller
             }
         }
 
-
-        // 3. AMBIL NOTIFIKASI YANG BELUM DIISI (is_read = 0) DAN PETAKAN ID KELAS & MAPELNYA SECARA PRESISI
+        // Ambil notifikasi yang belum dibaca (is_read = 0) untuk ditampilkan di lonceng
         $notifications = DB::table('notifications')
             ->where('user_id', $guruId)
             ->where('is_read', 0)
@@ -270,7 +276,6 @@ class GuruDashboardController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
-        // Ambil seluruh jadwal guru untuk pemetaan data notifikasi ke tombol Isi Jurnal
         $jadwalsGuruFull = DB::table('jadwals')
             ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
@@ -286,7 +291,6 @@ class GuruDashboardController extends Controller
             $tglNotifCarbon = Carbon::parse($notif->created_at);
             $hariKbmNotif = $tglNotifCarbon->translatedFormat('l');
 
-            // Pencocokan presisi (Kelas, Mapel, dan Hari KBM)
             foreach ($jadwalsGuruFull as $j) {
                 $kelasMatch = str_contains(strtolower($notif->message), strtolower($j->nama_kelas));
                 $cleanMapel = trim(preg_replace('/\s+/', ' ', str_replace(['(', ')'], '', $j->nama_mapel)));
@@ -300,7 +304,6 @@ class GuruDashboardController extends Controller
                 }
             }
 
-            // Fallback pencocokan tingkat kedua (Kelas dan Mapel saja)
             if (!$notif->target_kelas_id || !$notif->target_mapel_id) {
                 foreach ($jadwalsGuruFull as $j) {
                     $kelasMatch = str_contains(strtolower($notif->message), strtolower($j->nama_kelas));
@@ -364,12 +367,10 @@ class GuruDashboardController extends Controller
             Carbon::setLocale('id');
             $hariJurnal = Carbon::parse($j->tanggal)->translatedFormat('l');
 
-            // 1. DETEKSI TELAT YANG PRESISI (Tanggal Input > Tanggal KBM)
             $tglKbm = Carbon::parse($j->tanggal)->startOfDay();
             $tglInput = Carbon::parse($j->created_at)->startOfDay();
             $j->is_telat = $tglInput->greaterThan($tglKbm);
 
-            // 2. AMBIL SEMUA JADWAL SESI (UNTUK MENAMPILKAN JAM & RENTANG WAKTU SEPERTI GAMBAR)
             $jadwalMatching = DB::table('jadwals')
                 ->where('guru_id', $guruId)
                 ->where('kelas_id', $j->kelas_id)
@@ -403,6 +404,7 @@ class GuruDashboardController extends Controller
                 $j->jam_ke_label = 'Jam ke-' . ($j->jam_ke ?? '1');
             }
         }
+
         return view('guru.dashboard-ringkasan', compact('totalKelas', 'totalMapel', 'jurnalHariIni', 'jurnalTerbaru', 'notifications', 'currentFilter'));
     }
 

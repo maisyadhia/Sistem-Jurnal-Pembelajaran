@@ -10,7 +10,7 @@ class GuruJurnalController extends Controller
 {
     public function index(Request $request, $kelas_id, $mapel_id)
     {
-        // 💡 KUNCI ZONA WAKTU KE ASIA/JAKARTA
+        // KUNCI ZONA WAKTU KE ASIA/JAKARTA
         date_default_timezone_set('Asia/Jakarta');
 
         // 1. Dapatkan guru_id dari session (bisa Guru atau Admin)
@@ -174,6 +174,7 @@ class GuruJurnalController extends Controller
             }
         }
 
+        // 1. SIMPAN DATA JURNAL KE DATABASE
         DB::table('jurnals')->insert([
             'guru_id'     => $guruId,
             'kelas_id'    => $request->kelas_id,
@@ -184,11 +185,28 @@ class GuruJurnalController extends Controller
             'target_next' => $request->next_target,
             'rpp_sesuai'  => $request->has('rpp_completed') ? 1 : 0,
             'ada_absen'   => $adaAbsen,
-            'tanggal'     => $tanggalJurnal, // TANGGAL KBM (Menyesuaikan tanggal notifikasi yang diklik)
-            'created_at'  => now(),          // WAKTU INPUT (Menampilkan waktu saat ini ketika form dikirim)
+            'tanggal'     => $tanggalJurnal, 
+            'created_at'  => now(),          
             'updated_at'  => now(),
         ]);
         
+        // 🔥 2. OTOMATIS UPDATE STATUS NOTIFIKASI DI DATABASE MENJADI is_read = 1
+        $namaKelasTarget = DB::table('kelas_master')->where('id', $request->kelas_id)->value('nama_kelas');
+        $namaMapelTarget = DB::table('mapel_master')->where('id', $request->mapel_id)->value('nama_mapel');
+
+        if ($namaKelasTarget && $namaMapelTarget) {
+            DB::table('notifications')
+                ->where('user_id', $guruId)
+                ->where('is_read', 0)
+                ->whereDate('created_at', $tanggalJurnal)
+                ->where('message', 'like', "%kelas {$namaKelasTarget}%")
+                ->where('message', 'like', "%({$namaMapelTarget})%")
+                ->update([
+                    'is_read'    => 1,
+                    'updated_at' => now()
+                ]);
+        }
+
         if (session()->has('admin_id')) {
             return redirect()->route('monitoring')->with('success', 'Jurnal Berhasil Diinputkan oleh Admin!');
         }
