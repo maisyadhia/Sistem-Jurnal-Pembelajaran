@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Traits\LogsAdminActivity;
 use App\Models\Student;
 use App\Models\StudentClassHistory;
+use App\Models\KelasMaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\NilaiAsat;
@@ -16,31 +17,46 @@ class KenaikanKelasController extends Controller
 
     public function index(Request $request)
     {
-        $tahunAjaranAktif = config('tahun_ajaran.aktif');
+        // 1. Ambil default dari config (env)
+        $tahunAjaranAktif = $request->get('tahun_ajaran_aktif', config('tahun_ajaran.aktif'));
         $tahunAjaranBaru = $request->get('tahun_ajaran_baru', $this->getTahunBerikutnya($tahunAjaranAktif));
 
-        // Siswa aktif
+        // 🔥 2. AMBIL LIST TAHUN AJARAN DARI DATABASE (KELAS_MASTER)
+        $listTahunAjaran = KelasMaster::select('tahun_ajaran')
+            ->distinct()
+            ->orderBy('tahun_ajaran', 'asc')
+            ->pluck('tahun_ajaran')
+            ->toArray();
+
+        // Antisipasi jika tabel masih kosong atau tahun aktif belum ada di DB
+        if (!in_array($tahunAjaranAktif, $listTahunAjaran)) {
+            $listTahunAjaran[] = $tahunAjaranAktif;
+        }
+        if (!in_array($tahunAjaranBaru, $listTahunAjaran)) {
+            $listTahunAjaran[] = $tahunAjaranBaru;
+        }
+        
+        // Urutkan ulang dari tahun terlama ke terbaru
+        sort($listTahunAjaran);
+
         $siswaAktif = Student::where('tahun_ajaran', $tahunAjaranAktif)
             ->where('status', 'aktif')
             ->orderBy('class')
             ->orderBy('name')
             ->get();
 
-        // 🔥 SISWA LULUS
         $siswaLulus = Student::where('tahun_ajaran', $tahunAjaranAktif)
             ->where('status', 'lulus')
             ->orderBy('class')
             ->orderBy('name')
             ->get();
 
-        // 🔥 SISWA PINDAH
         $siswaPindah = Student::where('tahun_ajaran', $tahunAjaranAktif)
             ->where('status', 'pindah')
             ->orderBy('class')
             ->orderBy('name')
             ->get();
 
-        // 🔥 SISWA TINGGAL KELAS
         $siswaTinggal = Student::where('tahun_ajaran', $tahunAjaranAktif)
             ->where('status', 'tinggal_kelas')
             ->orderBy('class')
@@ -60,11 +76,11 @@ class KenaikanKelasController extends Controller
 
         $totalSiswa = $siswaAktif->count();
 
-        // Riwayat kenaikan kelas
         $riwayatKenaikan = StudentClassHistory::with('student')
             ->orderBy('created_at', 'desc')
-        ->paginate(20);
-
+            ->paginate(20);
+            
+        // Jangan lupa kirim $listTahunAjaran ke view
         return view('admin.kenaikan-kelas.index', compact(
             'siswaAktif',
             'siswaLulus',
@@ -74,7 +90,8 @@ class KenaikanKelasController extends Controller
             'tahunAjaranAktif',
             'tahunAjaranBaru',
             'totalSiswa',
-            'riwayatKenaikan'
+            'riwayatKenaikan',
+            'listTahunAjaran' 
         ));
     }
 

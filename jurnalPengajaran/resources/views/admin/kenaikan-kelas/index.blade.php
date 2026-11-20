@@ -34,23 +34,44 @@
         </a>
     </div>
 
-    <!-- Info Tahun Ajaran -->
-    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+    <!-- Form Filter Tahun Ajaran -->
+    <form action="{{ route('kenaikan-kelas.index') }}" method="GET" class="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Dropdown Tahun Ajaran Aktif -->
             <div>
-                <p class="text-xs text-blue-600 font-semibold uppercase tracking-wider">Tahun Ajaran Aktif</p>
-                <p class="text-xl font-bold text-blue-800">{{ $tahunAjaranAktif }}</p>
+                <label class="block text-xs text-blue-600 font-semibold uppercase tracking-wider mb-1">Tahun Ajaran Aktif</label>
+                <select name="tahun_ajaran_aktif" onchange="this.form.submit()" 
+                        class="bg-transparent text-xl font-bold text-blue-800 border-b border-blue-300 focus:outline-none cursor-pointer w-full pb-1">
+                    @foreach($listTahunAjaran as $tahun)
+                        <option value="{{ $tahun }}" {{ $tahunAjaranAktif == $tahun ? 'selected' : '' }}>
+                            {{ $tahun }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
+
+            <!-- Dropdown Tahun Ajaran Baru -->
             <div>
-                <p class="text-xs text-blue-600 font-semibold uppercase tracking-wider">Tahun Ajaran Baru</p>
-                <p class="text-xl font-bold text-blue-800">{{ $tahunAjaranBaru }}</p>
+                <label class="block text-xs text-blue-600 font-semibold uppercase tracking-wider mb-1">Tahun Ajaran Baru</label>
+                <select name="tahun_ajaran_baru" onchange="this.form.submit()" 
+                        class="bg-transparent text-xl font-bold text-blue-800 border-b border-blue-300 focus:outline-none cursor-pointer w-full pb-1">
+                    @foreach($listTahunAjaran as $tahun)
+                        <option value="{{ $tahun }}" {{ $tahunAjaranBaru == $tahun ? 'selected' : '' }}>
+                            {{ $tahun }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
+
+            <!-- Total Siswa Aktif (Bukan Dropdown) -->
             <div>
-                <p class="text-xs text-blue-600 font-semibold uppercase tracking-wider">Total Siswa Aktif</p>
+                <p class="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-1">Total Siswa Aktif</p>
                 <p class="text-xl font-bold text-blue-800">{{ $totalSiswa }} siswa</p>
             </div>
+            
         </div>
-    </div>
+    </form>
 
     <!-- TABS -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
