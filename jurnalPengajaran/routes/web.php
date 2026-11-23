@@ -84,6 +84,7 @@ Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(functi
         Route::get('/{id}/edit', [GuruController::class, 'edit'])->name('data-master.guru.edit');
         Route::put('/{id}', [GuruController::class, 'update'])->name('data-master.guru.update');
         Route::delete('/{id}', [GuruController::class, 'destroy'])->name('data-master.guru.destroy');
+        Route::patch('/admin/data-master/guru/{id}/toggle-aktif', [GuruController::class, 'toggleAktif'])->name('data-master.guru.toggle-aktif');    
     });
     
     // ====== SISWA CRUD ======
@@ -128,6 +129,7 @@ Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(functi
         Route::get('/{id}/edit', [JadwalController::class, 'edit'])->name('data-master.jadwal.edit');
         Route::put('/{id}', [JadwalController::class, 'update'])->name('data-master.jadwal.update');
         Route::delete('/{id}', [JadwalController::class, 'destroy'])->name('data-master.jadwal.destroy');
+        Route::post('/duplikat', [JadwalController::class, 'duplikat'])->name('data-master.jadwal.duplikat');
     });
     
     // ====== ADMIN LOGS ======

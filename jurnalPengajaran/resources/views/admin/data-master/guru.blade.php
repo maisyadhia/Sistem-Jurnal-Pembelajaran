@@ -54,6 +54,7 @@
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">NIK</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">NO HP</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">ROLE</th>
+                        <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant text-center">STATUS</th>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant text-right">AKSI</th>
                     </tr>
                 </thead>
@@ -76,7 +77,7 @@
                             <!-- 3. NIK -->
                             <td class="px-4 py-4">{{ $item->nik }}</td>
                             
-                            <!-- 4. NO HP (TAMBAHKAN INI) -->
+                            <!-- 4. NO HP -->
                             <td class="px-4 py-4">{{ $item->no_hp ?? '-' }}</td>
                             
                             <!-- 5. ROLE -->
@@ -87,14 +88,41 @@
                                     {{ strtoupper($item->role) }}
                                 </span>
                             </td>
-                            
-                            <!-- 6. AKSI -->
+
+                            <!-- 6. STATUS (KOLOM BARU) -->
+                            <td class="px-4 py-4 text-center">
+                                @if($item->is_aktif)
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Aktif</span>
+                                @else
+                                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">Non-Aktif</span>
+                                @endif
+                            </td>
+
+                            <!-- 7. AKSI (HANYA SATU BLOK INI) -->
                             <td class="px-4 py-4 text-right">
-                                <div class="flex justify-end gap-1">
+                                <div class="flex justify-end gap-1 items-center">
+                                    <!-- TOMBOL TOGGLE STATUS -->
+                                    <form action="{{ route('data-master.guru.toggle-aktif', $item->id) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        @if($item->is_aktif)
+                                            <button type="submit" title="Nonaktifkan Guru" class="p-1.5 text-amber-600 hover:text-amber-800 transition-colors" onclick="return confirm('Nonaktifkan guru ini?')">
+                                                <span class="material-symbols-outlined text-lg">person_off</span>
+                                            </button>
+                                        @else
+                                            <button type="submit" title="Aktifkan Guru" class="p-1.5 text-green-600 hover:text-green-800 transition-colors" onclick="return confirm('Aktifkan kembali guru ini?')">
+                                                <span class="material-symbols-outlined text-lg">person_check</span>
+                                            </button>
+                                        @endif
+                                    </form>
+
+                                    <!-- TOMBOL EDIT -->
                                     <a href="{{ route('data-master.guru.edit', $item->id) }}" 
                                     class="p-1.5 text-on-surface-variant hover:text-primary transition-colors">
                                         <span class="material-symbols-outlined text-lg">edit</span>
                                     </a>
+                                    
+                                    <!-- TOMBOL HAPUS -->
                                     <button onclick="openDeleteModal('{{ $item->id }}', '{{ $item->nama_guru }}', 'GURU')" 
                                             class="p-1.5 text-on-surface-variant hover:text-error transition-colors">
                                         <span class="material-symbols-outlined text-lg">delete</span>
@@ -104,8 +132,8 @@
                         </tr>
                     @empty
                         <tr>
-                            <!-- Ubah colspan menjadi 6 karena ada 6 kolom -->
-                            <td colspan="6" class="px-4 py-8 text-center text-on-surface-variant">
+                            <!-- Ubah colspan menjadi 7 karena ada 7 kolom (Nama, Kode, NIK, NoHP, Role, Status, Aksi) -->
+                            <td colspan="7" class="px-4 py-8 text-center text-on-surface-variant">
                                 <span class="material-symbols-outlined text-3xl block mx-auto mb-2">inbox</span>
                                 Belum ada data guru.
                             </td>

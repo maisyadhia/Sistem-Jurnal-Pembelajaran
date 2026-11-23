@@ -130,4 +130,27 @@ class GuruController extends Controller
         return redirect()->route('data-master.guru')
             ->with('success', 'Guru berhasil dihapus!');
     }
+
+    public function toggleAktif($id)
+    {
+        $guru = \App\Models\Guru::find($id);
+        
+        if (!$guru) {
+            return back()->with('error', 'Data guru tidak ditemukan.');
+        }
+
+        // Jangan biarkan admin menonaktifkan dirinya sendiri
+        if (auth()->id() == $guru->id) {
+            return back()->with('error', 'Anda tidak bisa menonaktifkan akun Anda sendiri!');
+        }
+
+        // Ubah status (true jadi false, false jadi true)
+        $guru->update([
+            'is_aktif' => !$guru->is_aktif
+        ]);
+
+        $status = $guru->is_aktif ? 'diaktifkan' : 'dinonaktifkan';
+        
+        return back()->with('success', "Guru {$guru->nama_guru} berhasil {$status}.");
+    }
 }

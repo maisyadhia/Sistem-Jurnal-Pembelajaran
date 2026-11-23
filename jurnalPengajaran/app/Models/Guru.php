@@ -15,9 +15,15 @@ class Guru extends Model
         'no_hp',
         'password',
         'role',
+        'is_aktif',
     ];
 
     protected $hidden = [
         'password',
     ];
+
+    public function scopeAktif($query)
+    {
+        return $query->where('is_aktif', true);
+    }
 }

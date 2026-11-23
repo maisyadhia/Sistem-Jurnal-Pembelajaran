@@ -36,13 +36,20 @@
             <p class="font-body-sm text-body-sm text-on-surface-variant">Kelola jadwal pelajaran guru.</p>
         </div>
         <div class="flex gap-2">
-            <a href="{{ route('data-master.jadwal.create') }}" 
-               class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity">
-                <span class="material-symbols-outlined text-sm">add</span> TAMBAH JADWAL
-            </a>
+        <!-- Tombol Duplikat -->
+        <button onclick="openDuplikatModal()" 
+                class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity">
+            <span class="material-symbols-outlined text-sm">content_copy</span> DUPLIKAT JADWAL
+        </button>
+
+        <!-- Tombol Tambah Jadwal -->
+        <a href="{{ route('data-master.jadwal.create') }}" 
+        class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity">
+            <span class="material-symbols-outlined text-sm">add</span> TAMBAH JADWAL
+        </a>
         </div>
     </div>
-    
+
     <div class="p-6">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
@@ -163,6 +170,58 @@
         </div>
     </div>
 </div>
+
+<!-- MODAL DUPLIKAT JADWAL -->
+<div id="modalDuplikat" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-indigo-600 text-2xl">content_copy</span>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-800">Duplikat Jadwal</h3>
+                <p class="text-xs text-slate-500">Salin seluruh jadwal dari tahun ajaran sebelumnya.</p>
+            </div>
+        </div>
+        
+        <form method="POST" action="{{ route('data-master.jadwal.duplikat') }}">
+            @csrf
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Dari Tahun Ajaran (Asal)</label>
+                    <select name="tahun_asal" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
+                        <option value="">-- Pilih Tahun Asal --</option>
+                        <option value="2025/2026">2025/2026</option>
+                        <option value="2026/2027">2026/2027</option>
+                        <option value="2027/2028">2027/2028</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Ke Tahun Ajaran (Tujuan)</label>
+                    <select name="tahun_tujuan" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
+                        <option value="">-- Pilih Tahun Tujuan --</option>
+                        <option value="2026/2027">2026/2027</option>
+                        <option value="2027/2028">2027/2028</option>
+                        <option value="2028/2029">2028/2029</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="bg-amber-50 rounded-xl p-3 mt-4 text-xs text-amber-700">
+                ⚠️ Pastikan tahun ajaran tujuan <strong>belum memiliki jadwal</strong> agar tidak terjadi duplikasi ganda.
+            </div>
+            
+            <div class="flex gap-2 justify-end mt-6">
+                <button type="button" onclick="closeDuplikatModal()" 
+                        class="px-4 py-2 border border-slate-200 rounded-lg text-sm">Batal</button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">Mulai Duplikat</button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -186,6 +245,18 @@ function closeDeleteModal() {
     document.getElementById('deleteModal').classList.add('hidden');
     deleteData = null;
 }
+
+function openDuplikatModal() {
+    document.getElementById('modalDuplikat').classList.remove('hidden');
+}
+
+function closeDuplikatModal() {
+    document.getElementById('modalDuplikat').classList.add('hidden');
+}
+
+document.getElementById('modalDuplikat').addEventListener('click', function(e) {
+    if (e.target === this) closeDuplikatModal();
+});
 
 document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
     if (!deleteData) return;

@@ -275,4 +275,69 @@ class JadwalController extends Controller
         return redirect()->route('data-master.jadwal')
             ->with('success', "{$deleted} jadwal berhasil dihapus!");
     }
+
+    public function duplikat(Request $request)
+    {
+        $request->validate([
+            'tahun_asal' => 'required|string',
+            'tahun_tujuan' => 'required|string',
+        ]);
+
+        $tahunAsal = $request->tahun_asal;
+        $tahunTujuan = $request->tahun_tujuan;
+
+        if ($tahunAsal === $tahunTujuan) {
+            return back()->with('error', 'Tahun ajaran asal dan tujuan tidak boleh sama.');
+        }
+
+        // Cek apakah jadwal di tahun tujuan sudah ada
+        $cekJadwalTujuan = DB::table('jadwals')->where('tahun_ajaran', $tahunTujuan)->exists();
+        if ($cekJadwalTujuan) {
+            return back()->with('error', "Jadwal untuk tahun ajaran {$tahunTujuan} sudah ada. Kosongkan dulu atau pilih tahun lain.");
+        }
+
+        // Ambil data jadwal dari tahun asal
+        $jadwalAsal = DB::table('jadwals')->where('tahun_ajaran', $tahunAsal)->get();
+
+        if ($jadwalAsal->isEmpty()) {
+            return back()->with('error', "Tidak ada jadwal ditemukan untuk tahun ajaran {$tahunAsal}.");
+        }
+
+        DB::beginTransaction();
+        try {
+            $dataInsert = [];
+            foreach ($jadwalAsal as $jadwal) {
+                $dataInsert[] = [
+                    'guru_id' => $jadwal->guru_id,
+                    'kelas_id' => $jadwal->kelas_id,
+                    'mapel_id' => $jadwal->mapel_id,
+                    'hari' => $jadwal->hari,
+                    'jam_ke' => $jadwal->jam_ke,
+                    'jam_mulai' => $jadwal->jam_mulai,
+                    'jam_selesai' => $jadwal->jam_selesai,
+                    'tahun_ajaran' => $tahunTujuan, // <-- Ganti ke tahun baru
+                    'is_aktif' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            DB::table('jadwals')->insert($dataInsert);
+            DB::commit();
+
+            $this->logActivity(
+                'create',
+                'jadwal',
+                "Duplikasi jadwal dari {$tahunAsal} ke {$tahunTujuan}",
+                null,
+                ['tahun_asal' => $tahunAsal, 'tahun_tujuan' => $tahunTujuan, 'total' => count($dataInsert)]
+            );
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menduplikasi jadwal: ' . $e->getMessage());
+        }
+
+        return back()->with('success', "Berhasil menduplikasi " . count($dataInsert) . " jadwal dari {$tahunAsal} ke {$tahunTujuan}!");
+    }
 }
