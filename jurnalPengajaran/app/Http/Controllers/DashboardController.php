@@ -25,8 +25,8 @@ class DashboardController extends Controller
             ];
         }
 
-        // 2. Tentukan batasan tanggal berdasarkan filter tombol woy
-        $filter = $request->query('filter', '1_minggu'); // Default filter 1 minggu
+        // 2. Tentukan batasan tanggal berdasarkan filter tombol (default: 'semua')
+        $filter = $request->query('filter', 'semua');
         $startDate = null;
 
         if ($filter === 'hari_ini') {
@@ -35,27 +35,29 @@ class DashboardController extends Controller
             $startDate = Carbon::now()->subWeek()->toDateString();
         } elseif ($filter === '1_bulan') {
             $startDate = Carbon::now()->subMonth()->toDateString();
+        } elseif ($filter === 'semua') {
+            $startDate = null;
         }
 
-        // 3. Ambil entri jurnal, join tabel mapel_master & guru
+        // 3. Ambil entri jurnal, leftJoin tabel mapel_master & guru
         $query = DB::table('jurnals')
-            ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
-            ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
+            ->leftJoin('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
+            ->leftJoin('guru', 'jurnals.guru_id', '=', 'guru.id')
             ->select(
                 'jurnals.tanggal',
                 'jurnals.jam_ke',
                 'jurnals.materi',
-                'jurnals.target_next', // ✅ ditambahkan: target/rencana pertemuan berikutnya
+                'jurnals.target_next',
                 'jurnals.student_ids',
-                'jurnals.guru_id',   // ✅ dipakai untuk mencocokkan jadwal (jam ke spesifik)
-                'jurnals.kelas_id',  // ✅ dipakai untuk mencocokkan jadwal
-                'jurnals.mapel_id',  // ✅ dipakai untuk mencocokkan jadwal
+                'jurnals.guru_id',
+                'jurnals.kelas_id',
+                'jurnals.mapel_id',
                 'mapel_master.nama_mapel',
                 'guru.nama_guru'
             )
             ->whereNotNull('jurnals.student_ids');
 
-        // Jika filter aktif, batasi tanggalnya woy
+        // Jika filter aktif, batasi tanggalnya
         if ($startDate) {
             $query->whereDate('jurnals.tanggal', '>=', $startDate);
         }
@@ -65,7 +67,7 @@ class DashboardController extends Controller
             ->get();
 
         $activities = collect();
-        $notes = collect(); // 💡 Diubah jadi collection untuk menampung semua catatan guru
+        $notes = collect();
 
         // 4. Looping mencari data anak di dalam JSON student_ids
         foreach ($jurnalEntries as $jurnal) {
@@ -79,9 +81,6 @@ class DashboardController extends Controller
                 if (($data['student_id'] ?? null) == $studentId) {
                     $rawStatus = isset($data['status']) ? strtolower(trim($data['status'])) : 'hadir';
 
-                    // 🔍 Cari jam ke spesifik dari tabel jadwals (guru + kelas + mapel + hari yang sama),
-                    //    sama persis seperti logika di dashboard guru, biar labelnya konsisten
-                    //    di kedua sisi (mis. "Jam ke 2 & 3 & 10", bukan cuma angka jam_ke tunggal).
                     Carbon::setLocale('id');
                     $hariJurnal = Carbon::parse($jurnal->tanggal)->translatedFormat('l');
 
@@ -100,20 +99,19 @@ class DashboardController extends Controller
                         : 'Jam ke-' . $jurnal->jam_ke;
 
                     $item = (object) [
-                        'mapel'       => $jurnal->nama_mapel,
-                        'guru'        => $jurnal->nama_guru,
-                        'tanggal'     => $jurnal->tanggal,
-                        'jam_ke'      => $jurnal->jam_ke,
-                        'jam_ke_label'=> $jamKeLabel, // ✅ label spesifik untuk ditampilkan di view
-                        'materi'      => $jurnal->materi,
-                        'target_next' => $jurnal->target_next ?? null, // ✅ dikirim ke view
-                        'status'      => $rawStatus,
-                        'catatan'     => $data['catatan'] ?? null,
+                        'mapel'        => $jurnal->nama_mapel ?? 'Mapel',
+                        'guru'         => $jurnal->nama_guru ?? 'Guru',
+                        'tanggal'      => $jurnal->tanggal,
+                        'jam_ke'       => $jurnal->jam_ke,
+                        'jam_ke_label' => $jamKeLabel,
+                        'materi'       => $jurnal->materi,
+                        'target_next'  => $jurnal->target_next ?? null,
+                        'status'       => $rawStatus,
+                        'catatan'      => $data['catatan'] ?? null,
                     ];
 
                     $activities->push($item);
 
-                    // 💡 Masukkan semua catatan guru yang tidak kosong ke dalam list notes woy!
                     if (!empty($item->catatan)) {
                         $notes->push((object) [
                             'content' => $item->catatan,
@@ -129,7 +127,6 @@ class DashboardController extends Controller
         }
 
         // 5. Hitung persentase kehadiran dari data activities pada periode filter yang sama
-        //    (dihitung sebelum di-take(10) supaya statistiknya utuh, bukan cuma dari 10 item yang tampil)
         $totalRecords = $activities->count();
         $hadirCount   = $activities->where('status', 'hadir')->count();
         $sakitCount   = $activities->where('status', 'sakit')->count();
@@ -146,11 +143,11 @@ class DashboardController extends Controller
         ];
 
         return view('dashboard.timeline', [
-            'student'    => $student,
-            'activities' => $activities->take(10),
-            'notes'      => $notes, // Kirim semua list catatan
-            'attendance' => $attendance, // ✅ statistik kehadiran real, bukan dummy lagi
-            'currentFilter' => $filter // Untuk menandai tombol mana yang aktif di Blade
+            'student'       => $student,
+            'activities'    => $activities->take(10),
+            'notes'         => $notes,
+            'attendance'    => $attendance,
+            'currentFilter' => $filter
         ]);
     }
 }
