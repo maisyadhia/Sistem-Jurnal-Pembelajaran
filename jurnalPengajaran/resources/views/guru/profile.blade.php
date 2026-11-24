@@ -3,10 +3,27 @@
 @section('title', 'Pengaturan Profil - SIMJAR')
 
 @section('content')
+    @php
+        $dashboardUrl = \Illuminate\Support\Facades\Route::has('guru.dashboard')
+            ? route('guru.dashboard')
+            : (\Illuminate\Support\Facades\Route::has('dashboard')
+                ? route('dashboard')
+                : url('/dashboard'));
+    @endphp
+
     <div class="max-w-2xl mx-auto w-full flex flex-col gap-6 pt-4 pb-8 px-3 md:px-6">
-        <div>
-            <h2 class="text-xl md:text-2xl font-bold text-slate-800">Pengaturan Profil</h2>
-            <p class="text-xs text-slate-500">Kelola foto profil, nomor WhatsApp, dan keamanan sandi akun Anda.</p>
+        <!-- Header + Tombol Kembali di Atas -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h2 class="text-xl md:text-2xl font-bold text-slate-800">Pengaturan Profil</h2>
+                <p class="text-xs text-slate-500">Kelola foto profil, nomor WhatsApp, dan keamanan sandi akun Anda.</p>
+            </div>
+
+            <a href="{{ $dashboardUrl }}"
+                class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 self-start sm:self-auto">
+                <span class="material-symbols-outlined text-base">arrow_back</span>
+                <span>Kembali</span>
+            </a>
         </div>
 
         <!-- 
@@ -15,7 +32,7 @@
         -->
 
         <!-- FORM UTAMA TERPADU -->
-        <form action="{{ route('guru.profile.update') }}" method="POST" enctype="multipart/form-data" class="flex flex-col gap-6">
+        <form id="profileForm" action="{{ route('guru.profile.update') }}" method="POST" enctype="multipart/form-data" class="flex flex-col gap-6">
             @csrf
             @method('PUT')
 
@@ -115,8 +132,13 @@
                 </div>
             </div>
 
-            <!-- Tombol Submit Tunggal -->
-            <div class="flex justify-end pt-2">
+            <!-- Tombol Submit + Tombol Batal (muncul saat form mulai diisi/diubah) -->
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <a href="{{ $dashboardUrl }}" id="btnCancelProfile"
+                    class="hidden inline-flex items-center justify-center px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm">
+                    Batal
+                </a>
+
                 <button type="submit"
                     class="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all shadow-md">
                     Update Data Profil
@@ -140,5 +162,19 @@
                 icon.textContent = 'visibility';
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('profileForm');
+            const btnCancel = document.getElementById('btnCancelProfile');
+
+            if (!form || !btnCancel) return;
+
+            const showCancelButton = () => {
+                btnCancel.classList.remove('hidden');
+            };
+
+            form.addEventListener('input', showCancelButton);
+            form.addEventListener('change', showCancelButton);
+        });
     </script>
 @endpush
