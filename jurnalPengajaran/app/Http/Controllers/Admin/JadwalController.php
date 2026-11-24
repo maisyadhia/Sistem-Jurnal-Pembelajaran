@@ -44,9 +44,17 @@ class JadwalController extends Controller
         10 => 'Jam 10 ',
     ];
 
-    public function index()
+    public function index(Request $request)
     {
-        $jadwal = DB::table('jadwals')
+        // 🔥 1. TANGKAP FILTER DARI REQUEST
+        $tahunAjaran = $request->get('tahun_ajaran', config('tahun_ajaran.aktif'));
+        $kelasId = $request->get('kelas_id');
+        $guruId = $request->get('guru_id');
+        $hari = $request->get('hari');
+        $search = $request->get('search');
+
+        // 🔥 2. QUERY DENGAN FILTER
+        $query = DB::table('jadwals')
             ->join('guru', 'jadwals.guru_id', '=', 'guru.id')
             ->join('kelas_master', 'jadwals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jadwals.mapel_id', '=', 'mapel_master.id')
@@ -56,16 +64,38 @@ class JadwalController extends Controller
                 'kelas_master.nama_kelas',
                 'mapel_master.nama_mapel'
             )
-            ->orderBy('jadwals.hari')
-            ->orderBy('jadwals.jam_ke')
-            ->get();
+            ->where('jadwals.tahun_ajaran', $tahunAjaran); // Default filter tahun aktif
+
+        if ($kelasId) $query->where('jadwals.kelas_id', $kelasId);
+        if ($guruId) $query->where('jadwals.guru_id', $guruId);
+        if ($hari) $query->where('jadwals.hari', $hari);
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('guru.nama_guru', 'like', "%{$search}%")
+                  ->orWhere('kelas_master.nama_kelas', 'like', "%{$search}%")
+                  ->orWhere('mapel_master.nama_mapel', 'like', "%{$search}%");
+            });
+        }
+
+        $jadwal = $query->orderBy('jadwals.hari')->orderBy('jadwals.jam_ke')->get();
 
         $groupedJadwal = $jadwal->groupBy(function($item) {
             return $item->hari . '|' . $item->guru_id . '|' . $item->kelas_id . '|' . $item->mapel_id;
         });
 
-        return view('admin.data-master.jadwal', compact('groupedJadwal'));
+        // 🔥 3. AMBIL DATA UNTUK DROPDOWN FILTER
+        $listTahunAjaran = DB::table('kelas_master')->select('tahun_ajaran')->distinct()->orderBy('tahun_ajaran', 'desc')->pluck('tahun_ajaran');
+        $listKelas = DB::table('kelas_master')->orderBy('nama_kelas')->get();
+        $listGuru = DB::table('guru')->orderBy('nama_guru')->get();
+        $listHari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+
+        return view('admin.data-master.jadwal', compact(
+            'groupedJadwal', 
+            'tahunAjaran', 'kelasId', 'guruId', 'hari', 'search',
+            'listTahunAjaran', 'listKelas', 'listGuru', 'listHari'
+        ));
     }
+
 
     public function create()
     {
