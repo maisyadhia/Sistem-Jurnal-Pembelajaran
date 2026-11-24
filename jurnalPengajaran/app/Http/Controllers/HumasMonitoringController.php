@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\UnreportedClass;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Exports\LaporanKepatuhanExport;
+use Maatwebsite\Excel\Facades\Excel;c
 
 class HumasMonitoringController extends Controller
 {

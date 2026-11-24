@@ -164,6 +164,7 @@ Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(functi
         Route::get('/', [HariLiburController::class, 'index'])->name('hari-libur.index');
         Route::post('/sync', [HariLiburController::class, 'sync'])->name('hari-libur.sync');
         Route::delete('/{id}', [HariLiburController::class, 'destroy'])->name('hari-libur.destroy');
+        Route::post('/manual', [HariLiburController::class, 'storeManual'])->name('hari-libur.store-manual');
     });
 });
 

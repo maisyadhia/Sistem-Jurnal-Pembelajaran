@@ -65,4 +65,19 @@ class HariLiburController extends Controller
         DB::table('hari_libur')->where('id', $id)->delete();
         return back()->with('success', '✅ Hari libur berhasil dihapus.');
     }
+
+    public function storeManual(Request $request)
+    {
+        $request->validate([
+            'tanggal' => 'required|date|unique:hari_libur,tanggal', // Sesuaikan nama tabel
+            'keterangan' => 'required|string|max:255',
+        ]);
+
+        \App\Models\HariLibur::create([
+            'tanggal' => $request->tanggal,
+            'keterangan' => $request->keterangan,
+        ]);
+
+        return back()->with('success', 'Hari libur manual berhasil ditambahkan!');
+    }
 }

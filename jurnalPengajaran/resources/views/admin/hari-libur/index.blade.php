@@ -54,6 +54,41 @@
         @endif
     </div>
 
+    <!-- Tombol Tambah Libur -->
+    <button onclick="openLiburModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-blue-700">
+        <span class="material-symbols-outlined text-sm">add</span> TAMBAH LIBUR SEKOLAH
+    </button>
+
+    <!-- MODAL -->
+    <div id="modalLibur" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Tambah Libur Sekolah</h3>
+            <form method="POST" action="{{ route('hari-libur.store-manual') }}">
+                @csrf
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
+                        <input type="date" name="tanggal" required class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Keterangan Libur</label>
+                        <input type="text" name="keterangan" required placeholder="Contoh: Libur Study Tour" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button" onclick="closeLiburModal()" class="px-4 py-2 border rounded-lg text-sm">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT JS -->
+    <script>
+    function openLiburModal() { document.getElementById('modalLibur').classList.remove('hidden'); }
+    function closeLiburModal() { document.getElementById('modalLibur').classList.add('hidden'); }
+    </script>
+
     <!-- Tabel Hari Libur -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="p-4 border-b border-slate-200 flex justify-between items-center">
