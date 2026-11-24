@@ -29,30 +29,82 @@
     </form>
 </div>
 
+<!-- 🔥 FORM FILTER JADWAL BARU 🔥 -->
+<form action="{{ route('data-master.jadwal') }}" method="GET" class="mb-4 bg-white p-4 rounded-xl border border-outline-variant flex flex-wrap gap-3 items-end">
+    
+    <!-- Filter Tahun Ajaran -->
+    <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Tahun Ajaran</label>
+        <select name="tahun_ajaran" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+            @foreach($listTahunAjaran as $ta)
+                <option value="{{ $ta }}" {{ $tahunAjaran == $ta ? 'selected' : '' }}>{{ $ta }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <!-- Filter Kelas -->
+    <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Kelas</label>
+        <select name="kelas_id" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+            <option value="">Semua Kelas</option>
+            @foreach($listKelas as $k)
+                <option value="{{ $k->id }}" {{ $kelasId == $k->id ? 'selected' : '' }}>{{ $k->nama_kelas }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <!-- Filter Guru -->
+    <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Guru</label>
+        <select name="guru_id" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+            <option value="">Semua Guru</option>
+            @foreach($listGuru as $g)
+                <option value="{{ $g->id }}" {{ $guruId == $g->id ? 'selected' : '' }}>{{ $g->nama_guru }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <!-- Filter Hari -->
+    <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Hari</label>
+        <select name="hari" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm">
+            <option value="">Semua Hari</option>
+            @foreach($listHari as $h)
+                <option value="{{ $h }}" {{ $hari == $h ? 'selected' : '' }}>{{ $h }}</option>
+            @endforeach
+        </select>
+    </div>
+
+    <!-- Tombol Cari & Reset -->
+    <div class="flex gap-2">
+        <button type="submit" class="bg-primary text-white px-4 py-1.5 rounded-lg text-sm font-semibold">Terapkan</button>
+        <a href="{{ route('data-master.jadwal') }}" class="bg-slate-100 text-slate-600 px-4 py-1.5 rounded-lg text-sm font-semibold">Reset</a>
+    </div>
+</form>
+
 <div class="bg-surface-container-lowest border border-outline-variant rounded-xl">
     <div class="p-6 border-b border-outline-variant flex justify-between items-center">
         <div>
             <h2 class="font-headline-md text-headline-md text-on-background">Data Jadwal Pelajaran</h2>
-            <p class="font-body-sm text-body-sm text-on-surface-variant">Kelola jadwal pelajaran guru.</p>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">
+                Menampilkan jadwal tahun ajaran <strong>{{ $tahunAjaran }}</strong>.
+            </p>
         </div>
         <div class="flex gap-2">
-        <!-- Tombol Duplikat -->
-        <button onclick="openDuplikatModal()" 
-                class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity">
-            <span class="material-symbols-outlined text-sm">content_copy</span> DUPLIKAT JADWAL
-        </button>
-
-        <!-- Tombol Tambah Jadwal -->
-        <a href="{{ route('data-master.jadwal.create') }}" 
-        class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity">
-            <span class="material-symbols-outlined text-sm">add</span> TAMBAH JADWAL
-        </a>
+            <!-- 🔥 TOMBOL DUPLIKAT DIHAPUS -->
+            
+            <!-- Tombol Tambah Jadwal -->
+            <a href="{{ route('data-master.jadwal.create') }}" 
+               class="bg-primary text-on-primary px-4 py-2 rounded-lg font-label-caps text-[11px] flex items-center gap-2 hover:opacity-90 transition-opacity">
+                <span class="material-symbols-outlined text-sm">add</span> TAMBAH JADWAL
+            </a>
         </div>
     </div>
 
     <div class="p-6">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
+                <!-- HEADER TABEL SAMA SEPERTI ASLI -->
                 <thead class="bg-surface-container-low border-b border-outline-variant">
                     <tr>
                         <th class="px-4 py-3 font-label-caps text-label-caps text-on-surface-variant">HARI</th>
@@ -66,12 +118,12 @@
                 </thead>
                 <tbody class="divide-y divide-outline-variant">
                     @forelse($groupedJadwal as $key => $group)
+                        <!-- ISI TABEL SAMA SEPERTI ASLI -->
                         @php
                             $first = $group->first();
                             $jamList = $group->pluck('jam_ke')->sort()->values();
                             $waktuDisplay = '';
                             $waktuDetail = '';
-                            $jamDisplay = '';
                             foreach($group as $g) {
                                 $waktuDisplay .= 'Jam ' . $g->jam_ke . ': ' . \Carbon\Carbon::parse($g->jam_mulai)->format('H:i') . ' - ' . \Carbon\Carbon::parse($g->jam_selesai)->format('H:i') . '<br>';
                                 $waktuDetail .= 'Jam ' . $g->jam_ke . ': ' . \Carbon\Carbon::parse($g->jam_mulai)->format('H:i') . ' - ' . \Carbon\Carbon::parse($g->jam_selesai)->format('H:i') . "\n";
@@ -118,8 +170,9 @@
                     @empty
                         <tr>
                             <td colspan="7" class="px-4 py-8 text-center text-on-surface-variant">
-                                <span class="material-symbols-outlined text-3xl block mx-auto mb-2">inbox</span>
-                                Belum ada data jadwal.
+                                <span class="material-symbols-outlined text-3xl block mx-auto mb-2">search_off</span>
+                                <p class="font-medium">Tidak ada jadwal ditemukan.</p>
+                                <p class="text-xs mt-1">Coba ubah filter atau tambah jadwal baru.</p>
                             </td>
                         </tr>
                     @endforelse
