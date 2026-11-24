@@ -8,7 +8,7 @@ use App\Models\UnreportedClass;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Exports\LaporanKepatuhanExport;
-use Maatwebsite\Excel\Facades\Excel;c
+use Maatwebsite\Excel\Facades\Excel;
 
 class HumasMonitoringController extends Controller
 {
@@ -277,7 +277,6 @@ class HumasMonitoringController extends Controller
     {
         $teachers = DB::table('guru')->get();
         
-        // Ambil SEMUA jurnal (dengan filter jika ada)
         $queryJurnal = DB::table('jurnals')
             ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
@@ -296,7 +295,6 @@ class HumasMonitoringController extends Controller
                 DB::raw('CASE WHEN DATE(jurnals.created_at) > jurnals.tanggal THEN 1 ELSE 0 END as is_terlambat')
             );
 
-        // Filter
         if ($request->filled('filter')) {
             $filter = $request->filter;
             if ($filter === 'hari_ini') {
@@ -314,56 +312,56 @@ class HumasMonitoringController extends Controller
 
         $this->logActivity('export', 'report', 'Mengekspor laporan kepatuhan', null, ['total' => $jurnals->count()]);
 
-        return $this->exportExcel([
-            'jurnals' => $jurnals,
-            'teachers' => $teachers,
-        ]);
+        $filename = "laporan_kepatuhan_" . date('Y-m-d_His') . ".xlsx";
+
+        // GUNAKAN INI UNTUK FILE EXCEL (.xlsx)
+        return Excel::download(new LaporanKepatuhanExport($jurnals, $teachers), $filename);
     }
 
-    private function exportExcel($data)
-    {
-        $filename = "laporan_kepatuhan_" . date('Y-m-d_His') . ".csv";
+    // private function exportExcel($data)
+    // {
+    //     $filename = "laporan_kepatuhan_" . date('Y-m-d_His') . ".csv";
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"$filename\"",
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ];
+    //     $headers = [
+    //         'Content-Type' => 'text/csv; charset=UTF-8',
+    //         'Content-Disposition' => "attachment; filename=\"$filename\"",
+    //         'Pragma' => 'no-cache',
+    //         'Expires' => '0',
+    //     ];
 
-        $callback = function() use ($data) {
-            $handle = fopen('php://output', 'w');
-            fputs($handle, "\xEF\xBB\xBF");
+    //     $callback = function() use ($data) {
+    //         $handle = fopen('php://output', 'w');
+    //         fputs($handle, "\xEF\xBB\xBF");
 
-            fputcsv($handle, ['LAPORAN KEPATUHAN GURU']);
-            fputcsv($handle, ['Generated', now()->format('d/m/Y H:i')]);
-            fputcsv($handle, ['']);
+    //         fputcsv($handle, ['LAPORAN KEPATUHAN GURU']);
+    //         fputcsv($handle, ['Generated', now()->format('d/m/Y H:i')]);
+    //         fputcsv($handle, ['']);
 
-            fputcsv($handle, ['DAFTAR JURNAL']);
-            fputcsv($handle, ['No', 'Tanggal KBM', 'Tanggal Input', 'Guru', 'NIK', 'Kelas', 'Mapel', 'Materi', 'Status', 'Selisih Hari']);
+    //         fputcsv($handle, ['DAFTAR JURNAL']);
+    //         fputcsv($handle, ['No', 'Tanggal KBM', 'Tanggal Input', 'Guru', 'NIK', 'Kelas', 'Mapel', 'Materi', 'Status', 'Selisih Hari']);
 
-            $no = 1;
-            foreach ($data['jurnals'] as $jurnal) {
-                $status = $jurnal->is_terlambat ? 'Terlambat' : 'Tepat Waktu';
-                fputcsv($handle, [
-                    $no++,
-                    \Carbon\Carbon::parse($jurnal->tanggal_kbm)->format('d/m/Y'),
-                    \Carbon\Carbon::parse($jurnal->tanggal_input)->format('d/m/Y H:i'),
-                    $jurnal->nama_guru,
-                    $jurnal->nik ?? '-',
-                    $jurnal->nama_kelas,
-                    $jurnal->nama_mapel,
-                    $jurnal->materi ?? '-',
-                    $status,
-                    $jurnal->selisih_hari . ' hari'
-                ]);
-            }
+    //         $no = 1;
+    //         foreach ($data['jurnals'] as $jurnal) {
+    //             $status = $jurnal->is_terlambat ? 'Terlambat' : 'Tepat Waktu';
+    //             fputcsv($handle, [
+    //                 $no++,
+    //                 \Carbon\Carbon::parse($jurnal->tanggal_kbm)->format('d/m/Y'),
+    //                 \Carbon\Carbon::parse($jurnal->tanggal_input)->format('d/m/Y H:i'),
+    //                 $jurnal->nama_guru,
+    //                 $jurnal->nik ?? '-',
+    //                 $jurnal->nama_kelas,
+    //                 $jurnal->nama_mapel,
+    //                 $jurnal->materi ?? '-',
+    //                 $status,
+    //                 $jurnal->selisih_hari . ' hari'
+    //             ]);
+    //         }
 
-            fclose($handle);
-        };
+    //         fclose($handle);
+    //     };
 
-        return response()->stream($callback, 200, $headers);
-    }
+    //     return response()->stream($callback, 200, $headers);
+    // }
 
     public function laporanIndex(Request $request)
     {
