@@ -318,72 +318,20 @@ class HumasMonitoringController extends Controller
         return Excel::download(new LaporanKepatuhanExport($jurnals, $teachers), $filename);
     }
 
-    // private function exportExcel($data)
-    // {
-    //     $filename = "laporan_kepatuhan_" . date('Y-m-d_His') . ".csv";
-
-    //     $headers = [
-    //         'Content-Type' => 'text/csv; charset=UTF-8',
-    //         'Content-Disposition' => "attachment; filename=\"$filename\"",
-    //         'Pragma' => 'no-cache',
-    //         'Expires' => '0',
-    //     ];
-
-    //     $callback = function() use ($data) {
-    //         $handle = fopen('php://output', 'w');
-    //         fputs($handle, "\xEF\xBB\xBF");
-
-    //         fputcsv($handle, ['LAPORAN KEPATUHAN GURU']);
-    //         fputcsv($handle, ['Generated', now()->format('d/m/Y H:i')]);
-    //         fputcsv($handle, ['']);
-
-    //         fputcsv($handle, ['DAFTAR JURNAL']);
-    //         fputcsv($handle, ['No', 'Tanggal KBM', 'Tanggal Input', 'Guru', 'NIK', 'Kelas', 'Mapel', 'Materi', 'Status', 'Selisih Hari']);
-
-    //         $no = 1;
-    //         foreach ($data['jurnals'] as $jurnal) {
-    //             $status = $jurnal->is_terlambat ? 'Terlambat' : 'Tepat Waktu';
-    //             fputcsv($handle, [
-    //                 $no++,
-    //                 \Carbon\Carbon::parse($jurnal->tanggal_kbm)->format('d/m/Y'),
-    //                 \Carbon\Carbon::parse($jurnal->tanggal_input)->format('d/m/Y H:i'),
-    //                 $jurnal->nama_guru,
-    //                 $jurnal->nik ?? '-',
-    //                 $jurnal->nama_kelas,
-    //                 $jurnal->nama_mapel,
-    //                 $jurnal->materi ?? '-',
-    //                 $status,
-    //                 $jurnal->selisih_hari . ' hari'
-    //             ]);
-    //         }
-
-    //         fclose($handle);
-    //     };
-
-    //     return response()->stream($callback, 200, $headers);
-    // }
-
     public function laporanIndex(Request $request)
     {
         $currentFilter = $request->query('filter');
         $search = $request->query('search');
-        $dateFilter = $request->query('tanggal', today()->toDateString());
-
-        // ========== QUERY JURNAL (SEMUA RIWAYAT) ==========
+        
+        // ========== QUERY JURNAL ==========
         $queryJurnal = DB::table('jurnals')
             ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
             ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
             ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
             ->select(
-                'jurnals.id',
-                'jurnals.tanggal as tanggal_kbm',
-                'jurnals.created_at as tanggal_input',
-                'guru.nama_guru',
-                'guru.nik',
-                'kelas_master.nama_kelas',
-                'mapel_master.nama_mapel',
+                'jurnals.id', 'jurnals.tanggal as tanggal_kbm', 'jurnals.created_at as tanggal_input',
+                'guru.nama_guru', 'guru.nik', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel',
                 'jurnals.materi',
-                'jurnals.target_next',
                 DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari'),
                 DB::raw('CASE WHEN DATE(jurnals.created_at) > jurnals.tanggal THEN 1 ELSE 0 END as is_terlambat')
             );
@@ -409,25 +357,14 @@ class HumasMonitoringController extends Controller
 
         $jurnals = $queryJurnal->orderBy('jurnals.created_at', 'desc')->paginate(15)->withQueryString();
 
-        // ========== STATISTIK ==========
+        // ========== STATISTIK UTAMA ==========
         $totalJurnal = DB::table('jurnals')->count();
         $totalTerlambat = DB::table('jurnals')->whereRaw('DATE(created_at) > tanggal')->count();
         $totalTepatWaktu = $totalJurnal - $totalTerlambat;
         $complianceRate = $totalJurnal > 0 ? round(($totalTepatWaktu / $totalJurnal) * 100, 1) : 0;
 
-        // ========== DAFTAR GURU & STATUS ==========
-        $teachers = DB::table('guru')->get();
-        $teacherStatus = [];
-        $teacherLateStatus = [];
-        $teacherLateCount = [];
-        $teacherTotalCount = [];
-        $teacherBelumIsi = [];
-        $teacherSkor = [];
-
-        // 🔥 AMBIL HARI LIBUR DARI DATABASE
+        // ========== AMBIL HARI LIBUR & HITUNG TARGET ==========
         $hariLibur = DB::table('hari_libur')->pluck('tanggal')->toArray();
-
-        // 🔥 HITUNG TARGET BERDASARKAN HARI KERJA (SENIN - JUMAT) + LIBUR NASIONAL
         $targetHari = 0;
         $endDate = today();
 
@@ -438,28 +375,29 @@ class HumasMonitoringController extends Controller
         } elseif ($currentFilter === '1_minggu') {
             $startDate = now()->subWeek();
             for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-                if (!in_array($date->dayOfWeek, [0, 6]) && !in_array($date->toDateString(), $hariLibur)) {
-                    $targetHari++;
-                }
+                if (!in_array($date->dayOfWeek, [0, 6]) && !in_array($date->toDateString(), $hariLibur)) $targetHari++;
             }
         } elseif ($currentFilter === '1_bulan') {
             $startDate = now()->subMonth();
             for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-                if (!in_array($date->dayOfWeek, [0, 6]) && !in_array($date->toDateString(), $hariLibur)) {
-                    $targetHari++;
-                }
+                if (!in_array($date->dayOfWeek, [0, 6]) && !in_array($date->toDateString(), $hariLibur)) $targetHari++;
             }
         } else {
             $startDate = now()->startOfMonth();
             for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-                if (!in_array($date->dayOfWeek, [0, 6]) && !in_array($date->toDateString(), $hariLibur)) {
-                    $targetHari++;
-                }
+                if (!in_array($date->dayOfWeek, [0, 6]) && !in_array($date->toDateString(), $hariLibur)) $targetHari++;
             }
         }
 
-        // Target mingguan
-        $targetMinggu = max(1, ceil($targetHari / 5));
+        // ========== STATUS PER GURU (HITUNG HARI UNIK & TOTAL JURNAL) ==========
+        $teachers = DB::table('guru')->get();
+        $teacherStatus = [];
+        $teacherTotalCount = [];
+        $teacherTotalJurnal = []; // 🔥 TAMBAHKAN INI (Untuk menyimpan jumlah jurnal)
+        $teacherSkor = [];
+        $teacherBelumIsi = [];
+        $teacherLateStatus = [];
+        $teacherLateCount = [];
 
         foreach ($teachers as $teacher) {
             $queryJurnalGuru = DB::table('jurnals')->where('guru_id', $teacher->id);
@@ -474,7 +412,11 @@ class HumasMonitoringController extends Controller
                 $queryJurnalGuru->whereRaw('DATE(created_at) > tanggal');
             }
 
-            $totalJurnalGuru = $queryJurnalGuru->count();
+            // 🔥 HITUNG TOTAL JURNAL (Jumlah baris)
+            $totalJurnalGuru = $queryJurnalGuru->count(); 
+            
+            // 🔥 HITUNG HARI UNIK (Bukan total jurnal)
+            $totalHariUnik = $queryJurnalGuru->distinct()->count(DB::raw('DATE(tanggal)'));
             $totalTerlambatGuru = $queryJurnalGuru->clone()->whereRaw('DATE(created_at) > tanggal')->count();
 
             $notifBelumDibaca = DB::table('notifications')
@@ -483,31 +425,40 @@ class HumasMonitoringController extends Controller
                 ->where('is_read', 0)
                 ->exists();
 
-            // 🔥 JIKA TARGET 0 (LIBUR), JANGAN ANGGAP 0% TAPI ANGGAP 100% (AMAN)
+            // 🔥 SKOR MAKSIMAL 100%
             if ($targetHari > 0) {
-                $skor = min(100, round(($totalJurnalGuru / $targetHari) * 100));
+                $skor = min(100, round(($totalHariUnik / $targetHari) * 100));
             } else {
-                $skor = $totalJurnalGuru > 0 ? 100 : 0;
+                $skor = $totalHariUnik > 0 ? 100 : 0;
             }
 
-            $teacherStatus[$teacher->id] = $totalJurnalGuru > 0;
+            $teacherStatus[$teacher->id] = $totalHariUnik > 0;
             $teacherLateStatus[$teacher->id] = $totalTerlambatGuru > 0;
             $teacherLateCount[$teacher->id] = $totalTerlambatGuru;
-            $teacherTotalCount[$teacher->id] = $totalJurnalGuru;
+            $teacherTotalCount[$teacher->id] = $totalHariUnik;
+            $teacherTotalJurnal[$teacher->id] = $totalJurnalGuru; // 🔥 SIMPAN TOTAL JURNAL
             $teacherBelumIsi[$teacher->id] = $notifBelumDibaca;
             $teacherSkor[$teacher->id] = $skor;
         }
 
-        // ========== UNREPORTED CLASSES ==========
         $unreported = DB::table('unreported_classes')->where('reported', false)->get();
 
-        // RETURN VIEW (HANYA SEKALI)
+        $labelPeriode = 'Bulan Ini'; // Default
+        if ($currentFilter === 'hari_ini') {
+            $labelPeriode = 'Hari Ini';
+        } elseif ($currentFilter === '1_minggu') {
+            $labelPeriode = '1 Minggu Terakhir';
+        } elseif ($currentFilter === '1_bulan') {
+            $labelPeriode = '1 Bulan Terakhir';
+        } elseif ($currentFilter === 'terlambat') {
+            $labelPeriode = 'Semua Terlambat';
+        }
+
         return view('humas.laporan', compact(
             'jurnals', 'totalJurnal', 'totalTerlambat', 'totalTepatWaktu', 'complianceRate',
             'teachers', 'teacherStatus', 'teacherLateStatus', 'teacherLateCount', 
-            'teacherTotalCount', 'teacherBelumIsi', 'teacherSkor', 
-            'targetHari', 'targetMinggu',
-            'unreported', 'currentFilter', 'search', 'dateFilter'
+            'teacherTotalCount', 'teacherBelumIsi', 'teacherSkor', 'teacherTotalJurnal', // 🔥 TAMBAHKAN DI COMPACT
+            'targetHari', 'unreported', 'currentFilter', 'search','labelPeriode'
         ));
     }
 }

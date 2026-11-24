@@ -206,18 +206,25 @@
     <!-- Daftar Guru (Status Keseluruhan) -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="p-4 border-b border-slate-200 flex justify-between items-center">
-            <h3 class="font-bold text-slate-800">Status Kepatuhan Per Guru</h3>
+            <div>
+                <h3 class="font-bold text-slate-800">Status Kepatuhan Per Guru</h3>
+                <p class="text-xs text-slate-500">
+                    Periode: <span class="font-semibold text-primary">{{ $labelPeriode ?? 'Bulan Ini' }}</span>. 
+                    Kehadiran = hari unik guru mengisi jurnal.
+                </p>
+            </div>
             <span class="text-sm text-slate-500">{{ $teachers->count() }} guru</span>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left">
                 <thead class="bg-slate-50 border-b border-slate-200">
                     <tr>
-                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">No</th>
+                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-12">No</th>
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Guru</th>
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">NIK</th>
-                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Harian Tepat Hari</th>
-                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Mingguan Tepat Waktu</th>
+                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Total Jurnal</th>
+                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Hari Masuk</th>
+                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Target Hari</th>
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Skor</th>
                     </tr>
                 </thead>
@@ -225,13 +232,23 @@
                     @php $no = 1; @endphp
                     @foreach($teachers as $teacher)
                         @php
-                            $total = $teacherTotalCount[$teacher->id] ?? 0;
+                            $jurnalCount = $teacherTotalJurnal[$teacher->id] ?? 0;
+                            $totalHari = $teacherTotalCount[$teacher->id] ?? 0;
                             $lateCount = $teacherLateCount[$teacher->id] ?? 0;
                             $isLate = $lateCount > 0;
                             $belumIsi = $teacherBelumIsi[$teacher->id] ?? false;
                             $skor = $teacherSkor[$teacher->id] ?? 0;
 
-                            $skorColor = $skor >= 90 ? 'bg-emerald-600' : ($skor >= 75 ? 'bg-amber-500' : 'bg-red-500');
+                            if ($skor >= 90) {
+                                $badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                                $icon = '🟢';
+                            } elseif ($skor >= 75) {
+                                $badgeClass = 'bg-amber-100 text-amber-800 border-amber-200';
+                                $icon = '🟡';
+                            } else {
+                                $badgeClass = 'bg-red-100 text-red-800 border-red-200';
+                                $icon = '🔴';
+                            }
                         @endphp
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-4 py-3 text-sm">{{ $no++ }}</td>
@@ -243,25 +260,27 @@
                                     <span class="text-red-500 text-[10px] ml-1" title="Ada jurnal terlambat">⚠️</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-sm">{{ $teacher->nik }}</td>
+                            <td class="px-4 py-3 text-sm text-slate-600">{{ $teacher->nik }}</td>
                             
-                            <!-- Harian -->
-                            <td class="px-4 py-3 text-sm text-center">
-                                <div class="font-bold text-slate-700">{{ $total }}/{{ $targetHari }} hari</div>
-                                <div class="text-[10px] text-slate-500">{{ $skor }}%</div>
+                            <!-- Total Jurnal (Beban Kerja) -->
+                            <td class="px-4 py-3 text-sm text-center font-bold text-blue-600">
+                                {{ $jurnalCount }}
                             </td>
 
-                            <!-- Mingguan -->
-                            <td class="px-4 py-3 text-sm text-center">
-                                <!-- Hapus perkalian * 5, langsung pakai targetHari karena target mingguan = 5 hari -->
-                                <div class="font-bold text-slate-700">{{ $total }}/{{ $targetMinggu * 5 }} hari</div>
-                                <div class="text-[10px] text-slate-500">{{ $skor }}%</div>
+                            <!-- Hari Masuk (Angka Saja) -->
+                            <td class="px-4 py-3 text-sm text-center font-bold text-slate-700">
+                                {{ $totalHari }} hari
+                            </td>
+
+                            <!-- Target Hari (Angka Saja) -->
+                            <td class="px-4 py-3 text-sm text-center text-slate-600">
+                                {{ $targetHari }} hari
                             </td>
 
                             <!-- Skor Badge -->
                             <td class="px-4 py-3 text-center">
-                                <span class="inline-block px-3 py-1 rounded-full text-xs font-bold text-white {{ $skorColor }}">
-                                    {{ $skor }}%
+                                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border {{ $badgeClass }}">
+                                    {{ $icon }} {{ $skor }}%
                                 </span>
                             </td>
                         </tr>
@@ -270,7 +289,6 @@
             </table>
         </div>
     </div>
-
 </div>
 
     <!-- Tombol Kembali -->

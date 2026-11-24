@@ -443,14 +443,14 @@
 
 <!-- ============ MODAL BAGI KELAS BERDASARKAN NILAI ============ -->
 <div id="modalBagiNilai" class="fixed inset-0 z-50 hidden modal-overlay flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl modal-content">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl modal-content">
         <div class="flex items-center gap-3 mb-4">
             <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
                 <span class="material-symbols-outlined text-indigo-600 text-2xl">grade</span>
             </div>
             <div>
                 <h3 class="text-lg font-bold text-slate-800">Bagi Berdasarkan Nilai</h3>
-                <p class="text-sm text-slate-500">Siswa dibagi berdasarkan nilai ASAT.</p>
+                <p class="text-xs text-slate-500">Tentukan kelas tujuan berdasarkan peringkat nilai ASAT.</p>
             </div>
         </div>
         
@@ -458,26 +458,57 @@
             @csrf
             <input type="hidden" name="tahun_ajaran_baru" value="{{ $tahunAjaranBaru }}">
             
-            <div class="bg-blue-50 rounded-xl p-4 mb-4">
-                <p class="text-xs text-blue-700 font-semibold mb-2">📋 Aturan:</p>
-                <ul class="text-xs text-blue-600 space-y-1">
-                    <li>• Rangking 1-30 → <strong>6A</strong> (15L + 15P)</li>
-                    <li>• Rangking 31-60 → <strong>6B</strong> (15L + 15P)</li>
-                    <li>• Rangking 61-90 → <strong>6C</strong> (15L + 15P)</li>
-                    <li>• Sisa → <strong>6D-6G</strong> (acak, L/P seimbang)</li>
-                    <li>• <strong>Gender wajib diisi</strong></li>
-                </ul>
+            <div class="bg-blue-50 rounded-xl p-4 mb-4 text-xs text-blue-700">
+                <strong>Info:</strong> Siswa akan diurutkan dari nilai tertinggi. Anda menentukan berapa siswa yang masuk ke kelas mana. Sisa siswa akan masuk ke kelas terakhir yang dipilih.
             </div>
 
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Jumlah Kelas</label>
-                    <input type="number" name="jumlah_kelas" value="7" min="1" max="10" required
-                           class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
-                    <p class="text-xs text-slate-500 mt-1">7 = 6A, 6B, 6C, 6D, 6E, 6F, 6G</p>
+            <div class="space-y-3">
+                <!-- Baris 1 -->
+                <div class="flex items-center gap-2">
+                    <span class="text-sm w-24">Ranking 1 - </span>
+                    <input type="number" name="mapping[0][limit]" value="30" min="1" required 
+                           class="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm text-center">
+                    <span class="text-sm">masuk ke</span>
+                    <select name="mapping[0][kelas]" class="border border-slate-200 rounded-lg px-2 py-1 text-sm flex-1">
+                        @for ($i = 0; $i < 7; $i++)
+                            <option value="6{{ chr(65 + $i) }}">Kelas 6{{ chr(65 + $i) }}</option>
+                        @endfor
+                    </select>
+                </div>
+
+                <!-- Baris 2 -->
+                <div class="flex items-center gap-2">
+                    <span class="text-sm w-24">Ranking 31 - </span>
+                    <input type="number" name="mapping[1][limit]" value="30" min="1" required 
+                           class="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm text-center">
+                    <span class="text-sm">masuk ke</span>
+                    <select name="mapping[1][kelas]" class="border border-slate-200 rounded-lg px-2 py-1 text-sm flex-1">
+                        @for ($i = 0; $i < 7; $i++)
+                            <option value="6{{ chr(65 + $i) }}">Kelas 6{{ chr(65 + $i) }}</option>
+                        @endfor
+                    </select>
+                </div>
+
+                <!-- Baris 3 -->
+                <div class="flex items-center gap-2">
+                    <span class="text-sm w-24">Ranking 61 - </span>
+                    <input type="number" name="mapping[2][limit]" value="30" min="1" required 
+                           class="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm text-center">
+                    <span class="text-sm">masuk ke</span>
+                    <select name="mapping[2][kelas]" class="border border-slate-200 rounded-lg px-2 py-1 text-sm flex-1">
+                        @for ($i = 0; $i < 7; $i++)
+                            <option value="6{{ chr(65 + $i) }}">Kelas 6{{ chr(65 + $i) }}</option>
+                        @endfor
+                    </select>
+                </div>
+                
+                <!-- Baris 4 (Sisa) -->
+                <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                    <span class="text-sm w-24">Siswa Sisa</span>
+                    <span class="text-xs text-slate-500 italic flex-1">Otomatis masuk ke kelas terakhir yang dipilih</span>
                 </div>
             </div>
-            
+
             <div class="flex gap-2 justify-end mt-6">
                 <button type="button" onclick="closeBagiNilaiModal()"
                         class="px-4 py-2 border border-slate-200 rounded-lg text-sm">
@@ -485,7 +516,7 @@
                 </button>
                 <button type="submit"
                         class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
-                    Proses
+                    Proses Pembagian
                 </button>
             </div>
         </form>

@@ -25,15 +25,15 @@ class NilaiAsatImport extends DefaultValueBinder implements ToModel, WithHeading
 
     public function model(array $row)
     {
-        // Ambil NISN
-        $nisn = trim((string) ($row['nisn'] ?? ''));
+        // 1. Ambil NISN & pastikan dibaca sebagai string
+        $nisn = isset($row['nisn']) ? trim((string) $row['nisn']) : '';
         
         if (empty($nisn)) {
             $this->gagal++;
             return null;
         }
 
-        // Cari siswa
+        // 2. Cari siswa berdasarkan NISN
         $siswa = Student::where('nisn', $nisn)->first();
 
         if (!$siswa) {
@@ -42,53 +42,54 @@ class NilaiAsatImport extends DefaultValueBinder implements ToModel, WithHeading
             return null;
         }
 
-        // 🔥 AMBIL NILAI RATA-RATA (coba berbagai nama kolom)
+        // 3. Ambil Nilai Total (Coba berbagai kemungkinan header dari RDM)
         $nilaiTotal = $row['rata_rata'] 
             ?? $row['nilai_total'] 
-            ?? $row['nilai'] 
             ?? $row['rata'] 
-            ?? $row['nilai_asat']
-            ?? $row['nilai_akhir']
-            ?? $row['nilai_rapor']
-            ?? $row['total']
             ?? $row['jumlah']
             ?? null;
 
-        // 🔥 KALAU TIDAK ADA KOLOM RATA-RATA, HITUNG DARI MAPEL
+        // 4. Ambil Nilai Per Mapel (Jika ada di file Excel RDM)
+        // Sesuaikan nama kolom di sini dengan header Excel dari RDM Anda
+        $nilaiBind = $row['bind'] ?? $row['b_indonesia'] ?? $row['bahasa_indonesia'] ?? null;
+        $nilaiMat  = $row['mat'] ?? $row['matematika'] ?? null;
+        $nilaiIpa  = $row['ipa'] ?? $row['sains'] ?? null;
+        $catatan   = $row['catatan'] ?? null;
+
+        // 5. Jika Nilai Total Kosong, Hitung dari Nilai Mapel
         if ($nilaiTotal === null || $nilaiTotal === '') {
-            // Ambil semua nilai mapel (semua kolom kecuali nisn, nama, kelas)
-            $kolomSkip = ['nisn', 'nama', 'kelas', 'no', 'nis', 'nama_siswa'];
-            $nilaiMapel = [];
+            $nilaiMapel = array_filter([$nilaiBind, $nilaiMat, $nilaiIpa], function($val) {
+                return is_numeric($val);
+            });
             
-            foreach ($row as $key => $value) {
-                if (in_array(strtolower($key), $kolomSkip)) continue;
-                if (is_numeric($value) && $value >= 0 && $value <= 100) {
-                    $nilaiMapel[] = (float) $value;
-                }
-            }
-            
-            if (empty($nilaiMapel)) {
+            if (!empty($nilaiMapel)) {
+                $nilaiTotal = array_sum($nilaiMapel) / count($nilaiMapel);
+            } else {
+                // Jika benar-benar tidak ada nilai, gagalkan baris ini
                 $this->gagal++;
                 return null;
             }
-            
-            $nilaiTotal = array_sum($nilaiMapel) / count($nilaiMapel);
         }
 
-        // Normalisasi nilai
-        if (is_string($nilaiTotal)) {
-            $nilaiTotal = str_replace(',', '.', $nilaiTotal);
-        }
+        // 6. Fungsi bantuan untuk normalisasi format desimal (koma ke titik)
+        $formatAngka = function($val) {
+            if ($val === null || $val === '') return null;
+            return (float) str_replace(',', '.', $val);
+        };
 
-        // Simpan/update
+        // 7. Simpan ke Database
         NilaiAsat::updateOrCreate(
             [
                 'student_id' => $siswa->id,
                 'tahun_ajaran' => $this->tahunAjaran,
             ],
             [
-                'kelas' => $siswa->class,
-                'nilai_total' => (float) $nilaiTotal,
+                'kelas' => $siswa->class, // Ambil kelas dari data siswa
+                'nilai_total' => $formatAngka($nilaiTotal),
+                'nilai_bind' => $formatAngka($nilaiBind),
+                'nilai_mat'  => $formatAngka($nilaiMat),
+                'nilai_ipa'  => $formatAngka($nilaiIpa),
+                'catatan'    => $catatan,
             ]
         );
 
@@ -98,8 +99,9 @@ class NilaiAsatImport extends DefaultValueBinder implements ToModel, WithHeading
 
     public function bindValue(Cell $cell, $value)
     {
+        // Memaksa kolom A dan B dibaca sebagai teks (NISN sering jadi angka di Excel)
         $column = $cell->getColumn();
-        if ($column === 'A') {
+        if ($column === 'A' || $column === 'B') {
             $cell->setValueExplicit($value, DataType::TYPE_STRING);
             return true;
         }

@@ -247,14 +247,15 @@ class KenaikanKelasController extends Controller
     {
         $request->validate([
             'tahun_ajaran_baru' => 'required|string',
-            'jumlah_kelas' => 'required|integer|min:1|max:10',
+            'mapping' => 'required|array',
+            'mapping.*.limit' => 'required|integer|min:1',
+            'mapping.*.kelas' => 'required|string',
         ]);
 
         $tahunAjaranAktif = config('tahun_ajaran.aktif');
         $tahunAjaranBaru = $request->tahun_ajaran_baru;
-        $jumlahKelas = (int) $request->jumlah_kelas;
-
-        // Ambil siswa aktif
+        
+        // 1. Ambil siswa aktif
         $siswa = Student::where('tahun_ajaran', $tahunAjaranAktif)
             ->where('status', 'aktif')
             ->get();
@@ -263,7 +264,7 @@ class KenaikanKelasController extends Controller
             return back()->with('error', '❌ Tidak ada siswa aktif');
         }
 
-        // Ambil nilai ASAT
+        // 2. Ambil nilai ASAT
         $nilaiMap = NilaiAsat::where('tahun_ajaran', $tahunAjaranAktif)
             ->pluck('nilai_total', 'student_id')
             ->toArray();
@@ -281,7 +282,7 @@ class KenaikanKelasController extends Controller
 
         DB::beginTransaction();
         try {
-            // Kelompokkan per tingkat
+            // 3. Kelompokkan per tingkat
             $siswaPerTingkat = [];
             foreach ($siswa as $s) {
                 preg_match('/^(\d+)/', $s->class, $matches);
@@ -296,72 +297,42 @@ class KenaikanKelasController extends Controller
                 $siswaPerTingkat[$tingkatBaru][] = $s;
             }
 
-            // Bagi per tingkat
+            // Proses tiap tingkat
             foreach ($siswaPerTingkat as $tingkat => $daftarSiswa) {
-                // Buat nama kelas
-                $daftarKelas = [];
-                for ($i = 0; $i < $jumlahKelas; $i++) {
-                    $daftarKelas[] = $tingkat . chr(65 + $i);
-                }
-
-                // Pisahkan L/P
-                $siswaL = array_filter($daftarSiswa, fn($s) => ($s->gender ?? 'L') === 'L');
-                $siswaP = array_filter($daftarSiswa, fn($s) => ($s->gender ?? 'P') === 'P');
-
-                // Urutkan berdasarkan nilai (pakai array temporary, BUKAN properti model)
-                usort($siswaL, function($a, $b) use ($nilaiMap) {
+                // Urutkan siswa dari nilai tertinggi ke terendah
+                usort($daftarSiswa, function($a, $b) use ($nilaiMap) {
                     $nilaiA = (float) ($nilaiMap[$a->id] ?? 0);
                     $nilaiB = (float) ($nilaiMap[$b->id] ?? 0);
-                    return $nilaiB <=> $nilaiA;
-                });
-                usort($siswaP, function($a, $b) use ($nilaiMap) {
-                    $nilaiA = (float) ($nilaiMap[$a->id] ?? 0);
-                    $nilaiB = (float) ($nilaiMap[$b->id] ?? 0);
-                    return $nilaiB <=> $nilaiA;
+                    return $nilaiB <=> $nilaiA; // Descending
                 });
 
-                $perGender = 15;
+                // 4. Proses Mapping Custom dari Admin
+                $indexSiswa = 0;
+                $totalSiswa = count($daftarSiswa);
+                
+                // Simpan nama kelas terakhir untuk menampung sisa
+                $kelasPenampungSisa = $tingkat . 'A'; 
 
-                // 6A, 6B, 6C
-                $akademik = [];
-                for ($i = 0; $i < 3; $i++) {
-                    $akademik[$i]['L'] = array_slice($siswaL, $i * $perGender, $perGender);
-                    $akademik[$i]['P'] = array_slice($siswaP, $i * $perGender, $perGender);
-                }
+                foreach ($request->mapping as $map) {
+                    $limit = (int) $map['limit'];
+                    $namaKelas = $map['kelas'];
+                    $kelasPenampungSisa = $namaKelas; // Update penampung terakhir
 
-                for ($i = 0; $i < 3; $i++) {
-                    if (!isset($daftarKelas[$i])) break;
-                    $namaKelas = $daftarKelas[$i];
-                    $siswaKelas = array_merge($akademik[$i]['L'], $akademik[$i]['P']);
-                    foreach ($siswaKelas as $s) {
+                    // Ambil siswa sebanyak limit
+                    $siswaSlice = array_slice($daftarSiswa, $indexSiswa, $limit);
+                    
+                    foreach ($siswaSlice as $s) {
                         $s->update(['class' => $namaKelas, 'tahun_ajaran' => $tahunAjaranBaru]);
                     }
+
+                    $indexSiswa += $limit;
                 }
 
-                // Sisa → 6D, 6E, 6F, 6G
-                $kelasSisa = array_slice($daftarKelas, 3);
-                
-                if (count($kelasSisa) > 0) {
-                    $sisaL = array_slice($siswaL, $perGender * 3);
-                    $sisaP = array_slice($siswaP, $perGender * 3);
-
-                    shuffle($sisaL);
-                    shuffle($sisaP);
-
-                    $jumlahKelasSisa = count($kelasSisa);
-
-                    $idxL = 0;
-                    foreach ($sisaL as $s) {
-                        $kelasIdx = $idxL % $jumlahKelasSisa;
-                        $s->update(['class' => $kelasSisa[$kelasIdx], 'tahun_ajaran' => $tahunAjaranBaru]);
-                        $idxL++;
-                    }
-
-                    $idxP = 0;
-                    foreach ($sisaP as $s) {
-                        $kelasIdx = $idxP % $jumlahKelasSisa;
-                        $s->update(['class' => $kelasSisa[$kelasIdx], 'tahun_ajaran' => $tahunAjaranBaru]);
-                        $idxP++;
+                // 5. Handle Sisa Siswa (Jika ada yang belum dapat kelas)
+                if ($indexSiswa < $totalSiswa) {
+                    $sisaSiswa = array_slice($daftarSiswa, $indexSiswa);
+                    foreach ($sisaSiswa as $s) {
+                        $s->update(['class' => $kelasPenampungSisa, 'tahun_ajaran' => $tahunAjaranBaru]);
                     }
                 }
             }
@@ -377,7 +348,7 @@ class KenaikanKelasController extends Controller
             return back()->with('error', '❌ Gagal: ' . $e->getMessage());
         }
 
-        return back()->with('success', "✅ {$siswa->count()} siswa berhasil dibagi berdasarkan nilai ASAT");
+        return back()->with('success', "✅ {$siswa->count()} siswa berhasil dibagi berdasarkan nilai ASAT sesuai pemetaan kelas.");
     }
 
     private function getTahunBerikutnya($tahun)
