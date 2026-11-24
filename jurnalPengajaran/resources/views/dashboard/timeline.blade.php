@@ -79,6 +79,10 @@
                class="px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap {{ $currentFilter === '1_bulan' ? 'bg-primary text-on-primary shadow-sm' : 'text-slate-600 hover:bg-slate-200' }}">
                1 Bulan
             </a>
+            <a href="{{ route('dashboard.timeline', ['filter' => 'semua']) }}"
+               class="px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap {{ $currentFilter === 'semua' ? 'bg-primary text-on-primary shadow-sm' : 'text-slate-600 hover:bg-slate-200' }}">
+               Semua
+            </a>
             <div class="px-2 text-slate-400 border-l border-slate-200 shrink-0">
                 <span class="material-symbols-outlined text-base block">calendar_today</span>
             </div>
