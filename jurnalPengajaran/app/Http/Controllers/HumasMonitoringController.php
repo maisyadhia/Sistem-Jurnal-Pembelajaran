@@ -290,6 +290,8 @@ class HumasMonitoringController extends Controller
                 'kelas_master.nama_kelas',
                 'mapel_master.nama_mapel',
                 'jurnals.materi',
+                'jurnals.status_review',
+                'jurnals.catatan_admin', 
                 'jurnals.target_next',
                 DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari'),
                 DB::raw('CASE WHEN DATE(jurnals.created_at) > jurnals.tanggal THEN 1 ELSE 0 END as is_terlambat')
@@ -331,7 +333,7 @@ class HumasMonitoringController extends Controller
             ->select(
                 'jurnals.id', 'jurnals.tanggal as tanggal_kbm', 'jurnals.created_at as tanggal_input',
                 'guru.nama_guru', 'guru.nik', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel',
-                'jurnals.materi',
+                'jurnals.materi','jurnals.status_review','jurnals.catatan_admin',
                 DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari'),
                 DB::raw('CASE WHEN DATE(jurnals.created_at) > jurnals.tanggal THEN 1 ELSE 0 END as is_terlambat')
             );
@@ -460,5 +462,37 @@ class HumasMonitoringController extends Controller
             'teacherTotalCount', 'teacherBelumIsi', 'teacherSkor', 'teacherTotalJurnal', // 🔥 TAMBAHKAN DI COMPACT
             'targetHari', 'unreported', 'currentFilter', 'search','labelPeriode'
         ));
+    }
+
+    public function reviewJurnal(Request $request, $id)
+    {
+        $request->validate([
+            'status_review' => 'required|in:pending,disetujui,revisi',
+            'catatan_admin' => 'nullable|string|max:500',
+        ]);
+
+        $jurnal = DB::table('jurnals')->where('id', $id)->first();
+        if (!$jurnal) return back()->with('error', 'Jurnal tidak ditemukan.');
+
+        // Update status review
+        DB::table('jurnals')->where('id', $id)->update([
+            'status_review' => $request->status_review,
+            'catatan_admin' => $request->catatan_admin,
+        ]);
+
+        // 🔥 Kirim Notifikasi ke Guru
+        if ($request->status_review === 'revisi') {
+            DB::table('notifications')->insert([
+                'user_id' => $jurnal->guru_id,
+                'user_type' => 'guru',
+                'message' => "Jurnal Anda direvisi oleh Admin: " . $request->catatan_admin,
+                'link' => route('guru.dashboard'), // Sesuaikan dengan route dashboard guru
+                'is_read' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return back()->with('success', 'Review jurnal berhasil disimpan.');
     }
 }

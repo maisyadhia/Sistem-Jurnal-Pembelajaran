@@ -53,6 +53,9 @@ Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(functi
     
     // ====== MONITORING ======
     Route::get('/monitoring', [HumasMonitoringController::class, 'index'])->name('monitoring');
+
+    // ====== REVIEW JURNAL ======
+    Route::patch('/monitoring/jurnal/{id}/review', [HumasMonitoringController::class, 'reviewJurnal'])->name('monitoring.jurnal.review');
     
     // ====== DATA MASTER ======
     Route::get('/data-master', [DataMasterController::class, 'index'])->name('data-master');

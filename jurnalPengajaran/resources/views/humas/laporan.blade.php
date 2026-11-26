@@ -147,6 +147,7 @@
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Mapel</th>
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Materi</th>
                         <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Review</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -175,6 +176,29 @@
                                         ✅ Tepat Waktu
                                     </span>
                                 @endif
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <!-- Tampilkan status review -->
+                                @if($jurnal->status_review === 'disetujui')
+                                    <span class="text-emerald-600 font-bold text-xs">✅ Disetujui</span>
+                                @elseif($jurnal->status_review === 'revisi')
+                                    <span class="text-red-600 font-bold text-xs">⚠️ Revisi</span>
+                                @else
+                                    <span class="text-slate-400 text-xs">-</span>
+                                @endif
+                                
+                                <button onclick="openReviewModal(
+                                    {{ $jurnal->id }}, 
+                                    '{{ $jurnal->status_review }}', 
+                                    '{{ addslashes($jurnal->catatan_admin) }}',
+                                    '{{ addslashes($jurnal->nama_guru) }}',
+                                    '{{ addslashes($jurnal->nama_mapel) }}',
+                                    '{{ addslashes($jurnal->nama_kelas) }}',
+                                    '{{ addslashes($jurnal->materi) }}'
+                                )" 
+                                class="block mt-1 w-full text-[10px] bg-slate-100 text-slate-600 hover:bg-slate-200 rounded px-2 py-1">
+                                    Review
+                                </button>
                             </td>
                         </tr>
                     @empty
@@ -313,6 +337,63 @@
             }, 500);
         });
     }
+
+    function openReviewModal(id, status, catatan, guru, mapel, kelas, materi) {
+        document.getElementById('modalReview').classList.remove('hidden');
+        document.getElementById('formReview').action = `/admin/monitoring/jurnal/${id}/review`;
+        
+        // Isi form
+        document.getElementById('inputStatusReview').value = status || 'pending';
+        document.getElementById('inputCatatanAdmin').value = catatan || '';
+        
+        // 🔥 Isi Detail Jurnal di Modal
+        document.getElementById('detailGuru').textContent = guru;
+        document.getElementById('detailMapelKelas').textContent = `${mapel} - ${kelas}`;
+        document.getElementById('detailMateri').textContent = materi;
+    }
+
+    function closeReviewModal() {
+        document.getElementById('modalReview').classList.add('hidden');
+    }
 </script>
 @endpush
+
+<!-- MODAL REVIEW JURNAL -->
+<div id="modalReview" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Review Jurnal Guru</h3>
+        
+        <!-- 🔥 KOTAK DETAIL JURNAL -->
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4 text-sm">
+            <div class="mb-1"><span class="text-slate-500">Guru:</span> <strong id="detailGuru" class="text-slate-800">-</strong></div>
+            <div class="mb-1"><span class="text-slate-500">Mapel/Kelas:</span> <strong id="detailMapelKelas" class="text-slate-800">-</strong></div>
+            <div><span class="text-slate-500">Materi:</span> <span id="detailMateri" class="text-slate-700 italic">-</span></div>
+        </div>
+
+        <form id="formReview" method="POST" action="">
+            @csrf
+            @method('PATCH')
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Status Review</label>
+                    <select name="status_review" id="inputStatusReview" class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" required>
+                        <option value="pending">⏳ Pending (Belum Direview)</option>
+                        <option value="disetujui">✅ Setujui (Jurnal Valid)</option>
+                        <option value="revisi">⚠️ Minta Revisi</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Catatan Admin (Opsional)</label>
+                    <textarea name="catatan_admin" id="inputCatatanAdmin" rows="3" 
+                              class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
+                              placeholder="Contoh: Materi kurang lengkap, tolong lampirkan RPP..."></textarea>
+                </div>
+            </div>
+            <div class="flex gap-2 justify-end mt-6">
+                <button type="button" onclick="closeReviewModal()" class="px-4 py-2 border rounded-lg text-sm">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg text-sm">Simpan Review</button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
