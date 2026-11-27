@@ -495,4 +495,47 @@ class HumasMonitoringController extends Controller
 
         return back()->with('success', 'Review jurnal berhasil disimpan.');
     }
+
+    public function cetakPdf(Request $request)
+    {
+        // Logika filter sama persis dengan laporanIndex
+        $currentFilter = $request->query('filter');
+        $search = $request->query('search');
+
+        // 1. Query Jurnal (Sama seperti laporanIndex)
+        $queryJurnal = DB::table('jurnals')
+            ->join('guru', 'jurnals.guru_id', '=', 'guru.id')
+            ->join('kelas_master', 'jurnals.kelas_id', '=', 'kelas_master.id')
+            ->join('mapel_master', 'jurnals.mapel_id', '=', 'mapel_master.id')
+            ->select(
+                'jurnals.id', 'jurnals.tanggal as tanggal_kbm', 'jurnals.created_at as tanggal_input',
+                'guru.nama_guru', 'guru.nik', 'kelas_master.nama_kelas', 'mapel_master.nama_mapel',
+                'jurnals.materi',
+                DB::raw('DATEDIFF(jurnals.created_at, jurnals.tanggal) as selisih_hari'),
+                DB::raw('CASE WHEN DATE(jurnals.created_at) > jurnals.tanggal THEN 1 ELSE 0 END as is_terlambat')
+            );
+
+        if ($search) {
+            $queryJurnal->where(function($q) use ($search) {
+                $q->where('guru.nama_guru', 'like', "%{$search}%")
+                ->orWhere('kelas_master.nama_kelas', 'like', "%{$search}%")
+                ->orWhere('mapel_master.nama_mapel', 'like', "%{$search}%")
+                ->orWhere('jurnals.materi', 'like', "%{$search}%");
+            });
+        }
+
+        if ($currentFilter === 'hari_ini') $queryJurnal->whereDate('jurnals.tanggal', today());
+        elseif ($currentFilter === '1_minggu') $queryJurnal->whereDate('jurnals.tanggal', '>=', now()->subWeek());
+        elseif ($currentFilter === '1_bulan') $queryJurnal->whereDate('jurnals.tanggal', '>=', now()->subMonth());
+        elseif ($currentFilter === 'terlambat') $queryJurnal->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal');
+
+        $jurnals = $queryJurnal->orderBy('jurnals.created_at', 'desc')->get();
+
+        // 2. Hitung Rekap Sederhana
+        $totalJurnal = $jurnals->count();
+        $totalTerlambat = $jurnals->where('is_terlambat', 1)->count();
+        
+        // 3. Kirim ke view khusus PDF
+        return view('humas.laporan-pdf', compact('jurnals', 'totalJurnal', 'totalTerlambat', 'currentFilter'));
+    }
 }

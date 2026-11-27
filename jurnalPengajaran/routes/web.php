@@ -145,6 +145,7 @@ Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(functi
     // ====== LAPORAN ======
     Route::get('/laporan', [HumasMonitoringController::class, 'laporanIndex'])->name('laporan.index');
     Route::get('/report/export', [HumasMonitoringController::class, 'exportReport'])->name('report.export');
+    Route::get('/cetak-pdf', [HumasMonitoringController::class, 'cetakPdf'])->name('laporan.cetak-pdf');
 
     // ====== IMPORT / EXPORT ======
     Route::prefix('data-master/import')->group(function () {

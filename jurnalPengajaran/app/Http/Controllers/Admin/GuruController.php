@@ -39,8 +39,9 @@ class GuruController extends Controller
         'kode_guru' => $request->kode_guru,
         'nik' => $request->nik,
         'nama_guru' => $request->nama_guru,
-        'no_hp' => $request->no_hp, // <-- TAMBAHKAN INI
+        'no_hp' => $request->no_hp, 
         'password' => Hash::make($request->password),
+        'is_aktif' => true,
         'role' => $request->role,
         'created_at' => now(),
         'updated_at' => now(),
@@ -79,6 +80,7 @@ class GuruController extends Controller
             'nama_guru' => 'required',
             'no_hp' => 'nullable|string|max:20',
             'role' => 'required|in:guru,admin,humas',
+            'password' => 'nullable|min:6',
         ]);
 
         // Ambil data lama

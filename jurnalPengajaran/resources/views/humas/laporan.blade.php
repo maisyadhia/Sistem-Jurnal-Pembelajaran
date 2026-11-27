@@ -28,10 +28,18 @@
             </p>
         </div>
         <div class="flex gap-2">
+            <!-- Tombol Excel (yang sudah ada) -->
             <a href="{{ route('report.export') }}" 
-               class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-colors">
+            class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-green-700 transition-colors">
                 <span class="material-symbols-outlined text-sm">download</span>
                 Download Excel
+            </a>
+
+            <!-- 🔥 TOMBOL PDF BARU -->
+            <a href="{{ route('laporan.cetak-pdf', request()->all()) }}" target="_blank"
+            class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 hover:bg-red-700 transition-colors">
+                <span class="material-symbols-outlined text-sm">picture_as_pdf</span>
+                Cetak PDF
             </a>
         </div>
     </div>
