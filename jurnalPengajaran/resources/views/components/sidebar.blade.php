@@ -42,6 +42,7 @@
                     ['route' => 'hari-libur.index', 'icon' => 'event_busy', 'label' => 'Hari Libur', 'params' => []],
                     ['route' => 'admin.logs', 'icon' => 'history', 'label' => 'Log Aktivitas', 'params' => []],
                     ['route' => 'laporan.index', 'icon' => 'description', 'label' => 'Laporan', 'params' => []],
+                    ['route' => 'admin.profile', 'icon' => 'manage_accounts', 'label' => 'Profil Admin', 'params' => []], 
                 ];
             } elseif ($role === 'guru') {
                 $menuItems = [

@@ -148,13 +148,13 @@
 
             <!-- User Profile Avatar -->
             <div class="relative" id="profileDropdownContainer">
-                @if(session('user_role') === 'guru')
+                @if(session('user_role') === 'guru' || session('user_role') === 'admin')
                     <button type="button" onclick="toggleProfileDropdown()"
                         class="flex items-center gap-2.5 pl-1 focus:outline-none hover:opacity-80 transition-opacity rounded-xl p-1 cursor-pointer">
                         <div class="text-right hidden sm:block">
                             <p class="font-label-caps text-label-caps text-primary leading-none mb-1 font-bold">
                                 {{ session('user_name', 'Pengguna') }}</p>
-                            <p class="text-[10px] text-on-surface-variant/70 leading-none font-medium">Guru</p>
+                            <p class="text-[10px] text-on-surface-variant/70 leading-none font-medium capitalize">{{ session('user_role') === 'admin' ? 'Admin' : 'Guru' }}</p>
                         </div>
 
                         @php
@@ -175,14 +175,15 @@
                         class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-fade-in py-1">
                         <div class="px-4 py-2.5 border-b border-slate-100 sm:hidden bg-slate-50/50">
                             <p class="text-xs font-bold text-slate-800 truncate">{{ session('user_name', 'Pengguna') }}</p>
-                            <p class="text-[10px] text-slate-500 capitalize">Guru</p>
+                            <p class="text-[10px] text-slate-500 capitalize">{{ session('user_role') === 'admin' ? 'Admin' : 'Guru' }}</p>
                         </div>
 
-                        <a href="{{ route('guru.profile.edit') }}"
+                        <a href="{{ session('user_role') === 'admin' ? route('admin.profile') : route('guru.profile.edit') }}"
                             class="flex items-center gap-2.5 px-4 py-2.5 text-xs text-slate-700 hover:bg-teal-50 hover:text-teal-700 font-medium transition-colors">
                             <span class="material-symbols-outlined text-base text-teal-600">manage_accounts</span>
                             Pengaturan Profil
                         </a>
+
                         <div class="border-t border-slate-100 my-1"></div>
 
                         <form action="{{ route('logout') }}" method="POST">
@@ -200,7 +201,7 @@
                         <div class="text-right hidden sm:block">
                             <p class="font-label-caps text-label-caps text-primary leading-none mb-1 font-bold">
                                 {{ session('user_name', 'Pengguna') }}</p>
-                            <p class="text-[10px] text-on-surface-variant/70 leading-none font-medium">
+                            <p class="text-[10px] text-on-surface-variant/70 leading-none font-medium capitalize">{{ session('user_role') === 'admin' ? 'Admin' : 'Guru' }}</p>
                                 @if(session('user_role') == 'parent')
                                     Wali Murid
                                 @elseif(session('user_role') == 'admin')

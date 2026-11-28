@@ -51,6 +51,10 @@ Route::middleware(['auth.session'])->group(function () {
 // ============ ADMIN ROUTES (HANYA admin) ============
 Route::middleware(['auth.session', 'role:admin'])->prefix('admin')->group(function () {
     
+    // ====== PROFIL ADMIN ======
+    Route::get('/admin/profile', [App\Http\Controllers\Admin\ProfileController::class, 'index'])->name('admin.profile');
+    Route::post('/admin/profile/password', [App\Http\Controllers\Admin\ProfileController::class, 'updatePassword'])->name('admin.profile.password');
+
     // ====== MONITORING ======
     Route::get('/monitoring', [HumasMonitoringController::class, 'index'])->name('monitoring');
 
