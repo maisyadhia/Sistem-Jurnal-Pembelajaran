@@ -12,6 +12,7 @@ class HariLiburController extends Controller
 {
     public function index()
     {
+        // Urutkan berdasarkan tanggal
         $hariLibur = DB::table('hari_libur')->orderBy('tanggal', 'asc')->get();
         return view('admin.hari-libur.index', compact('hariLibur'));
     }
@@ -32,27 +33,28 @@ class HariLiburController extends Controller
             $inserted = 0;
 
             foreach ($data as $item) {
-            $tanggalRaw = $item['holiday_date'] ?? null;
-            $keterangan = $item['holiday_name'] ?? 'Libur Nasional';
+                $tanggalRaw = $item['holiday_date'] ?? null;
+                $keterangan = $item['holiday_name'] ?? 'Libur Nasional';
 
-            if (!$tanggalRaw) continue;
+                if (!$tanggalRaw) continue;
 
-            // 🔥 PERBAIKI FORMAT TANGGAL (Tambah angka 0 jika tanggal/bulan hanya 1 digit)
-            $tanggal = \Carbon\Carbon::parse($tanggalRaw)->format('Y-m-d');
+                // Format tanggal ke Y-m-d
+                $tanggal = \Carbon\Carbon::parse($tanggalRaw)->format('Y-m-d');
 
-            // Cek apakah tanggal sudah ada
-            $exists = DB::table('hari_libur')->where('tanggal', $tanggal)->exists();
+                // Cek apakah tanggal sudah ada
+                $exists = DB::table('hari_libur')->where('tanggal', $tanggal)->exists();
 
-            if (!$exists) {
-                DB::table('hari_libur')->insert([
-                    'tanggal' => $tanggal,
-                    'keterangan' => $keterangan,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $inserted++;
+                if (!$exists) {
+                    DB::table('hari_libur')->insert([
+                        'tanggal' => $tanggal,
+                        'keterangan' => $keterangan,
+                        'is_nasional' => true, 
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $inserted++;
+                }
             }
-        }
 
             return back()->with('success', "✅ Berhasil sinkronisasi {$inserted} hari libur untuk tahun {$tahun}.");
         } catch (\Exception $e) {
@@ -62,22 +64,32 @@ class HariLiburController extends Controller
 
     public function destroy($id)
     {
+        $libur = DB::table('hari_libur')->where('id', $id)->first();
+
+        // 🔥 CEGAH HAPUS LIBUR NASIONAL
+        if ($libur && $libur->is_nasional) {
+            return back()->with('error', 'Libur Nasional tidak bisa dihapus manual. Silakan hapus melalui database jika mendesak.');
+        }
+
         DB::table('hari_libur')->where('id', $id)->delete();
-        return back()->with('success', '✅ Hari libur berhasil dihapus.');
+        return back()->with('success', '✅ Hari libur sekolah berhasil dihapus.');
     }
 
     public function storeManual(Request $request)
     {
         $request->validate([
-            'tanggal' => 'required|date|unique:hari_libur,tanggal', // Sesuaikan nama tabel
+            'tanggal' => 'required|date|unique:hari_libur,tanggal',
             'keterangan' => 'required|string|max:255',
         ]);
 
-        \App\Models\HariLibur::create([
+        DB::table('hari_libur')->insert([
             'tanggal' => $request->tanggal,
             'keterangan' => $request->keterangan,
+            'is_nasional' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
-        return back()->with('success', 'Hari libur manual berhasil ditambahkan!');
+        return back()->with('success', 'Hari libur sekolah berhasil ditambahkan!');
     }
 }

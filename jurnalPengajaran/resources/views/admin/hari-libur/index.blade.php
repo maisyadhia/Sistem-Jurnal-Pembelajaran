@@ -112,16 +112,29 @@
                             <td class="px-4 py-3 text-sm font-medium">
                                 {{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('l, d F Y') }}
                             </td>
-                            <td class="px-4 py-3 text-sm">{{ $item->keterangan }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                {{ $item->keterangan }}
+                                <!-- 🔥 TAMBAHKAN BADGE PEMBEDA -->
+                                @if($item->is_nasional)
+                                    <span class="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-[10px] font-bold uppercase">Nasional</span>
+                                @else
+                                    <span class="ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold uppercase">Sekolah</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-right">
-                                <form method="POST" action="{{ route('hari-libur.destroy', $item->id) }}" 
-                                      class="inline" onsubmit="return confirm('Hapus hari libur ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-500 hover:text-red-700">
-                                        <span class="material-symbols-outlined text-lg">delete</span>
-                                    </button>
-                                </form>
+                                <!-- Tampilkan tombol hapus HANYA jika bukan libur nasional -->
+                                @if(!$item->is_nasional)
+                                    <form method="POST" action="{{ route('hari-libur.destroy', $item->id) }}" 
+                                        class="inline" onsubmit="return confirm('Hapus hari libur ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-500 hover:text-red-700">
+                                            <span class="material-symbols-outlined text-lg">delete</span>
+                                        </button>
+                                    </form>
+                                @else
+                                    <span class="text-xs text-slate-400 italic" title="Libur nasional tidak bisa dihapus">Terkunci</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
