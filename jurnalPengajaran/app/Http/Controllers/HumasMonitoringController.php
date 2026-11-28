@@ -167,9 +167,15 @@ class HumasMonitoringController extends Controller
         $unreportedFromDb = DB::table('unreported_classes')
             ->whereDate('date', $today)
             ->where('reported', false)
-            ->get();
+            ->get()
+        ;
 
         $unreportedClasses = $unreportedTeachers->merge($unreportedFromDb);
+
+        $jurnalPerluReview = DB::table('jurnals')
+            ->where('status_review', 'pending')
+            ->count()
+        ;
 
         return view('humas.monitoring', compact(
             'complianceRate',
@@ -178,7 +184,8 @@ class HumasMonitoringController extends Controller
             'complianceIncrease',
             'unreportedClasses',
             'dataMaster',
-            'totalDataMaster'
+            'totalDataMaster',
+            'jurnalPerluReview'
         ));
     }
 
@@ -355,6 +362,10 @@ class HumasMonitoringController extends Controller
             $queryJurnal->whereDate('jurnals.tanggal', '>=', now()->subMonth());
         } elseif ($currentFilter === 'terlambat') {
             $queryJurnal->whereRaw('DATE(jurnals.created_at) > jurnals.tanggal');
+        }
+
+        if ($currentFilter === 'belum_review') {
+            $queryJurnal->where('jurnals.status_review', 'pending');
         }
 
         $jurnals = $queryJurnal->orderBy('jurnals.created_at', 'desc')->paginate(15)->withQueryString();

@@ -94,7 +94,7 @@
 
     <!-- Bento Stats Grid -->
     <div class="grid grid-cols-12 gap-gutter">
-        <!-- Compliance Main Card -->
+        <!-- Compliance Main Card (KIRI - col-span-8) -->
         <div class="col-span-12 lg:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col justify-between relative overflow-hidden group stat-card">
             <div class="absolute top-0 left-0 w-full h-1 bg-secondary"></div>
             <div class="flex justify-between items-start mb-4">
@@ -114,7 +114,7 @@
                     </div>
                     <div class="w-full h-4 bg-surface-container-high rounded-full overflow-hidden">
                         <div class="h-full bg-secondary transition-all duration-1000 ease-out" 
-                             style="width: {{ $complianceRate ?? 94.2 }}%"></div>
+                            style="width: {{ $complianceRate ?? 94.2 }}%"></div>
                     </div>
                 </div>
                 <div class="hidden md:flex gap-4">
@@ -130,16 +130,35 @@
             </div>
         </div>
         
-        <!-- Quick Action Card - Generate Report Excel -->
-        <div class="col-span-12 lg:col-span-4 bg-primary text-on-primary rounded-xl p-6 flex flex-col justify-between group cursor-pointer hover:bg-primary-container transition-all stat-card" 
-            onclick="window.location.href='{{ route('report.export') }}'">
-            <div class="flex justify-between">
-                <span class="material-symbols-outlined text-4xl">description</span>
-                <span class="material-symbols-outlined opacity-50 group-hover:translate-x-1 transition-transform">arrow_forward</span>
-            </div>
-            <div>
-                <h4 class="font-headline-md text-headline-md mb-1">Generate Report</h4>
-                <p class="font-body-sm text-body-sm opacity-80">Download laporan kepatuhan guru dalam format Excel.</p>
+        <!-- KANAN: Tumpukan Kotak Review & Generate Report (col-span-4) -->
+        <div class="col-span-12 lg:col-span-4 flex flex-col gap-4">
+            
+            <!-- Kotak Notifikasi Review -->
+            <a href="{{ route('laporan.index', ['filter' => 'belum_review']) }}" 
+            class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl p-5 flex items-center justify-between shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 flex-1 min-h-[120px]">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-white shrink-0">
+                        <span class="material-symbols-outlined text-2xl">rate_review</span>
+                    </div>
+                    <div>
+                        <p class="text-white/80 text-xs font-semibold uppercase tracking-wider mb-1">Perlu Review</p>
+                        <p class="text-white text-3xl font-bold leading-none">{{ $jurnalPerluReview ?? 0 }} <span class="text-sm font-normal">Jurnal</span></p>
+                    </div>
+                </div>
+                <span class="material-symbols-outlined text-white/50 text-3xl">arrow_forward_ios</span>
+            </a>
+
+            <!-- Quick Action Card - Generate Report Excel -->
+            <div class="bg-primary text-on-primary rounded-xl p-5 flex flex-col justify-between group cursor-pointer hover:bg-primary-container transition-all stat-card flex-1 min-h-[120px]" 
+                onclick="window.location.href='{{ route('report.export') }}'">
+                <div class="flex justify-between">
+                    <span class="material-symbols-outlined text-3xl">description</span>
+                    <span class="material-symbols-outlined opacity-50 group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                </div>
+                <div class="mt-2">
+                    <h4 class="font-headline-md text-headline-md mb-1">Generate Report</h4>
+                    <p class="font-body-sm text-body-sm opacity-80 text-xs">Download laporan kepatuhan guru dalam format Excel.</p>
+                </div>
             </div>
         </div>
     </div>

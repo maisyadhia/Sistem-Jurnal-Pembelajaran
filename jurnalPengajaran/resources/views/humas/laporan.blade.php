@@ -127,6 +127,10 @@
                    class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap {{ $currentFilter === 'terlambat' ? 'bg-red-600 text-white' : 'text-red-600 hover:bg-red-50' }}">
                     ⚠️ Terlambat
                 </a>
+                <a href="{{ route('laporan.index', ['filter' => 'belum_review']) }}"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap {{ $currentFilter === 'belum_review' ? 'bg-amber-600 text-white' : 'text-amber-600 hover:bg-amber-50' }}">
+                    📝 Perlu Review
+                </a>
                 @if($currentFilter || $search)
                     <a href="{{ route('laporan.index') }}"
                        class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-300">
